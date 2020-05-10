@@ -4,6 +4,8 @@
 ///+ store/recall settings
 ///+ switch api/device without exceptions
 ///+ add macOS/linux apis?
+///+ add samplerate and other settings
+
 
 #include "ofMain.h"
 
@@ -101,6 +103,9 @@ public:
 		//bufferSize = 256;
 		//numBuffers = 4;
 		numBuffers = 2;
+
+		numInputs = 2;
+		numOutputs = 2;
 
 		//-
 
@@ -495,22 +500,6 @@ public:
 
 	void setup() {
 		
-		//--
-
-		//main setings
-	
-		////audio seetings
-
-		////sampleRate = 48000;
-		//sampleRate = 44100;
-		//bufferSize = 512;
-		////bufferSize = 256;
-		////numBuffers = 4;
-		//numBuffers = 2;
-
-		numInputs = 2;
-		numOutputs = 2;
-
 		//--
 
 		string _str;
