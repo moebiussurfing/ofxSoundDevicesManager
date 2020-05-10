@@ -1,0 +1,4 @@
+ofxGui
+ofxSimpleFloatingGui
+ofxSoundDevicesManager
+ofxTextFlow

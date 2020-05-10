@@ -2,9 +2,10 @@
 
 ///TODO:
 ///+ store/recall settings
-///+ switch api/device without exceptions
+///+ switch api/device without exceptions. clamp limited devices
 ///+ add macOS/linux apis?
-///+ add samplerate and other settings
+///+ add samplerate and other settings to gui. store to xml too.
+///+ devices by names? just editing xml file?
 
 
 #include "ofMain.h"
@@ -35,6 +36,12 @@ public:
 private:
 	int inDeviceIndex;
 	int outDeviceIndex;
+	int apiOnAllOFSystemsIndex;//all OF possile apis!
+	//NOT the index of the available apis on this system.!
+	//ie: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
+	int apiGuiIndex = 0;//this index will be related to all available apis ONLY on this system!
+	//also in your same system, devices will change when disabling on windows sound preferences/devices
+	std::vector<string> ApiNames;
 
 	std::vector<ofSoundDevice> inDevices;
 	std::vector<ofSoundDevice> outDevices;
@@ -45,8 +52,7 @@ private:
 	ofSoundStreamSettings inSettings;
 	ofSoundStreamSettings outSettings;
 
-	std::vector<string> ApiNames;
-	int apiIndex = 0;
+
 
 	//-
 
@@ -188,7 +194,7 @@ public:
 		outDeviceIndex = GUI_outDevices.getValueInt();
 
 		//api
-		if (GUI_Api.getValueInt() != apiIndex)
+		if (GUI_Api.getValueInt() != apiGuiIndex)
 		{
 			int iEnum;
 			int _i = GUI_Api.getValueInt();
@@ -213,7 +219,7 @@ public:
 
 			connectAp(iEnum);
 		}
-		apiIndex = GUI_Api.getValueInt();
+		apiGuiIndex = GUI_Api.getValueInt();
 	}
 
 
@@ -479,11 +485,11 @@ public:
 	{
 		inStream.stop();
 		inStream.close();
-		deviceIn_Connect = false;
+		//deviceIn_Connect = false;
 
 		outStream.stop();
 		outStream.close();
-		deviceOut_Connect = false;
+		//deviceOut_Connect = false;
 
 		ofSoundStreamStop();
 		ofSoundStreamClose();
@@ -497,9 +503,24 @@ public:
 
 		setup();
 	}
+	void setup(int _samplerate, int _buffersize)
+	{
+		sampleRate = _samplerate;
+		bufferSize = _buffersize;
+
+		setup();
+	}
 
 	void setup() {
-		
+
+		//TODO:
+		//hardcoded
+		//TODO: 
+		//should check/clamp limits!
+		inDeviceIndex = 8;//audio cable
+		outDeviceIndex = 4;//tv
+		apiOnAllOFSystemsIndex = 9;
+
 		//--
 
 		string _str;
@@ -577,12 +598,8 @@ public:
 
 		//-
 
-		//TODO:
-		//hardcoded
-		inDeviceIndex = 9;//audio cable
-		outDeviceIndex = 4;//tv
-		connectAp(9);//MS_DS
-		apiIndex = 2;//gui
+		connectAp(apiOnAllOFSystemsIndex);//MS_DS
+		apiGuiIndex = 2;//gui
 
 		//--
 
@@ -608,7 +625,7 @@ public:
 		GUI_outDevices.setup(outDevicesNames, outDeviceIndex, fontSmall, outlineColor, ofColor::whiteSmoke);
 
 		//api
-		GUI_Api.setup(ApiNames, apiIndex, fontSmall, outlineColor, ofColor::whiteSmoke);
+		GUI_Api.setup(ApiNames, apiGuiIndex, fontSmall, outlineColor, ofColor::whiteSmoke);
 	}
 
 	//--------------------------------------------------------------
