@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+
 #include "ofxSoundDevicesManager.h"
 
 class ofApp : public ofBaseApp{
@@ -9,11 +10,7 @@ class ofApp : public ofBaseApp{
 		void setup();
 		void update();
 		void draw();
-		void drawWaveform();
-
-		void exit() {
-			audioDevices.close();
-		}
+		void exit();
 
 		void keyPressed(int key);
 		void keyReleased(int key);
@@ -36,9 +33,9 @@ class ofApp : public ofBaseApp{
 		void audioIn(ofSoundBuffer& input) override; // not used in this example
 		void audioOut(ofSoundBuffer& output) override;
 
+		void drawWaveform();
 		float waveformInput[4096]; //make this bigger, just in case
 		int waveInputIndex;
-
 		float waveformOutput[4096]; //make this bigger, just in case
 		int waveOutputIndex;
 

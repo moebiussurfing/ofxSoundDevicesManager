@@ -115,6 +115,10 @@ public:
 
 		//-
 
+		position = glm::vec2(50, 50);
+
+		//-
+
 		//params
 		deviceIn_Connect.set("CONNECT", false);
 		deviceIn_Api.set("API", 0, 0, 10);
@@ -409,7 +413,6 @@ public:
 	
 	void draw()
 	{
-		position = glm::vec2(50, 50);
 		//position = glm::vec2(780, 50);
 
 		//-
@@ -633,6 +636,12 @@ public:
 	{
 		ofxTextFlow::addText(s);
 		ofLogNotice(__FUNCTION__) << s;
+	}
+
+	//--------------------------------------------------------------
+	void setPosition(glm::vec2 _position)
+	{
+		position = _position;
 	}
 };
 

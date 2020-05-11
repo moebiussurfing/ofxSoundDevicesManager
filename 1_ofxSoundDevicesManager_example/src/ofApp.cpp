@@ -36,6 +36,11 @@ void ofApp::draw() {
 }
 
 //--------------------------------------------------------------
+void ofApp::exit() {
+	audioDevices.close();
+}
+
+//--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
 
 }
@@ -120,27 +125,30 @@ void ofApp::setupLogDebug() {
 
 //--------------------------------------------------------------
 void ofApp::drawWaveform() {
-	//ofSetColor(255, 225);
-	ofSetColor(0, 225);
-
-	ofFill();
-	ofSetLineWidth(1.0f);
-
+	ofPushStyle();
 	ofPushMatrix();
 
-	ofTranslate(0, ofGetHeight() / 4);
-	ofDrawLine(0, 0, 1, waveformInput[1] * ofGetHeight() / 2.); //first line
+	ofFill();
+	ofSetColor(0, 225);
+	ofSetLineWidth(3.0f);
+	float _max = 200;
+
+	ofTranslate(0, ofGetHeight() / 4.f);
+	ofDrawBitmapStringHighlight("INPUT", ofGetWidth() - 70, -20);
+	ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
 	for (int i = 1; i < (ofGetWidth() - 1); ++i) {
-		ofDrawLine(i, waveformInput[i] * ofGetHeight() / 2., i + 1, waveformInput[i + 1] * ofGetHeight() / 4.);
+		ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
 	}
 
 	ofTranslate(0, 2 * ofGetHeight() / 4);
-	ofDrawLine(0, 0, 1, waveformOutput[1] * ofGetHeight() / 2.); //first line
+	ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - 70, -20);
+	ofDrawLine(0, 0, 1, waveformOutput[1] * _max); //first line
 	for (int i = 1; i < (ofGetWidth() - 1); ++i) {
-		ofDrawLine(i, waveformOutput[i] * ofGetHeight() / 2., i + 1, waveformOutput[i + 1] * ofGetHeight() / 4.);
+		ofDrawLine(i, waveformOutput[i] * _max, i + 1, waveformOutput[i + 1] * _max);
 	}
 
 	ofPopMatrix();
+	ofPopStyle();
 }
 
 //--------------------------------------------------------------
