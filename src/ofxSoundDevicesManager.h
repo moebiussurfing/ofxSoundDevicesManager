@@ -1,12 +1,12 @@
 #pragma once
 
-///TODO:
-///+ store/recall settings
-///+ switch api/device without exceptions. clamp limited devices
-///+ add macOS/linux apis?
-///+ add samplerate and other settings to gui. store to xml too.
-///+ devices by names? just editing xml file?
-
+/// TODO:
+/// +	store/recall settings
+/// +	switch api/device without exceptions. clamp limited devices
+/// +	macOS/linux apis?
+/// +	samplerate and other settings to gui. store to xml too.
+/// +	devices by names? just editing xml file?
+/// +	vumeter
 
 #include "ofMain.h"
 
@@ -15,8 +15,13 @@
 #include "ofxTextFlow.h"
 //#include "ofxXmlSettings.h"
 
-class ofxSoundDevicesManager : public ofBaseApp {
+class ofxSoundDevicesManager {
+	//class ofxSoundDevicesManager : public ofBaseApp {
+
 public:
+
+	ofBaseApp* _app_;
+
 	glm::vec2 position;
 
 	//-
@@ -51,8 +56,6 @@ private:
 
 	ofSoundStreamSettings inSettings;
 	ofSoundStreamSettings outSettings;
-
-
 
 	//-
 
@@ -99,19 +102,32 @@ public:
 
 	//--
 
+	//--------------------------------------------------------------
 	ofxSoundDevicesManager()
 	{
 		//default audio seetings
 
 		sampleRate = 44100;
-		bufferSize = 512;
 		//sampleRate = 48000;
+
+		bufferSize = 512;
 		//bufferSize = 256;
-		//numBuffers = 4;
-		numBuffers = 2;
+
+		numBuffers = 4;
+		//numBuffers = 2;
 
 		numInputs = 2;
 		numOutputs = 2;
+
+		//-
+
+		//TODO:
+		//hardcoded
+		//TODO: 
+		//should check/clamp limits!
+		inDeviceIndex = 8;//audio cable
+		outDeviceIndex = 4;//tv
+		apiOnAllOFSystemsIndex = 9;
 
 		//-
 
@@ -175,6 +191,7 @@ public:
 
 public:
 
+	//--------------------------------------------------------------
 	void update()
 	{
 		//simple callbacks
@@ -222,11 +239,13 @@ public:
 			cout << "iEnum:" << iEnum << endl;
 
 			connectAp(iEnum);
+			//connectAp(_app, iEnum);
 		}
 		apiGuiIndex = GUI_Api.getValueInt();
 	}
 
-
+	//--------------------------------------------------------------
+//void connectAp(ofBaseApp* _app, int _apiIndex)
 	void connectAp(int _apiIndex)
 	{
 		string str;
@@ -339,9 +358,11 @@ public:
 			break;
 		}
 
-		inSettings.setInListener(ofGetAppPtr());//?
+		inSettings.setInListener(_app_);//?
+		//inSettings.setInListener(ofGetAppPtr());//?
 
 		inSettings.setInDevice(inDevices[inDeviceIndex]);
+
 		inStream.setup(inSettings);
 
 		//inStream.setInput(input);
@@ -372,7 +393,8 @@ public:
 			break;
 		}
 
-		outSettings.setOutListener(ofGetAppPtr());//?
+		outSettings.setOutListener(_app_);//?
+		//outSettings.setOutListener(ofGetAppPtr());//?
 
 		outSettings.setOutDevice(outDevices[outDeviceIndex]);
 		outStream.setup(outSettings);
@@ -410,7 +432,8 @@ public:
 		deviceOut_Port = outDeviceIndex;
 		deviceOut_PortName = outDevices[deviceOut_Port].name;
 	}
-	
+
+	//--------------------------------------------------------------
 	void draw()
 	{
 		//position = glm::vec2(780, 50);
@@ -484,45 +507,68 @@ public:
 		//gui.draw();
 	}
 
-	void close()
+	//--------------------------------------------------------------
+	void close()//?
 	{
-		inStream.stop();
-		inStream.close();
-		//deviceIn_Connect = false;
+		//inStream.stop();
+		//inStream.close();
+		////deviceIn_Connect = false;
 
-		outStream.stop();
-		outStream.close();
-		//deviceOut_Connect = false;
+		//outStream.stop();
+		//outStream.close();
+		////deviceOut_Connect = false;
 
-		ofSoundStreamStop();
-		ofSoundStreamClose();
+		//ofSoundStreamStop();
+		//ofSoundStreamClose();
 	}
 
-	void setup(int _samplerate, int _buffersize, int _numbuffers)
+	//settings
+	//--------------------------------------------------------------
+	//void setup(int _samplerate, int _buffersize, int _numbuffers)
+	void setup(ofBaseApp* _app, int _samplerate, int _buffersize, int _numbuffers)
 	{
 		sampleRate = _samplerate;
 		bufferSize = _buffersize;
 		numBuffers = _numbuffers;
 
-		setup();
+		setup(_app);
+		//setup();
 	}
-	void setup(int _samplerate, int _buffersize)
+
+	//--------------------------------------------------------------
+	//void setup(int _samplerate, int _buffersize)
+	void setup(ofBaseApp* _app, int _samplerate, int _buffersize)
 	{
 		sampleRate = _samplerate;
 		bufferSize = _buffersize;
 
-		setup();
+		setup(_app);
+		//setup();
 	}
 
-	void setup() {
+	//--------------------------------------------------------------
+//devices
+	void setDevices(int input, int output)
+	{
+		inDeviceIndex = input;
+		outDeviceIndex = output;
+	}
+	void setInputDevice(int input)
+	{
+		inDeviceIndex = input;
+	}
+	void setOutputDevice(int output)
+	{
+		outDeviceIndex = output;
+	}
 
-		//TODO:
-		//hardcoded
-		//TODO: 
-		//should check/clamp limits!
-		inDeviceIndex = 8;//audio cable
-		outDeviceIndex = 4;//tv
-		apiOnAllOFSystemsIndex = 9;
+	//-
+
+//--------------------------------------------------------------
+	//void setup() {
+	void setup(ofBaseApp* _app) {
+
+		_app_ = _app;
 
 		//--
 
@@ -601,7 +647,11 @@ public:
 
 		//-
 
+		//api
+
+		//connectAp(_app, apiOnAllOFSystemsIndex);//MS_DS
 		connectAp(apiOnAllOFSystemsIndex);//MS_DS
+
 		apiGuiIndex = 2;//gui
 
 		//--

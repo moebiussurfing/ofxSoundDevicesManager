@@ -8,8 +8,10 @@ void ofApp::setup() {
 	bufferSize = 512;
 	//numBuffers = 2;
 
+	audioDevices.setup(this, sampleRate, bufferSize);
+
 	//audioDevices.setup();//setup with default settings
-	audioDevices.setup(sampleRate, bufferSize);
+	//audioDevices.setup(sampleRate, bufferSize);
 	//audioDevices.setup(sampleRate, bufferSize, numBuffers);
 
 	//default devices are
