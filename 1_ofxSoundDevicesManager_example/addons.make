@@ -1,4 +1,6 @@
 ofxGui
+ofxSerializer
 ofxSimpleFloatingGui
 ofxSoundDevicesManager
 ofxTextFlow
+ofxWindowApp

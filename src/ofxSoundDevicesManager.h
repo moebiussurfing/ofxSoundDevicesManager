@@ -13,14 +13,28 @@
 #include "ofxGui.h"
 #include "ofxSimpleFloatingGui.h"
 #include "ofxTextFlow.h"
-//#include "ofxXmlSettings.h"
 
+#define USE_AUDIO_CALLBACKS
+#define USE_Log
+
+//class ofxSoundDevicesManager : public ofBaseApp {
 class ofxSoundDevicesManager {
-	//class ofxSoundDevicesManager : public ofBaseApp {
 
 public:
 
+	string pathSettings = "ofxSoundDevicesManager.xml";
+	string str_error = "";
+
+	//ofBaseApp
 	ofBaseApp* _app_;
+
+	//-
+
+#ifdef USE_Log
+	ofParameter<bool> SHOW_Log;
+#endif
+	ofParameter<bool> SHOW_Active;
+	ofParameter<bool> SHOW_Advanced;
 
 	glm::vec2 position;
 
@@ -39,8 +53,8 @@ public:
 	int numBuffers;
 
 private:
-	int inDeviceIndex;
-	int outDeviceIndex;
+
+	//api
 	int apiOnAllOFSystemsIndex;//all OF possile apis!
 	//NOT the index of the available apis on this system.!
 	//ie: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
@@ -48,40 +62,55 @@ private:
 	//also in your same system, devices will change when disabling on windows sound preferences/devices
 	std::vector<string> ApiNames;
 
+	//devices
 	std::vector<ofSoundDevice> inDevices;
 	std::vector<ofSoundDevice> outDevices;
 
 	std::vector<string> inDevicesNames;
 	std::vector<string> outDevicesNames;
 
+	//settings
 	ofSoundStreamSettings inSettings;
 	ofSoundStreamSettings outSettings;
 
 	//-
 
 private:
+
 	//gui
-	DropDown GUI_inDevices;
-	DropDown GUI_outDevices;
+
+	//widgets
+	DropDown GUI_deviceIndexInput;
+	DropDown GUI_deviceIndexOutput;
 	DropDown GUI_Api;
+	Toggle GUI_enableInput;
+	SliderB GUI_volumeInput;
+	Toggle GUI_enableOutput;
+	SliderB GUI_volumeOutput;
 
-	ofColor backgroundColor;
-	ofColor outlineColor;
-	ofColor contentColor;
+	//layout
+	ofColor colorDark;
+	ofColor colorGrey;
+	ofColor colorWhite;
 	int drawCounter;
+	int _widgetW;
+	int _widgetH;
 
-	// font
+	//fonts
 	ofTrueTypeFont fontSmall;
 	ofTrueTypeFont fontMedium;
 	ofTrueTypeFont fontBig;
 
 	//-
 
+private:
+
 	//parameters
-public:
+
 	//in
 	ofParameterGroup params_In;
-	ofParameter<bool> deviceIn_Connect;
+	ofParameter<bool> deviceIn_Enable;
+	ofParameter<float> deviceIn_Volume;
 	ofParameter<int> deviceIn_Api;
 	ofParameter<string> deviceIn_ApiName;
 	ofParameter<int> deviceIn_Port;
@@ -89,7 +118,8 @@ public:
 
 	//out
 	ofParameterGroup params_Out;
-	ofParameter<bool> deviceOut_Connect;
+	ofParameter<bool> deviceOut_Enable;
+	ofParameter<float> deviceOut_Volume;
 	ofParameter<int> deviceOut_Api;
 	ofParameter<string> deviceOut_ApiName;
 	ofParameter<int> deviceOut_Port;
@@ -98,129 +128,249 @@ public:
 	//-
 
 	ofParameterGroup params;
+	ofParameterGroup params_Control;
+	bool DISABLE_Callbacks = false;//to avoid callback crashes or to enable only after setup()
+
 	ofxPanel gui;
+	bool bSHOW_Gui = false;
+
+	//-
+
+public:
+
+	//api
+
+	void setVisibleGui(bool b)
+	{
+		bSHOW_Gui = b;
+	}
+	void toggleVisibleGui()
+	{
+		bSHOW_Gui = !bSHOW_Gui;
+	}
+
+	void setVisibleLog(bool b)
+	{
+		SHOW_Log = b;
+	}
+	void toggleVisibleLog()
+	{
+		SHOW_Log = !SHOW_Log;
+	}
+
+	void setActive(bool b)
+	{
+		SHOW_Active = b;
+	}
+	void toggleActive()
+	{
+		SHOW_Active = !SHOW_Active;
+	}
+	
+	void setVisibleAdvanced(bool b)
+	{
+		SHOW_Advanced = b;
+	}
+	void toggleVisibleAdvanced()
+	{
+		SHOW_Advanced = !SHOW_Advanced;
+	}
 
 	//--
 
 	//--------------------------------------------------------------
 	ofxSoundDevicesManager()
 	{
+		params_Control.setName("CONTROL");
+
+		SHOW_Active.set("ACTIVE", true);
+		SHOW_Advanced.set("ADVANCED", true);
+		params_Control.add(SHOW_Active);
+		params_Control.add(SHOW_Advanced);
+#ifdef USE_Log
+		SHOW_Log.set("LOG", true);
+		params_Control.add(SHOW_Log);
+#endif
+		//-
+
+		DISABLE_Callbacks = true;
+
 		//default audio seetings
 
-		sampleRate = 44100;
+		sampleRate = 44100;//internal default
 		//sampleRate = 48000;
 
 		bufferSize = 512;
-		//bufferSize = 256;
+		//bufferSize = 256;//internal default
 
-		numBuffers = 4;
+		numBuffers = 4;//internal default
 		//numBuffers = 2;
 
+		//-
+
+		//channels
 		numInputs = 2;
 		numOutputs = 2;
 
 		//-
 
-		//TODO:
-		//hardcoded
-		//TODO: 
-		//should check/clamp limits!
-		inDeviceIndex = 8;//audio cable
-		outDeviceIndex = 4;//tv
-		apiOnAllOFSystemsIndex = 9;
-
-		//-
-
-		position = glm::vec2(50, 50);
-
-		//-
-
 		//params
-		deviceIn_Connect.set("CONNECT", false);
+		deviceIn_Enable.set("ENABLE", false);
+		deviceIn_Volume.set("VOLUME", 0.5f, 0.f, 1.f);
 		deviceIn_Api.set("API", 0, 0, 10);
 		deviceIn_ApiName.set("", "");
 		deviceIn_Port.set("PORT", 0, 0, 10);
 		deviceIn_PortName.set("", "");
 
-		deviceOut_Connect.set("CONNECT", false);
+		deviceOut_Enable.set("ENABLE", false);
+		deviceOut_Volume.set("VOLUME", 0.5f, 0.f, 1.f);
 		deviceOut_Api.set("API", 0, 0, 10);
 		deviceOut_ApiName.set("", "");
 		deviceOut_Port.set("PORT", 0, 0, 10);
 		deviceOut_PortName.set("", "");
 
+		//serializers
+		//deviceIn_Enable.setSerializable(false);
+		deviceIn_Api.setSerializable(false);
+		deviceIn_ApiName.setSerializable(false);
+		//deviceIn_Port.setSerializable(false);
+		deviceIn_PortName.setSerializable(false);
+
+		//deviceOut_Enable.setSerializable(false);
+		deviceOut_Api.setSerializable(false);
+		deviceOut_ApiName.setSerializable(false);
+		//deviceOut_Port.setSerializable(false);
+		deviceOut_PortName.setSerializable(false);
+
+		//-
+
+		//TODO:
+		apiOnAllOFSystemsIndex = 9;//api #9 on OF is MS-DS
+
 		//-
 
 		params_In.setName("INPUT");
-		params_In.add(deviceIn_Connect);
+		params_In.add(deviceIn_Enable);
+		params_In.add(deviceIn_Volume);
 		params_In.add(deviceIn_Api);
-		params_In.add(deviceIn_ApiName);
 		params_In.add(deviceIn_Port);
+		params_In.add(deviceIn_ApiName);
 		params_In.add(deviceIn_PortName);
 
 		params_Out.setName("OUTPUT");
-		params_Out.add(deviceOut_Connect);
+		params_Out.add(deviceOut_Enable);
+		params_Out.add(deviceOut_Volume);
 		params_Out.add(deviceOut_Api);
-		params_Out.add(deviceOut_ApiName);
 		params_Out.add(deviceOut_Port);
+		params_Out.add(deviceOut_ApiName);
 		params_Out.add(deviceOut_PortName);
 
-		params.setName("AUDIO MANAGER");
+		params.setName("ofxSoundDevicesManager");
 		params.add(params_In);
 		params.add(params_Out);
+		params.add(params_Control);
 
-		gui.setup();
-		gui.add(params);
-		gui.setPosition(700, 700);
-		//gui.setSize(500, 500);
+		setupWaveforms();
+		params.add(paramsWaveforms);
+
+		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
+		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
+		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
 
 		//-
 
-		//gui
-		backgroundColor = ofColor::black;
-		outlineColor = ofColor(128);
-		contentColor = ofColor::white;
+		//layout
 
+		//user gui
+		position = glm::vec2(25, 25);
+
+		//-
+
+		colorDark = ofColor::black;
+		colorGrey = ofColor(128);
+		colorWhite = ofColor::white;
 		drawCounter = 0;
-		inDeviceIndex = 0;
-		outDeviceIndex = 0;
+
+		//-
+
+		gui.setup();
+		gui.add(params);
+
+		//advanced gui
+		gui.setPosition(700, 400);
 	};
 
-	~ofxSoundDevicesManager() {};
+	//--------------------------------------------------------------
+	~ofxSoundDevicesManager() {
+		saveGroup(params, pathSettings);
+		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
+		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
+		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
+
+		close();
+	};
 
 	//--------------------------------------------------------------
 
 public:
 
 	//--------------------------------------------------------------
-	void update()
+	void updateGuiUser()
 	{
 		//simple callbacks
 
 		//in
-		if (GUI_inDevices.getValueInt() != inDeviceIndex)
+
+		//enable
+		if (GUI_enableInput.getValue() != deviceIn_Enable)
+		{
+			deviceIn_Enable = GUI_enableInput.getValue();
+		}
+		//volumen
+		if (GUI_volumeInput.getValue() != deviceIn_Volume)
+		{
+			deviceIn_Volume = GUI_volumeInput.getValue();
+		}
+		//port
+		if (GUI_deviceIndexInput.getValueInt() != deviceIn_Port)
 		{
 			inStream.close();
-			inSettings.setInDevice(inDevices[GUI_inDevices.getValueInt()]);
+			inSettings.setInDevice(inDevices[GUI_deviceIndexInput.getValueInt()]);
 			inStream.setup(inSettings);
+			deviceIn_Port = GUI_deviceIndexInput.getValueInt();
 		}
-		inDeviceIndex = GUI_inDevices.getValueInt();
+
+		//-
 
 		//out
-		if (GUI_outDevices.getValueInt() != outDeviceIndex)
+
+		//enable
+		if (GUI_enableOutput.getValue() != deviceOut_Enable)
+		{
+			deviceOut_Enable = GUI_enableOutput.getValue();
+		}
+		//volumen
+		if (GUI_volumeOutput.getValue() != deviceOut_Volume)
+		{
+			deviceOut_Volume = GUI_volumeOutput.getValue();
+		}
+		//port
+		if (GUI_deviceIndexOutput.getValueInt() != deviceOut_Port)
 		{
 			outStream.close();
-			outSettings.setOutDevice(outDevices[GUI_outDevices.getValueInt()]);
+			outSettings.setOutDevice(outDevices[GUI_deviceIndexOutput.getValueInt()]);
 			outStream.setup(outSettings);
+			deviceOut_Port = GUI_deviceIndexOutput.getValueInt();
 		}
-		outDeviceIndex = GUI_outDevices.getValueInt();
 
 		//api
 		if (GUI_Api.getValueInt() != apiGuiIndex)
 		{
 			int iEnum;
 			int _i = GUI_Api.getValueInt();
-			//cout << "GUI_Api.getValueInt() " << _i << endl;
+			ofLogVerbose(__FUNCTION__) << "GUI_Api.getValueInt() " << _i << endl;
 
+			//windows apis
 			switch (_i)
 			{
 			case 0:
@@ -233,28 +383,38 @@ public:
 				iEnum = 9;//MS_DS
 				break;
 			default:
-				cout << "error: " << iEnum << endl;
+				ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
 				break;
 			}
-			cout << "iEnum:" << iEnum << endl;
+			ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
+
+			//-
 
 			connectAp(iEnum);
-			//connectAp(_app, iEnum);
+			apiGuiIndex = GUI_Api.getValueInt();
 		}
-		apiGuiIndex = GUI_Api.getValueInt();
 	}
 
 	//--------------------------------------------------------------
-//void connectAp(ofBaseApp* _app, int _apiIndex)
-	void connectAp(int _apiIndex)
+	void update()
 	{
-		string str;
+		//updateWaveforms();
 
 		//-
 
-		//TODO:
+		//user gui
+		updateGuiUser();
+	}
 
+	//--------------------------------------------------------------
+	//void connectAp(ofBaseApp* _app, int _apiIndex)
+	void connectAp(int _apiIndex)
+	{
 		close();
+
+		string str;
+
+		//-
 
 		//clean
 		ofSoundStreamSettings _settings;
@@ -341,7 +501,6 @@ public:
 		inSettings.numBuffers = numBuffers;
 		inSettings.numOutputChannels = 0;
 		inSettings.numInputChannels = numInputs;
-		//inSettings.numInputChannels = inDevices[inDeviceIndex].inputChannels;//all
 
 		switch (_apiEnum)
 		{
@@ -358,14 +517,11 @@ public:
 			break;
 		}
 
-		inSettings.setInListener(_app_);//?
 		//inSettings.setInListener(ofGetAppPtr());//?
-
-		inSettings.setInDevice(inDevices[inDeviceIndex]);
+		inSettings.setInListener(_app_);//?
+		inSettings.setInDevice(inDevices[deviceIn_Port]);
 
 		inStream.setup(inSettings);
-
-		//inStream.setInput(input);
 
 		//-
 
@@ -376,7 +532,6 @@ public:
 		outSettings.sampleRate = sampleRate;//set the samplerate of both devices to be the same
 		outSettings.numInputChannels = 0;
 		outSettings.numOutputChannels = numOutputs;
-		//outSettings.numOutputChannels = outDevices[outDeviceIndex].outputChannels;//all
 
 		switch (_apiEnum)
 		{
@@ -393,26 +548,28 @@ public:
 			break;
 		}
 
-		outSettings.setOutListener(_app_);//?
 		//outSettings.setOutListener(ofGetAppPtr());//?
+		outSettings.setOutListener(_app_);//?
+		outSettings.setOutDevice(outDevices[deviceOut_Port]);
 
-		outSettings.setOutDevice(outDevices[outDeviceIndex]);
 		outStream.setup(outSettings);
 
-		//outStream.setOutput(output);
-
 		//-
+
+		str = "------------------------------------------";
+		logLine(str);
+
+		str = "\n> CONNECTED SOUND DEVICES\n\n";
+		logLine(str);
 
 		str = "API    [ " + str_api + " ]";
 		logLine(str);
 
-		str = "Input  [ " + ofToString(inDeviceIndex) + " ]";
+		str = "Input  [ " + ofToString(deviceIn_Port) + " ]";
 		logLine(str);
 
-		str = "Output [ " + ofToString(outDeviceIndex) + " ]";
+		str = "Output [ " + ofToString(deviceOut_Port) + " ]";
 		logLine(str);
-
-		//-
 
 		str = "------------------------------------------";
 		logLine(str);
@@ -420,106 +577,239 @@ public:
 		//-
 
 		//update params
-		deviceIn_Connect = true;
+
+		//max ports
+		deviceIn_Port.setMax(inDevices.size() - 1);
+		deviceOut_Port.setMax(outDevices.size() - 1);
+
 		deviceIn_Api = _apiEnum;
 		deviceIn_ApiName = str_api;
-		deviceIn_Port = inDeviceIndex;
 		deviceIn_PortName = inDevices[deviceIn_Port].name;
 
-		deviceOut_Connect = true;
 		deviceOut_Api = _apiEnum;
 		deviceOut_ApiName = str_api;
-		deviceOut_Port = outDeviceIndex;
 		deviceOut_PortName = outDevices[deviceOut_Port].name;
+	}
+
+	//--------------------------------------------------------------
+	void drawGuiUser()
+	{
+		ofPushStyle();
+
+		//anchor pos
+		int _x0 = position.x;//column 0
+		int _y0 = position.y;
+
+		int _wColumn = 500;//space between in/out (column 1-2)
+		int _spacerX = 60;
+		int _spacerY = 20;
+
+		//vu's
+		int _ww = 120;
+		int _hh = 10;
+
+		int _x, _y;
+		int _vuMargin = 30;
+		int _wVu;
+		string __str;
+
+		ofMatrix4x4 translation;
+		translation = ofMatrix4x4::newTranslationMatrix(ofVec3f(_x0, _y0));
+		ofPushMatrix();
+		ofMultMatrix(translation);
+
+		//--
+
+		//column 1
+		_x = 0;
+		//row 3
+		_y = 6 * _spacerY;
+
+		//settings
+		ofSetColor(colorGrey);
+		string _str;
+		float _strW;
+		int _margin = 20;
+
+		_str = "SampleRate [" + ofToString(sampleRate) + "]";
+		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
+		fontSmall.drawString(_str, _x, _y);
+		_x += _strW;
+
+		_str = "BufferSize [" + ofToString(bufferSize) + "]";
+		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
+		fontSmall.drawString(_str, _x, _y);
+		_x += _strW;
+
+		_str = "InPort [" + ofToString(deviceIn_Port) + "]";
+		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
+		fontSmall.drawString(_str, _x, _y);
+		_x += _strW;
+
+		_str = "OutPort [" + ofToString(deviceOut_Port) + "]";
+		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
+		fontSmall.drawString(_str, _x, _y);
+		//_x += _strW;
+
+		//---
+
+		//api
+
+		ofSetColor(colorGrey);
+
+		//column 1
+		_x = 0;
+		//row 1
+		_y = 0;
+
+		fontMedium.drawString("API", _x, _y);
+		_y += _spacerY;
+		GUI_Api.draw(_x, _y, translation);
+
+		//----
+
+		//input
+
+		ofSetColor(colorGrey);
+
+		//column 2
+		_x = 145;
+		//row 2
+		_y = 0;
+
+		//label
+		__str = "INPUT";
+		fontMedium.drawString(__str, _x, _y);
+
+		//vu
+		_wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
+		drawVU(smoothedVolume_Input, _x + _wVu, _y, _ww, _hh);
+		_y += _spacerY;
+
+		//enable toggle
+		GUI_enableInput.draw(_x, _y, translation);
+		_x += _spacerX;
+
+		//input volume 
+		GUI_volumeInput.draw(_x, _y, translation);//_y + _widgetH*1.f
+		_y += _spacerY;
+
+		//-
+
+		//dropdown
+		_x = +145;
+		_y += _spacerY;
+		GUI_deviceIndexInput.draw(_x, _y, translation);
+
+		//---
+
+		//out
+
+		ofSetColor(colorGrey);
+
+		//row 3
+		_y = 0;
+		//column 3
+		_x += _wColumn;
+
+		//label
+		__str = "OUTPUT";
+		fontMedium.drawString(__str, _x, _y);
+		
+		//vu
+		_wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
+		drawVU(smoothedVolume_Out, _x + _wVu, _y, _ww, _hh);
+		_y += _spacerY;
+
+		//enable toggle
+		GUI_enableOutput.draw(_x, _y, translation);
+		_x += _spacerX;
+
+		//output volume 
+		GUI_volumeOutput.draw(_x, _y, translation);
+		_y += _spacerY;
+
+		//-
+
+		//dropdown
+		_x = +145 + _wColumn;
+		_y += _spacerY;
+		GUI_deviceIndexOutput.draw(_x, _y, translation);
+
+		//-
+
+		////column 1
+		//_x = 0;
+		////row 3
+		//_y += 3 * _spacerY;
+
+		////settings
+		//ofSetColor(colorGrey);
+		//string _str;
+		//float _strW;
+		//int _margin = 20;
+
+		//_str = "SampleRate [" + ofToString(sampleRate) + "]";
+		//_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
+		//fontSmall.drawString(_str, _x, _y);
+		//_x += _strW;
+
+		//_str = "BufferSize [" + ofToString(bufferSize) + "]";
+		//_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
+		//fontSmall.drawString(_str, _x, _y);
+		//_x += _strW;
+
+		//_str = "InPort [" + ofToString(deviceIn_Port) + "]";
+		//_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
+		//fontSmall.drawString(_str, _x, _y);
+		//_x += _strW;
+
+		//_str = "OutPort [" + ofToString(deviceOut_Port) + "]";
+		//_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
+		//fontSmall.drawString(_str, _x, _y);
+		////_x += _strW;
+
+		//---
+
+		drawCounter++;
+
+		ofPopStyle();
+		ofPopMatrix();
 	}
 
 	//--------------------------------------------------------------
 	void draw()
 	{
-		//position = glm::vec2(780, 50);
+		if (SHOW_Active)
+		{
 
-		//-
+#ifdef USE_AUDIO_CALLBACKS
+			drawWaveforms();
+#endif
 
-		//gui
+			//--
 
-		ofPushStyle();
+			//gui
+			drawGuiUser();
 
-		//anchor pos
-		int _x0 = position.x;
-		int _y0 = position.y;
-		int _w = 500;//space between in/out
+			//--
 
-		int _x = _x0;
-		int _y = _y0;
-		int _spacer = 15;
-
-		ofMatrix4x4 translation;
-		translation = ofMatrix4x4::newTranslationMatrix(ofVec3f(0, 0));
-
-		////translation = ofMatrix4x4::newTranslationMatrix(ofVec3f(LW, UH + HW + INTW));
-		//ofPushMatrix();
-		//// translation
-		//ofMultMatrix(translation);
-
-		////window outline
-		//ofSetLineWidth(2);
-		////ofDrawRectangle(0, 0, WW, HW);
-		//ofDrawRectangle(_x0, _y0, WW, HW);
-
-		//-
-
-		//api
-		_x = _x0;
-		_y = _y0;
-		ofSetColor(outlineColor);
-		fontMedium.drawString("API", _x, _y);
-		_y += _spacer;
-		GUI_Api.draw(_x, _y, translation);
-
-		//-
-
-		//in
-		_x += 145;
-		_y = _y0;
-		ofSetColor(outlineColor);
-		fontMedium.drawString("INPUT", _x, _y);
-		_y += _spacer;
-		GUI_inDevices.draw(_x, _y, translation);
-
-		//-
-
-		//out
-		_x += _w;
-		_y = _y0;
-		ofSetColor(outlineColor);
-		fontMedium.drawString("OUTPUT", _x, _y);
-		_y += _spacer;
-		GUI_outDevices.draw(_x, _y, translation);
-
-		//-
-
-		drawCounter++;
-
-		ofPopStyle();
-
-		//----
-
-		//gui.draw();
+			if (bSHOW_Gui)
+				gui.draw();
+		}
 	}
 
 	//--------------------------------------------------------------
-	void close()//?
+	void close()
 	{
-		//inStream.stop();
-		//inStream.close();
-		////deviceIn_Connect = false;
+		inStream.stop();
+		inStream.close();
 
-		//outStream.stop();
-		//outStream.close();
-		////deviceOut_Connect = false;
+		outStream.stop();
+		outStream.close();
 
-		//ofSoundStreamStop();
-		//ofSoundStreamClose();
+		ofSoundStreamStop();
+		ofSoundStreamClose();
 	}
 
 	//settings
@@ -550,16 +840,16 @@ public:
 //devices
 	void setDevices(int input, int output)
 	{
-		inDeviceIndex = input;
-		outDeviceIndex = output;
+		deviceIn_Port = input;
+		deviceOut_Port = output;
 	}
 	void setInputDevice(int input)
 	{
-		inDeviceIndex = input;
+		deviceIn_Port = input;
 	}
 	void setOutputDevice(int output)
 	{
-		outDeviceIndex = output;
+		deviceOut_Port = output;
 	}
 
 	//-
@@ -613,7 +903,6 @@ public:
 			str = ofToString(dev);
 			logLine(str);
 		}
-
 		str = "\n";
 		logLine(str);
 
@@ -639,11 +928,10 @@ public:
 
 		//-
 
-		str = "------------------------------------------";
-		logLine(str);
+		DISABLE_Callbacks = false;
 
-		str = "\n> CONNECTED SOUND DEVICES\n\n";
-		logLine(str);
+		//settings
+		loadGroup(params, pathSettings);
 
 		//-
 
@@ -652,8 +940,22 @@ public:
 		//connectAp(_app, apiOnAllOFSystemsIndex);//MS_DS
 		connectAp(apiOnAllOFSystemsIndex);//MS_DS
 
-		apiGuiIndex = 2;//gui
+		//TODO:
+		//harcoded
+		apiGuiIndex = 2;//for gui
 
+		//--
+
+		setupGuiUser();
+
+
+		ofxTextFlow::setShowing(SHOW_Log);
+
+	}
+
+	//--------------------------------------------------------------
+	void setupGuiUser()
+	{
 		//--
 
 		//gui 
@@ -665,27 +967,50 @@ public:
 		fontMedium.load(_font, 10);
 		fontBig.load(_font, 12);
 
-		//in
+		//dropdowns
+
+		//1. api
+		GUI_Api.setup(ApiNames, apiGuiIndex, fontSmall, colorGrey, ofColor::whiteSmoke);
+
+		//2. in
 		for (int i = 0; i < inDevices.size(); i++) {
 			inDevicesNames.push_back(inDevices[i].name);
 		}
-		GUI_inDevices.setup(inDevicesNames, inDeviceIndex, fontSmall, outlineColor, ofColor::whiteSmoke);
+		GUI_deviceIndexInput.setup(inDevicesNames, deviceIn_Port, fontSmall, colorGrey, ofColor::whiteSmoke);
 
-		//out
+		//3. out
 		for (int i = 0; i < outDevices.size(); i++) {
 			outDevicesNames.push_back(outDevices[i].name);
 		}
-		GUI_outDevices.setup(outDevicesNames, outDeviceIndex, fontSmall, outlineColor, ofColor::whiteSmoke);
+		GUI_deviceIndexOutput.setup(outDevicesNames, deviceOut_Port, fontSmall, colorGrey, ofColor::whiteSmoke);
 
-		//api
-		GUI_Api.setup(ApiNames, apiGuiIndex, fontSmall, outlineColor, ofColor::whiteSmoke);
+		//-
+
+		_widgetW = 200;
+		_widgetH = 15;
+
+		GUI_enableInput.setup(deviceIn_Enable, colorDark);
+		GUI_volumeInput.setup(deviceIn_Volume, _widgetW, _widgetH, _widgetH*.7f, colorDark, colorGrey);
+		GUI_enableOutput.setup(deviceOut_Enable, colorDark);
+		GUI_volumeOutput.setup(deviceOut_Volume, _widgetW, _widgetH, _widgetH*.7f, colorDark, colorGrey);
 	}
 
 	//--------------------------------------------------------------
-	void logLine(string s)
+	float getVolumeInput()
 	{
-		ofxTextFlow::addText(s);
-		ofLogNotice(__FUNCTION__) << s;
+		if (GUI_enableInput.getValue())
+			return GUI_volumeInput.getValue();
+		else
+			return 0.0;
+	}
+
+	//--------------------------------------------------------------
+	float getVolumeOutput()
+	{
+		if (GUI_enableOutput.getValue())
+			return GUI_volumeOutput.getValue();
+		else
+			return 0.0;
 	}
 
 	//--------------------------------------------------------------
@@ -693,5 +1018,340 @@ public:
 	{
 		position = _position;
 	}
-};
 
+	//--------------------------------------------------------------
+	void loadGroup(ofParameterGroup &g, string path)
+	{
+		ofLogNotice(__FUNCTION__) << "loadGroup: " << g.getName() << " to " << path;
+		ofLogVerbose(__FUNCTION__) << "parameters: " << g.toString();
+		ofXml settings;
+		settings.load(path);
+		ofDeserialize(settings, g);
+
+		//-
+
+		//startup
+
+		//mirror variables that could not be 'loaded'
+
+		//in
+		GUI_enableInput.setValue(deviceIn_Enable);
+		GUI_volumeInput.setValue(deviceIn_Volume);
+		//GUI_deviceIndexInput
+
+		//out
+		GUI_enableOutput.setValue(deviceOut_Enable);
+		GUI_volumeOutput.setValue(deviceOut_Volume);
+		//deviceIn_Port
+
+	}
+
+	//--------------------------------------------------------------
+	void saveGroup(ofParameterGroup &g, string path)
+	{
+		ofLogNotice(__FUNCTION__) << "saveGroup: " << g.getName() << " to " << path;
+		ofLogVerbose(__FUNCTION__) << "parameters: " << g.toString();
+		ofXml settings;
+		ofSerialize(settings, g);
+		settings.save(path);
+	}
+
+	//-
+
+#ifdef USE_AUDIO_CALLBACKS
+
+	float waveformInput[4096]; //make this bigger, just in case
+	int waveInputIndex;
+	float waveformOutput[4096]; //make this bigger, just in case
+	int waveOutputIndex;
+
+	//rms, vu's, alternative waveform plots
+	ofParameter<bool> enableSmooth = false;
+	ofParameter<float> smoothRatio;
+	float smoothedVolume_Input = 0;
+	float smoothedVolume_Out = 0;
+	float scaledVolume = 0;
+	ofParameterGroup paramsWaveforms;
+	//alternative plots
+	//ofParameter<int> radius;
+	//ofParameter<int> lineScale;
+	//vector <float> outHistory;
+	//ofPolyline line;
+
+	//--------------------------------------------------------------
+	void setupWaveforms() {
+		paramsWaveforms.setName("VU");
+		paramsWaveforms.add(enableSmooth.set("ENABLE SMOOTH", false));
+		paramsWaveforms.add(smoothRatio.set("SMOOTH", 0.97, 0.70, 0.99));
+		//alternative plots
+		//paramsWaveforms.add(radius.set("MAX", 200, 100, 800));
+		//paramsWaveforms.add(lineScale.set("SCALE", 500, 200, 1200));
+		//outHistory.assign(ofGetWidth(), 0.0);
+	}
+
+	//alternative plots
+	////--------------------------------------------------------------
+	//void updateWaveforms() {
+	//	//copied from audioInExample
+	//	outHistory.push_back(smoothedVolume_Out);
+	//	//if we are bigger the the size we want to record - lets drop the oldest value
+	//	if (outHistory.size() >= ofGetWidth()) {
+	//		outHistory.erase(outHistory.begin(), outHistory.begin() + 1);
+	//	}
+	//	int x = 0;
+	//	for (auto vol : outHistory) {
+	//		auto ver = glm::vec3(x, -vol * lineScale, 0);
+	//		line.addVertex(ver);
+	//		if (line.size() > ofGetWidth()) {
+	//			line.getVertices().erase(
+	//				line.getVertices().begin()
+	//			);
+	//		}
+	//		x++;
+	//	}
+	//}
+
+	//--------------------------------------------------------------
+	void drawWaveforms() {
+		ofPushStyle();
+		ofPushMatrix();
+
+		ofFill();
+		ofSetColor(0, 225);
+		ofSetLineWidth(3.0f);
+		float _max = 200;
+		int _margin = 50;
+
+		//input
+		ofTranslate(0, ofGetHeight() / 4.f);
+		ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
+		for (int i = 1; i < (ofGetWidth() - 1); ++i) {
+			ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
+		}
+		ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, +6);
+
+		//output
+		ofTranslate(0, 2 * ofGetHeight() / 4);
+		ofDrawLine(0, 0, 1, waveformOutput[1] * _max); //first line
+		for (int i = 1; i < (ofGetWidth() - 1); ++i) {
+			ofDrawLine(i, waveformOutput[i] * _max, i + 1, waveformOutput[i + 1] * _max);
+		}
+		ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - _margin, +6);
+
+		//-
+
+		//alternative plots
+		//ofSetColor(255, 0, 0);
+		//ofDrawCircle(500, -500, smoothedVolume_Out * radius);
+		//line.draw();
+		////cout << "smoothedVolume_Out:" << smoothedVolume_Out << endl;
+
+		//-
+
+		ofPopMatrix();
+		ofPopStyle();
+	}
+
+	//--------------------------------------------------------------
+	void audioIn(ofSoundBuffer& input) {
+		std::size_t nChannels = input.getNumChannels();
+
+		//vu
+		float rms = 0.0;
+		int numCounted = 0;
+
+		for (size_t i = 0; i < input.getNumFrames(); i++)
+		{
+			waveformInput[waveInputIndex] = input[i * nChannels]
+				* getVolumeInput()
+				;
+
+			if (waveInputIndex < (ofGetWidth() - 1)) {
+				++waveInputIndex;
+			}
+			else {
+				waveInputIndex = 0;
+			}
+
+			//-
+
+			//vu
+			//code from here: https://github.com/edap/examplesOfxMaxim
+			//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+			float left = input[0];
+			float right = input[1];
+			rms += left * left;
+			rms += right * right;
+			numCounted += 2;
+		}
+
+		//--
+
+		//vu
+		rms /= (float)numCounted;
+		rms = sqrt(rms);
+		if (enableSmooth) {
+			smoothedVolume_Input *= smoothRatio;
+			smoothedVolume_Input += 0.07 * rms;
+		}
+		else {
+			smoothedVolume_Input = rms;
+		}
+	}
+
+	//--------------------------------------------------------------
+	void audioOut(ofSoundBuffer& output) {
+		std::size_t outChannels = output.getNumChannels();
+
+		//vu
+		float rms = 0.0;
+		int numCounted = 0;
+
+		for (int i = 0; i < output.getNumFrames(); ++i)
+		{
+			output[i * outChannels] = ofRandom(-1, 1)
+				* getVolumeOutput()
+				;
+			output[i * outChannels + 1] = output[i * outChannels];
+
+			waveformOutput[waveOutputIndex] = output[i * outChannels];
+			if (waveOutputIndex < (ofGetWidth() - 1)) {
+				++waveOutputIndex;
+			}
+			else {
+				waveOutputIndex = 0;
+			}
+
+			//-
+
+			//vu
+			//code from here: https://github.com/edap/examplesOfxMaxim
+			//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+			float left = output[0];
+			float right = output[1];
+			rms += left * left;
+			rms += right * right;
+			numCounted += 2;
+		}
+
+		//--
+
+		//vu
+		rms /= (float)numCounted;
+		rms = sqrt(rms);
+		if (enableSmooth) {
+			smoothedVolume_Out *= smoothRatio;
+			smoothedVolume_Out += 0.07 * rms;
+		}
+		else {
+			smoothedVolume_Out = rms;
+		}
+	}
+
+#ifdef USE_Log
+	//--------------------------------------------------------------
+	void Changed_params_Control(ofAbstractParameter &e)
+	{
+		if (!DISABLE_Callbacks)
+		{
+			string name = e.getName();
+
+			if (name == "LOG")
+			{
+				ofxTextFlow::setShowing(SHOW_Log);
+			}
+			if (name == "ACTIVE")
+			{
+				if (SHOW_Active)
+				{
+					
+				}
+				else
+				{
+					//bSHOW_Gui = false;
+				}
+			}
+			if (name == "ADVANCED")
+			{
+				bSHOW_Gui = SHOW_Advanced;
+			}
+		}
+	}
+#endif
+
+#endif // USE_AUDIO_CALLBACKS
+
+	//-
+	//--------------------------------------------------------------
+	void Changed_params_In(ofAbstractParameter &e)
+	{
+		if (!DISABLE_Callbacks)
+		{
+			string name = e.getName();
+
+			if (name == "ENABLE")
+			{
+				GUI_enableInput.setValue(deviceIn_Enable);
+			}
+			else if (name == "VOLUME")
+			{
+				GUI_volumeInput.setValue(deviceIn_Volume);
+			}
+			else if (name == "PORT")
+			{
+				GUI_deviceIndexInput.setValueInt(deviceIn_Port);
+			}
+		}
+	}
+
+	//--------------------------------------------------------------
+	void Changed_params_Out(ofAbstractParameter &e)
+	{
+		if (!DISABLE_Callbacks)
+		{
+			string name = e.getName();
+
+			if (name == "ENABLE")
+			{
+				GUI_enableOutput.setValue(deviceOut_Enable);
+			}
+			else if (name == "VOLUME")
+			{
+				GUI_volumeOutput.setValue(deviceOut_Volume);
+			}
+			else if (name == "PORT")
+			{
+				GUI_deviceIndexOutput.setValueInt(deviceOut_Port);
+			}
+		}
+	}
+
+	//--------------------------------------------------------------
+	void drawVU(float val, int x, int y, int w, int h)
+	{
+		ofPushStyle();
+
+		ofSetColor(colorGrey);
+		ofNoFill();
+		ofDrawRectangle(x, y - h, w, h);
+
+		ofSetColor(colorWhite);
+		ofFill();
+		ofDrawRectangle(x, y - h, val*w, h);
+
+		ofPopStyle();
+	}
+
+	//--------------------------------------------------------------
+#ifdef USE_Log
+	void logLine(string s)
+	{
+		if (SHOW_Log)
+		{
+			ofxTextFlow::addText(s);
+			ofLogNotice(__FUNCTION__) << s;
+		}
+	}
+#endif
+
+};

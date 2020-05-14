@@ -2,27 +2,39 @@
 
 #include "ofMain.h"
 
+#define USE_ofxWindowApp
+#ifdef USE_ofxWindowApp
+#include "ofxWindowApp.h"
+#endif
+
+#define USE_Log
+
 #include "ofxSoundDevicesManager.h"
 
 class ofApp : public ofBaseApp{
 
 	public:
+
+#ifdef USE_ofxWindowApp
+		ofxWindowApp windowApp;
+#endif
+		
 		void setup();
 		void update();
 		void draw();
 		void exit();
 
 		void keyPressed(int key);
-		void keyReleased(int key);
-		void mouseMoved(int x, int y );
-		void mouseDragged(int x, int y, int button);
-		void mousePressed(int x, int y, int button);
-		void mouseReleased(int x, int y, int button);
-		void mouseEntered(int x, int y);
-		void mouseExited(int x, int y);
-		void windowResized(int w, int h);
-		void dragEvent(ofDragInfo dragInfo);
-		void gotMessage(ofMessage msg);
+		//void keyReleased(int key);
+		//void mouseMoved(int x, int y );
+		//void mouseDragged(int x, int y, int button);
+		//void mousePressed(int x, int y, int button);
+		//void mouseReleased(int x, int y, int button);
+		//void mouseEntered(int x, int y);
+		//void mouseExited(int x, int y);
+		//void windowResized(int w, int h);
+		//void dragEvent(ofDragInfo dragInfo);
+		//void gotMessage(ofMessage msg);
 		
 		ofxSoundDevicesManager audioDevices;
 
@@ -30,16 +42,11 @@ class ofApp : public ofBaseApp{
 		int bufferSize;
 		int numBuffers;
 
-		void audioIn(ofSoundBuffer& input) override; // not used in this example
+		void audioIn(ofSoundBuffer& input) override;
 		void audioOut(ofSoundBuffer& output) override;
 
-		void drawWaveform();
-		float waveformInput[4096]; //make this bigger, just in case
-		int waveInputIndex;
-		float waveformOutput[4096]; //make this bigger, just in case
-		int waveOutputIndex;
-
+#ifdef USE_Log
 		void setupLogDebug();
-
+#endif
 
 };
