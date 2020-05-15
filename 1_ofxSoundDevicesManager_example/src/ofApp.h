@@ -7,7 +7,7 @@
 #include "ofxWindowApp.h"
 #endif
 
-#define USE_Log
+#define USE_Log//can be commented to avoid ofxTextFlow dependecy 
 
 #include "ofxSoundDevicesManager.h"
 

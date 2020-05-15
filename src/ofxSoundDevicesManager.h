@@ -1,21 +1,26 @@
 #pragma once
 
 /// TODO:
-/// +	store/recall settings
-/// +	switch api/device without exceptions. clamp limited devices
-/// +	macOS/linux apis?
-/// +	samplerate and other settings to gui. store to xml too.
-/// +	devices by names? just editing xml file?
-/// +	vumeter
+/// ++	add disconnectors to use only input or output. now, enablers are only like mutes. 
+/// +	add user gui toggle for advanced mode. key to 'G'
+/// +	add switch api/device. without exceptions.
+/// +	add macOS/linux apis?
+/// +	samplerate and other settings to gui selectors. store to xml too. restar required maybe
+/// +	store devices by names? just editing xml file bc sorting can change on the system?
+/// +	alternative waveforms plotting: https://github.com/Feliszt/sound-analyzer-OF
+/// +	better vumeter usign other rms snippets
 
 #include "ofMain.h"
 
 #include "ofxGui.h"
 #include "ofxSimpleFloatingGui.h"
-#include "ofxTextFlow.h"
 
 #define USE_AUDIO_CALLBACKS
-#define USE_Log
+
+//#define USE_Log //can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
+#ifdef USE_Log
+#include "ofxTextFlow.h"
+#endif
 
 //class ofxSoundDevicesManager : public ofBaseApp {
 class ofxSoundDevicesManager {
@@ -51,7 +56,10 @@ public:
 	int sampleRate;
 	int bufferSize;
 	int numBuffers;
-
+//nBuffers - Is the number of buffers that your system will create and swap out. The more buffers, the faster your computer will write information into the buffer, but the more memory it will take up. You should probably use two for each channel that you’re using. Here’s an example call:
+//ofSoundStreamSetup(2, 0, 44100, 256, 4);
+//https://openframeworks.cc/documentation/sound/ofSoundStream/
+	
 private:
 
 	//api
@@ -148,7 +156,7 @@ public:
 	{
 		bSHOW_Gui = !bSHOW_Gui;
 	}
-
+#ifdef USE_Log
 	void setVisibleLog(bool b)
 	{
 		SHOW_Log = b;
@@ -157,6 +165,7 @@ public:
 	{
 		SHOW_Log = !SHOW_Log;
 	}
+#endif
 
 	void setActive(bool b)
 	{
@@ -166,7 +175,7 @@ public:
 	{
 		SHOW_Active = !SHOW_Active;
 	}
-	
+
 	void setVisibleAdvanced(bool b)
 	{
 		SHOW_Advanced = b;
@@ -254,28 +263,31 @@ public:
 		params_In.add(deviceIn_Volume);
 		params_In.add(deviceIn_Api);
 		params_In.add(deviceIn_Port);
-		params_In.add(deviceIn_ApiName);
-		params_In.add(deviceIn_PortName);
+		//params_In.add(deviceIn_ApiName);//hide labels
+		//params_In.add(deviceIn_PortName);
 
 		params_Out.setName("OUTPUT");
 		params_Out.add(deviceOut_Enable);
 		params_Out.add(deviceOut_Volume);
 		params_Out.add(deviceOut_Api);
 		params_Out.add(deviceOut_Port);
-		params_Out.add(deviceOut_ApiName);
-		params_Out.add(deviceOut_PortName);
+		//params_Out.add(deviceOut_ApiName);//hide labels
+		//params_Out.add(deviceOut_PortName);
 
 		params.setName("ofxSoundDevicesManager");
 		params.add(params_In);
 		params.add(params_Out);
 		params.add(params_Control);
-
-		setupWaveforms();
-		params.add(paramsWaveforms);
-
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
+
+#ifdef USE_AUDIO_CALLBACKS
+		//setupWaveforms();
+		//TODO:
+		//hide smooth bc must be improved
+		//params.add(paramsWaveforms);
 		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
+#endif
 
 		//-
 
@@ -302,15 +314,22 @@ public:
 
 	//--------------------------------------------------------------
 	~ofxSoundDevicesManager() {
-		saveGroup(params, pathSettings);
-		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
-		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
-		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
-
-		close();
+		//exit();
 	};
 
 	//--------------------------------------------------------------
+	void exit() {
+		saveGroup(params, pathSettings);
+
+		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
+		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
+#ifdef USE_AUDIO_CALLBACKS
+		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
+#endif
+		close();
+	};
+
+	//----
 
 public:
 
@@ -349,11 +368,13 @@ public:
 		{
 			deviceOut_Enable = GUI_enableOutput.getValue();
 		}
+
 		//volumen
 		if (GUI_volumeOutput.getValue() != deviceOut_Volume)
 		{
 			deviceOut_Volume = GUI_volumeOutput.getValue();
 		}
+
 		//port
 		if (GUI_deviceIndexOutput.getValueInt() != deviceOut_Port)
 		{
@@ -362,6 +383,8 @@ public:
 			outStream.setup(outSettings);
 			deviceOut_Port = GUI_deviceIndexOutput.getValueInt();
 		}
+
+		//-
 
 		//api
 		if (GUI_Api.getValueInt() != apiGuiIndex)
@@ -398,7 +421,7 @@ public:
 	//--------------------------------------------------------------
 	void update()
 	{
-		//updateWaveforms();
+		//updateWaveforms();//for using alternative plot engines
 
 		//-
 
@@ -518,7 +541,7 @@ public:
 		}
 
 		//inSettings.setInListener(ofGetAppPtr());//?
-		inSettings.setInListener(_app_);//?
+		inSettings.setInListener(_app_);
 		inSettings.setInDevice(inDevices[deviceIn_Port]);
 
 		inStream.setup(inSettings);
@@ -529,7 +552,7 @@ public:
 
 		outSettings.bufferSize = bufferSize;
 		outSettings.numBuffers = numBuffers;
-		outSettings.sampleRate = sampleRate;//set the samplerate of both devices to be the same
+		outSettings.sampleRate = sampleRate;
 		outSettings.numInputChannels = 0;
 		outSettings.numOutputChannels = numOutputs;
 
@@ -549,7 +572,7 @@ public:
 		}
 
 		//outSettings.setOutListener(ofGetAppPtr());//?
-		outSettings.setOutListener(_app_);//?
+		outSettings.setOutListener(_app_);
 		outSettings.setOutDevice(outDevices[deviceOut_Port]);
 
 		outStream.setup(outSettings);
@@ -682,10 +705,11 @@ public:
 		fontMedium.drawString(__str, _x, _y);
 
 		//vu
+#ifdef USE_AUDIO_CALLBACKS
 		_wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
 		drawVU(smoothedVolume_Input, _x + _wVu, _y, _ww, _hh);
+#endif
 		_y += _spacerY;
-
 		//enable toggle
 		GUI_enableInput.draw(_x, _y, translation);
 		_x += _spacerX;
@@ -715,12 +739,13 @@ public:
 		//label
 		__str = "OUTPUT";
 		fontMedium.drawString(__str, _x, _y);
-		
+
 		//vu
+#ifdef USE_AUDIO_CALLBACKS
 		_wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
 		drawVU(smoothedVolume_Out, _x + _wVu, _y, _ww, _hh);
+#endif
 		_y += _spacerY;
-
 		//enable toggle
 		GUI_enableOutput.draw(_x, _y, translation);
 		_x += _spacerX;
@@ -735,39 +760,6 @@ public:
 		_x = +145 + _wColumn;
 		_y += _spacerY;
 		GUI_deviceIndexOutput.draw(_x, _y, translation);
-
-		//-
-
-		////column 1
-		//_x = 0;
-		////row 3
-		//_y += 3 * _spacerY;
-
-		////settings
-		//ofSetColor(colorGrey);
-		//string _str;
-		//float _strW;
-		//int _margin = 20;
-
-		//_str = "SampleRate [" + ofToString(sampleRate) + "]";
-		//_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
-		//fontSmall.drawString(_str, _x, _y);
-		//_x += _strW;
-
-		//_str = "BufferSize [" + ofToString(bufferSize) + "]";
-		//_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
-		//fontSmall.drawString(_str, _x, _y);
-		//_x += _strW;
-
-		//_str = "InPort [" + ofToString(deviceIn_Port) + "]";
-		//_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
-		//fontSmall.drawString(_str, _x, _y);
-		//_x += _strW;
-
-		//_str = "OutPort [" + ofToString(deviceOut_Port) + "]";
-		//_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
-		//fontSmall.drawString(_str, _x, _y);
-		////_x += _strW;
 
 		//---
 
@@ -786,7 +778,6 @@ public:
 #ifdef USE_AUDIO_CALLBACKS
 			drawWaveforms();
 #endif
-
 			//--
 
 			//gui
@@ -802,14 +793,15 @@ public:
 	//--------------------------------------------------------------
 	void close()
 	{
-		inStream.stop();
-		inStream.close();
+		//TODO:
+		//inStream.stop();
+		//inStream.close();
 
-		outStream.stop();
-		outStream.close();
+		//outStream.stop();
+		//outStream.close();
 
-		ofSoundStreamStop();
-		ofSoundStreamClose();
+		//ofSoundStreamStop();
+		//ofSoundStreamClose();
 	}
 
 	//settings
@@ -837,7 +829,7 @@ public:
 	}
 
 	//--------------------------------------------------------------
-//devices
+	//devices
 	void setDevices(int input, int output)
 	{
 		deviceIn_Port = input;
@@ -948,8 +940,9 @@ public:
 
 		setupGuiUser();
 
-
+#ifdef USE_Log
 		ofxTextFlow::setShowing(SHOW_Log);
+#endif
 
 	}
 
@@ -962,7 +955,6 @@ public:
 
 		//fonts
 		string _font = "fonts/telegrama_render.otf";
-		//string _font = "fonts/overpass-mono-regular.otf";
 		fontSmall.load(_font, 8);
 		fontMedium.load(_font, 10);
 		fontBig.load(_font, 12);
@@ -1037,13 +1029,10 @@ public:
 		//in
 		GUI_enableInput.setValue(deviceIn_Enable);
 		GUI_volumeInput.setValue(deviceIn_Volume);
-		//GUI_deviceIndexInput
 
 		//out
 		GUI_enableOutput.setValue(deviceOut_Enable);
 		GUI_volumeOutput.setValue(deviceOut_Volume);
-		//deviceIn_Port
-
 	}
 
 	//--------------------------------------------------------------
@@ -1065,29 +1054,62 @@ public:
 	float waveformOutput[4096]; //make this bigger, just in case
 	int waveOutputIndex;
 
-	//rms, vu's, alternative waveform plots
-	ofParameter<bool> enableSmooth = false;
-	ofParameter<float> smoothRatio;
-	float smoothedVolume_Input = 0;
-	float smoothedVolume_Out = 0;
-	float scaledVolume = 0;
+	//alternative plot 1
+	//rms, vu's
+	//ofParameter<bool> enableSmooth;//enable smooth VU
+	//ofParameter<float> smoothRatio;
+	float smoothedVolume_Input = 0;//rms signal to use on VU
+	float smoothedVolume_Out = 0;//rms signal to use on VU
 	ofParameterGroup paramsWaveforms;
+	//float scaledVolume = 0;
 	//alternative plots
 	//ofParameter<int> radius;
 	//ofParameter<int> lineScale;
 	//vector <float> outHistory;
 	//ofPolyline line;
 
-	//--------------------------------------------------------------
-	void setupWaveforms() {
-		paramsWaveforms.setName("VU");
-		paramsWaveforms.add(enableSmooth.set("ENABLE SMOOTH", false));
-		paramsWaveforms.add(smoothRatio.set("SMOOTH", 0.97, 0.70, 0.99));
-		//alternative plots
-		//paramsWaveforms.add(radius.set("MAX", 200, 100, 800));
-		//paramsWaveforms.add(lineScale.set("SCALE", 500, 200, 1200));
-		//outHistory.assign(ofGetWidth(), 0.0);
-	}
+	////alternative plot 2
+	//SliderB     volScale;
+	//float curVol, curVolPrev, divVol, maxDivVol;
+	//int   numHist;
+	//float smoothedVol;
+	//float scaledVol;
+	//int 	bufferCounter;
+	//vector <float> left;
+	//vector <float> right;
+	//vector <float> volHistory;
+	//vector <float> derVolHistory;
+	//vector <float> freq_amp;
+	//vector <float> magnitude;
+	//vector <float> phase;
+	//vector <float> power;
+	//vector <float> binsAmp, binsAmpNormalized, maxFreqBins;
+
+	////--------------------------------------------------------------
+	//void setupWaveforms() {
+	//	paramsWaveforms.setName("VU");
+	//	paramsWaveforms.add(enableSmooth.set("ENABLE SMOOTH", false));
+	//	paramsWaveforms.add(smoothRatio.set("SMOOTH", 0.97, 0.70, 0.99));
+
+	//	//alternative plots
+	//	//paramsWaveforms.add(radius.set("MAX", 200, 100, 800));
+	//	//paramsWaveforms.add(lineScale.set("SCALE", 500, 200, 1200));
+	//	//outHistory.assign(ofGetWidth(), 0.0);
+
+	//	//////plot2
+	//	//// Signals setup
+	//	//left.assign(bufferSize, 0.0);
+	//	//right.assign(bufferSize, 0.0);
+	//	//freq_amp.assign((int)bufferSize / 2, 0.0);
+	//	//volHistory.assign(ofGetWidth(), 0.0);
+	//	////volHistory.assign(WW, 0.0);
+	//	//magnitude.assign(bufferSize, 0.0);
+	//	//power.assign(bufferSize, 0.0);
+	//	//phase.assign(bufferSize, 0.0);
+	//	////binsAmp.assign(numBinsSetting, 0.0);
+	//	////binsAmpNormalized.assign(numBinsSetting, 0.0);
+	//	////maxFreqBins.assign(50, 0.0);
+	//}
 
 	//alternative plots
 	////--------------------------------------------------------------
@@ -1128,7 +1150,7 @@ public:
 		for (int i = 1; i < (ofGetWidth() - 1); ++i) {
 			ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
 		}
-		ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, +6);
+		ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, +5);
 
 		//output
 		ofTranslate(0, 2 * ofGetHeight() / 4);
@@ -1136,15 +1158,35 @@ public:
 		for (int i = 1; i < (ofGetWidth() - 1); ++i) {
 			ofDrawLine(i, waveformOutput[i] * _max, i + 1, waveformOutput[i + 1] * _max);
 		}
-		ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - _margin, +6);
+		ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - _margin, +5);
 
 		//-
 
-		//alternative plots
-		//ofSetColor(255, 0, 0);
-		//ofDrawCircle(500, -500, smoothedVolume_Out * radius);
-		//line.draw();
-		////cout << "smoothedVolume_Out:" << smoothedVolume_Out << endl;
+		////alternative plots
+		////ofSetColor(255, 0, 0);
+		////ofDrawCircle(500, -500, smoothedVolume_Out * radius);
+		////line.draw();
+		//////cout << "smoothedVolume_Out:" << smoothedVolume_Out << endl;
+
+		//ofTranslate(0, -ofGetHeight() / 2.f);
+		//int WW = 500;
+		//int HW = 500;
+
+		//// draw circle for scaled volume
+		//ofSetColor(255,0,0,200);
+		//ofFill();
+		//ofDrawCircle(WW / 2, HW / 2, ofClamp(smoothedVol * 100, 0, HW / 2));
+
+		////lets draw the volume history as a graph
+		//ofBeginShape();
+		//for (unsigned int i = 0; i < derVolHistory.size(); i++) {
+		//	float abs = ofMap(i, 0, derVolHistory.size(), 0, WW);
+		//	if (i == 0) ofVertex(i, HW);
+		//	float value = ofClamp(ofMap(derVolHistory[i], 0, volScale.getValue(), 0, HW), 0, HW);
+		//	ofVertex(abs, HW - value);
+		//	if (i == derVolHistory.size() - 1) ofVertex(abs, HW);
+		//}
+		//ofEndShape(false);
 
 		//-
 
@@ -1154,48 +1196,110 @@ public:
 
 	//--------------------------------------------------------------
 	void audioIn(ofSoundBuffer& input) {
+
 		std::size_t nChannels = input.getNumChannels();
 
-		//vu
-		float rms = 0.0;
-		int numCounted = 0;
-
-		for (size_t i = 0; i < input.getNumFrames(); i++)
+		if (deviceIn_Enable)
 		{
-			waveformInput[waveInputIndex] = input[i * nChannels]
-				* getVolumeInput()
-				;
+			//vu
+			float rms = 0.0;
+			int numCounted1 = 0;
 
-			if (waveInputIndex < (ofGetWidth() - 1)) {
-				++waveInputIndex;
-			}
-			else {
-				waveInputIndex = 0;
+			for (size_t i = 0; i < input.getNumFrames(); i++)
+			{
+				waveformInput[waveInputIndex] = input[i * nChannels]
+					* getVolumeInput()
+					;
+
+				if (waveInputIndex < (ofGetWidth() - 1)) {
+					++waveInputIndex;
+				}
+				else {
+					waveInputIndex = 0;
+				}
+
+				//-
+
+				//vu
+				//code from here: https://github.com/edap/examplesOfxMaxim
+				//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+				float left = input[0];
+				float right = input[1];
+				rms += left * left;
+				rms += right * right;
+				numCounted1 += 2;
+				//numCounted1 += 1;//1 channel
 			}
 
-			//-
+			//--
 
 			//vu
-			//code from here: https://github.com/edap/examplesOfxMaxim
-			//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
-			float left = input[0];
-			float right = input[1];
-			rms += left * left;
-			rms += right * right;
-			numCounted += 2;
-		}
+			rms /= (float)numCounted1;
+			rms = sqrt(rms);
 
-		//--
+			//if (enableSmooth) {
+			//	// normalize to 1
+			//	//smoothedVolume_Input = ofMap(rms, 0, 0.707 * 1, 0, 1);
+			//	smoothedVolume_Input *= smoothRatio;
+			//	smoothedVolume_Input += 0.07 * rms;
+			//}
+			//else {
+			//	smoothedVolume_Input = rms;
+			//}
 
-		//vu
-		rms /= (float)numCounted;
-		rms = sqrt(rms);
-		if (enableSmooth) {
-			smoothedVolume_Input *= smoothRatio;
-			smoothedVolume_Input += 0.07 * rms;
+			smoothedVolume_Input = rms * deviceIn_Volume;
+
+			//----
+
+			////plot2
+			//float avg_power = 0.0f;
+			//curVol = 0.0;
+
+			//// samples are "interleaved"
+			//int numCounted = 0;
+
+			////lets go through each sample and calculate the root mean square which is a rough way to calculate volume
+			//for (int i = 0; i < bufferSize; i++) {
+			//	left[i] = input[i * 2] * 1.0f;
+			//	curVol += left[i] * left[i];
+			//	numCounted += 1;
+			//}
+
+			//// compute mean of rms
+			//curVol /= (float)numCounted;
+
+			//// compute root of rms
+			//curVol = sqrt(curVol);
+
+			//// normalize to 1
+			//curVol = ofMap(curVol, 0, 0.707 * 1, 0, 1);
+
+			//// compute diff
+			//divVol = ofClamp(curVol - curVolPrev, 0, 999);
+			//if (divVol > maxDivVol) maxDivVol = divVol;
+			//derVolHistory.push_back(divVol);
+			//if (derVolHistory.size() >= numHist) {
+			//	derVolHistory.erase(derVolHistory.begin(), derVolHistory.begin() + 1);
+			//}
+			//curVolPrev = curVol;
+
+			//smoothedVol *= 0.93;
+			//smoothedVol += 0.07 * curVol;
+
+			//bufferCounter++;
 		}
-		else {
-			smoothedVolume_Input = rms;
+		else//erase plot
+		{
+			for (size_t i = 0; i < input.getNumFrames(); ++i)
+			{
+				waveformInput[waveInputIndex] = 0;
+				if (waveInputIndex < (ofGetWidth() - 1)) {
+					++waveInputIndex;
+				}
+				else {
+					waveInputIndex = 0;
+				}
+			}
 		}
 	}
 
@@ -1203,52 +1307,70 @@ public:
 	void audioOut(ofSoundBuffer& output) {
 		std::size_t outChannels = output.getNumChannels();
 
-		//vu
-		float rms = 0.0;
-		int numCounted = 0;
-
-		for (int i = 0; i < output.getNumFrames(); ++i)
+		if (deviceOut_Enable)
 		{
-			output[i * outChannels] = ofRandom(-1, 1)
-				* getVolumeOutput()
-				;
-			output[i * outChannels + 1] = output[i * outChannels];
+			//vu
+			float rms = 0.0;
+			int numCounted = 0;
 
-			waveformOutput[waveOutputIndex] = output[i * outChannels];
-			if (waveOutputIndex < (ofGetWidth() - 1)) {
-				++waveOutputIndex;
-			}
-			else {
-				waveOutputIndex = 0;
+			for (size_t i = 0; i < output.getNumFrames(); ++i)
+			{
+				output[i * outChannels] = ofRandom(-1, 1)
+					* getVolumeOutput()
+					;
+				output[i * outChannels + 1] = output[i * outChannels];
+
+				waveformOutput[waveOutputIndex] = output[i * outChannels];
+				if (waveOutputIndex < (ofGetWidth() - 1)) {
+					++waveOutputIndex;
+				}
+				else {
+					waveOutputIndex = 0;
+				}
+
+				//-
+
+				//vu
+				//code from here: https://github.com/edap/examplesOfxMaxim
+				//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+				float left = output[0];
+				float right = output[1];
+				rms += left * left;
+				rms += right * right;
+				numCounted += 2;
 			}
 
-			//-
+			//--
 
 			//vu
-			//code from here: https://github.com/edap/examplesOfxMaxim
-			//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
-			float left = output[0];
-			float right = output[1];
-			rms += left * left;
-			rms += right * right;
-			numCounted += 2;
-		}
+			rms /= (float)numCounted;
+			rms = sqrt(rms);
 
-		//--
+			//if (enableSmooth) {
+			//	smoothedVolume_Out *= smoothRatio;
+			//	smoothedVolume_Out += 0.07 * rms;
+			//}
+			//else {
+			//	smoothedVolume_Out = rms;
+			//}
 
-		//vu
-		rms /= (float)numCounted;
-		rms = sqrt(rms);
-		if (enableSmooth) {
-			smoothedVolume_Out *= smoothRatio;
-			smoothedVolume_Out += 0.07 * rms;
+			smoothedVolume_Out = rms * deviceOut_Volume;
 		}
-		else {
-			smoothedVolume_Out = rms;
+		else//erase plot
+		{
+			for (size_t i = 0; i < output.getNumFrames(); ++i)
+			{
+				waveformOutput[waveOutputIndex] = 0;
+				if (waveOutputIndex < (ofGetWidth() - 1)) {
+					++waveOutputIndex;
+				}
+				else {
+					waveOutputIndex = 0;
+				}
+			}
 		}
 	}
 
-#ifdef USE_Log
 	//--------------------------------------------------------------
 	void Changed_params_Control(ofAbstractParameter &e)
 	{
@@ -1256,18 +1378,24 @@ public:
 		{
 			string name = e.getName();
 
+#ifdef USE_Log
 			if (name == "LOG")
 			{
 				ofxTextFlow::setShowing(SHOW_Log);
 			}
+#endif
 			if (name == "ACTIVE")
 			{
 				if (SHOW_Active)
 				{
-					
+
 				}
 				else
 				{
+#ifdef USE_Log
+					SHOW_Log = false;
+#endif
+
 					//bSHOW_Gui = false;
 				}
 			}
@@ -1276,12 +1404,12 @@ public:
 				bSHOW_Gui = SHOW_Advanced;
 			}
 		}
-	}
-#endif
+				}
 
 #endif // USE_AUDIO_CALLBACKS
 
 	//-
+
 	//--------------------------------------------------------------
 	void Changed_params_In(ofAbstractParameter &e)
 	{
@@ -1326,6 +1454,7 @@ public:
 		}
 	}
 
+#ifdef USE_AUDIO_CALLBACKS
 	//--------------------------------------------------------------
 	void drawVU(float val, int x, int y, int w, int h)
 	{
@@ -1341,17 +1470,18 @@ public:
 
 		ofPopStyle();
 	}
+#endif
 
 	//--------------------------------------------------------------
-#ifdef USE_Log
 	void logLine(string s)
 	{
+#ifdef USE_Log
 		if (SHOW_Log)
 		{
 			ofxTextFlow::addText(s);
-			ofLogNotice(__FUNCTION__) << s;
-		}
-	}
+			}
 #endif
+		ofLogNotice(__FUNCTION__) << s;
+		}
 
-};
+	};

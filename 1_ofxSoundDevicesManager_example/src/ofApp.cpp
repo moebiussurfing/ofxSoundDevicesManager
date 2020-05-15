@@ -54,10 +54,12 @@ void ofApp::keyPressed(int key) {
 	{
 		audioDevices.toggleVisibleGui();
 	}
+#ifdef USE_Log
 	if (key == 'l')
 	{
 		audioDevices.toggleVisibleLog();
 	}
+#endif
 	if (key == 'a')
 	{
 		audioDevices.toggleActive();
