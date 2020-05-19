@@ -1,9 +1,10 @@
 #pragma once
 
 /// TODO:
+/// ++	change all to ofSoundBuffer, not buffer, channels..etc
 /// ++	add disconnectors to use only input or output. now, enablers are only like mutes. 
+/// ++	add switch api/device. without exceptions.
 /// +	add user gui toggle for advanced mode. key to 'G'
-/// +	add switch api/device. without exceptions.
 /// +	add macOS/linux apis?
 /// +	samplerate and other settings to gui selectors. store to xml too. restar required maybe
 /// +	store devices by names? just editing xml file bc sorting can change on the system?
@@ -15,33 +16,37 @@
 #include "ofxGui.h"
 #include "ofxSimpleFloatingGui.h"
 
-#define USE_AUDIO_CALLBACKS
+
+//-----------------------
+//
+// DEFINES
+//
+//#define USE_PLOTS_AND_AUDIO_CALLBACKS
+//#define USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
+//
+//-----------------------
+
 
 //#define USE_Log //can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
 #ifdef USE_Log
 #include "ofxTextFlow.h"
 #endif
 
-//class ofxSoundDevicesManager : public ofBaseApp {
+#ifndef USE_ofBaseApp_Pointer
+class ofxSoundDevicesManager : public ofBaseApp {
+#else
 class ofxSoundDevicesManager {
+#endif
 
 public:
 
 	string pathSettings = "ofxSoundDevicesManager.xml";
 	string str_error = "";
 
-	//ofBaseApp
+	//ofBaseApp differents approach
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 	ofBaseApp* _app_;
-
-	//-
-
-#ifdef USE_Log
-	ofParameter<bool> SHOW_Log;
 #endif
-	ofParameter<bool> SHOW_Active;
-	ofParameter<bool> SHOW_Advanced;
-
-	glm::vec2 position;
 
 	//-
 
@@ -56,10 +61,10 @@ public:
 	int sampleRate;
 	int bufferSize;
 	int numBuffers;
-//nBuffers - Is the number of buffers that your system will create and swap out. The more buffers, the faster your computer will write information into the buffer, but the more memory it will take up. You should probably use two for each channel that you’re using. Here’s an example call:
-//ofSoundStreamSetup(2, 0, 44100, 256, 4);
-//https://openframeworks.cc/documentation/sound/ofSoundStream/
-	
+	//nBuffers - Is the number of buffers that your system will create and swap out. The more buffers, the faster your computer will write information into the buffer, but the more memory it will take up. You should probably use two for each channel that you’re using. Here’s an example call:
+	//ofSoundStreamSetup(2, 0, 44100, 256, 4);
+	//https://openframeworks.cc/documentation/sound/ofSoundStream/
+
 private:
 
 	//api
@@ -80,6 +85,16 @@ private:
 	//settings
 	ofSoundStreamSettings inSettings;
 	ofSoundStreamSettings outSettings;
+
+	//-
+
+#ifdef USE_Log
+	ofParameter<bool> SHOW_Log;
+#endif
+	ofParameter<bool> SHOW_Active;
+	ofParameter<bool> SHOW_Advanced;
+
+	glm::vec2 position;
 
 	//-
 
@@ -281,7 +296,7 @@ public:
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 
-#ifdef USE_AUDIO_CALLBACKS
+#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 		//setupWaveforms();
 		//TODO:
 		//hide smooth bc must be improved
@@ -298,18 +313,11 @@ public:
 
 		//-
 
+		//widgets colors
 		colorDark = ofColor::black;
 		colorGrey = ofColor(128);
 		colorWhite = ofColor::white;
 		drawCounter = 0;
-
-		//-
-
-		gui.setup();
-		gui.add(params);
-
-		//advanced gui
-		gui.setPosition(700, 400);
 	};
 
 	//--------------------------------------------------------------
@@ -323,7 +331,7 @@ public:
 
 		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
-#ifdef USE_AUDIO_CALLBACKS
+#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
 #endif
 		close();
@@ -540,8 +548,12 @@ public:
 			break;
 		}
 
-		//inSettings.setInListener(ofGetAppPtr());//?
+
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 		inSettings.setInListener(_app_);
+#else
+		inSettings.setInListener(ofGetAppPtr());//?
+#endif
 		inSettings.setInDevice(inDevices[deviceIn_Port]);
 
 		inStream.setup(inSettings);
@@ -571,8 +583,12 @@ public:
 			break;
 		}
 
-		//outSettings.setOutListener(ofGetAppPtr());//?
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 		outSettings.setOutListener(_app_);
+#else
+		outSettings.setOutListener(ofGetAppPtr());//?
+#endif
+
 		outSettings.setOutDevice(outDevices[deviceOut_Port]);
 
 		outStream.setup(outSettings);
@@ -646,8 +662,11 @@ public:
 		//column 1
 		_x = 0;
 		//row 3
-		_y = 6 * _spacerY;
-
+#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
+		_y = 6 * _spacerY;//make more space
+#else
+		_y = 4 * _spacerY;
+#endif
 		//settings
 		ofSetColor(colorGrey);
 		string _str;
@@ -705,10 +724,9 @@ public:
 		fontMedium.drawString(__str, _x, _y);
 
 		//vu
-#ifdef USE_AUDIO_CALLBACKS
+#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 		_wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
 		drawVU(smoothedVolume_Input, _x + _wVu, _y, _ww, _hh);
-#endif
 		_y += _spacerY;
 		//enable toggle
 		GUI_enableInput.draw(_x, _y, translation);
@@ -717,6 +735,7 @@ public:
 		//input volume 
 		GUI_volumeInput.draw(_x, _y, translation);//_y + _widgetH*1.f
 		_y += _spacerY;
+#endif
 
 		//-
 
@@ -741,10 +760,9 @@ public:
 		fontMedium.drawString(__str, _x, _y);
 
 		//vu
-#ifdef USE_AUDIO_CALLBACKS
+#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 		_wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
 		drawVU(smoothedVolume_Out, _x + _wVu, _y, _ww, _hh);
-#endif
 		_y += _spacerY;
 		//enable toggle
 		GUI_enableOutput.draw(_x, _y, translation);
@@ -753,6 +771,7 @@ public:
 		//output volume 
 		GUI_volumeOutput.draw(_x, _y, translation);
 		_y += _spacerY;
+#endif
 
 		//-
 
@@ -775,7 +794,7 @@ public:
 		if (SHOW_Active)
 		{
 
-#ifdef USE_AUDIO_CALLBACKS
+#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 			drawWaveforms();
 #endif
 			//--
@@ -793,39 +812,50 @@ public:
 	//--------------------------------------------------------------
 	void close()
 	{
-		//TODO:
-		//inStream.stop();
-		//inStream.close();
+		inStream.stop();
+		inStream.close();
 
-		//outStream.stop();
-		//outStream.close();
+		outStream.stop();
+		outStream.close();
 
-		//ofSoundStreamStop();
-		//ofSoundStreamClose();
+		ofSoundStreamStop();
+		ofSoundStreamClose();
 	}
 
 	//settings
 	//--------------------------------------------------------------
-	//void setup(int _samplerate, int _buffersize, int _numbuffers)
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 	void setup(ofBaseApp* _app, int _samplerate, int _buffersize, int _numbuffers)
+#else
+	void setup(int _samplerate, int _buffersize, int _numbuffers)
+#endif
 	{
 		sampleRate = _samplerate;
 		bufferSize = _buffersize;
 		numBuffers = _numbuffers;
 
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 		setup(_app);
-		//setup();
+#else
+		setup();
+#endif
 	}
 
 	//--------------------------------------------------------------
-	//void setup(int _samplerate, int _buffersize)
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 	void setup(ofBaseApp* _app, int _samplerate, int _buffersize)
+#else
+	void setup(int _samplerate, int _buffersize)
+#endif
 	{
 		sampleRate = _samplerate;
 		bufferSize = _buffersize;
 
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 		setup(_app);
-		//setup();
+#else
+		setup();
+#endif
 	}
 
 	//--------------------------------------------------------------
@@ -847,10 +877,15 @@ public:
 	//-
 
 //--------------------------------------------------------------
-	//void setup() {
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 	void setup(ofBaseApp* _app) {
+#else
+	void setup() {
+#endif
 
+#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 		_app_ = _app;
+#endif
 
 		//--
 
@@ -935,6 +970,17 @@ public:
 		//TODO:
 		//harcoded
 		apiGuiIndex = 2;//for gui
+
+		//-
+
+		//control gui
+		gui.setup();
+		gui.add(params);
+		gui.getGroup("ofxSoundDevicesManager").minimizeAll();
+		gui.getGroup("ofxSoundDevicesManager").minimize();
+
+		//advanced gui
+		gui.setPosition(700, 400);
 
 		//--
 
@@ -1047,7 +1093,7 @@ public:
 
 	//-
 
-#ifdef USE_AUDIO_CALLBACKS
+#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 
 	float waveformInput[4096]; //make this bigger, just in case
 	int waveInputIndex;
@@ -1404,9 +1450,9 @@ public:
 				bSHOW_Gui = SHOW_Advanced;
 			}
 		}
-				}
+	}
 
-#endif // USE_AUDIO_CALLBACKS
+#endif // USE_PLOTS_AND_AUDIO_CALLBACKS
 
 	//-
 
@@ -1454,7 +1500,7 @@ public:
 		}
 	}
 
-#ifdef USE_AUDIO_CALLBACKS
+#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 	//--------------------------------------------------------------
 	void drawVU(float val, int x, int y, int w, int h)
 	{
@@ -1475,13 +1521,87 @@ public:
 	//--------------------------------------------------------------
 	void logLine(string s)
 	{
+		ofLogNotice(__FUNCTION__) << s;
 #ifdef USE_Log
 		if (SHOW_Log)
 		{
 			ofxTextFlow::addText(s);
-			}
-#endif
-		ofLogNotice(__FUNCTION__) << s;
 		}
+#endif
+	}
 
-	};
+};
+
+
+//NOTES
+//https://forum.openframeworks.cc/t/question-around-void-audioin-ofsoundbuffer-buffer/22284/2
+
+//https://forum.openframeworks.cc/t/openframeworks-and-speech-synthesis-tts-with-flite/12117/7
+//The TTS class notifies that event.You should capture that event(look the examples of customEvents) and keep the soundBuffer.
+//Then, you have to use the class ofSoundStream.When you setup up that object, it starts calling the function audioOut(you have to create it).So, you’ll have
+//
+//
+//
+////--------------------------------------------------------------  
+//void testApp::newSoundBuffer(const TTSData & tts) {
+//	mutex.lock();
+//	soundBuffer = *tts.buffer;
+//	mutex.unlock();
+//}
+//
+////--------------------------------------------------------------  
+//void testApp::audioOut(float * output, int buffersize, int nChannels, int deviceID, unsigned long long int tickCount) {
+//	mutex.lock();
+//	soundBuffer.copyTo(output, buffersize, nChannels, position, true);
+//	if (soundBuffer.size() > 0) {
+//		position += buffersize;
+//		position %= soundBuffer.bufferSize();
+//	}
+//	mutex.unlock();
+//}
+
+
+//https://forum.openframeworks.cc/t/playing-audio-input-in-real-time-problems-syncing/29180/2?u=moebiussurfing
+//roymacdonald
+//Apr '18
+//Hi.you can use the ofApp audio callbacks.look at the audioIn and audioOut examples so you can set up the audio streams.
+//make an instance of ofSoundBuffer and copy into it what you get from audioIn and then pass it to audioOut´s buffer.
+//
+//should be something like this.
+//
+//// put these lines in the ofApp.h file
+//ofSoundBuffer buffer;
+//void audioIn(ofSoundBuffer & input);
+//void audioOut(ofSoundBuffer & output);
+//
+//// the following ones go in the ofApp.cpp file
+//void audioIn(ofSoundBuffer & input) {
+//	input.copyTo(buffer);
+//}
+//void audioOut(ofSoundBuffer & output) {
+//	buffer.copyTo(output);
+//}
+//if you need to resample the buffer in order to adjust speed, you can use the ofBuffer’s resampleTo() methdod.
+//http://openframeworks.cc/documentation/sound/ofSoundBuffer/#!show_resampleTo 1
+//hope this helps
+
+//https://forum.openframeworks.cc/t/listen-to-ofevent-audioin-in-custom-class/27710/3?u=moebiussurfing
+//Apr '19
+//The way to listen to audio events is by setting them in the soundstream settings.If you have a class like :
+//
+//	class MyClass {
+//	void audioIn(ofSoundBuffer & buffer);
+//	void audioOut(ofSoundBuffer & buffer);
+//}
+//In ofApp :
+//
+////.h
+//ofSoundStream soundStream;
+//MyClass myobj;
+//
+////setup
+//ofSoundStreamSettings settings;
+//settings.setInListener(&myobj);
+//settings.setOutListener(&myobj);
+// set any other required settings
+//soundStream.setup(settings);

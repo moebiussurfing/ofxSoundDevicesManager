@@ -1,5 +1,7 @@
 #include "ofApp.h"
 
+//#define USE_ofBaseApp_Pointer
+
 //--------------------------------------------------------------
 void ofApp::setup() {
 
@@ -24,7 +26,11 @@ void ofApp::setup() {
 	bufferSize = 512;
 	//default numBuffers is 4;
 
+#ifdef USE_ofBaseApp_Pointer
 	audioDevices.setup(this, sampleRate, bufferSize);
+#else
+	audioDevices.setup(sampleRate, bufferSize);
+#endif
 
 	//default devices are
 	//api: Windows DS
@@ -75,6 +81,32 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 void ofApp::audioOut(ofSoundBuffer& output) {
 	audioDevices.audioOut(output);
 }
+
+////TODO:
+////must update all hanlding to ofsoundBuffer !
+////for when we are not using ofSoundBuffer?
+////to waveforms plot 
+////--------------------------------------------------------------
+//void ofApp::audioIn(float * input, int bufferSize, int nChannels)
+//{
+//	//ofSoundBuffer _soundBuffer;
+//	ofSoundBuffer _soundBuffer;
+//
+//	//ofSoundBuffer(short *shortBuffer, size_t numFrames, size_t numChannels, unsigned int sampleRate);
+//	//copyFrom(...)void ofSoundBuffer::copyFrom(const float *floatBuffer, size_t numFrames, size_t numChannels, unsigned int sampleRate)
+//	_soundBuffer.copyTo(input, bufferSize, nChannels, sampleRate);//?
+//
+//	audioDevices.audioIn(_soundBuffer);
+//
+//
+//	_soundBuffer = input.getBuffer().data();
+//
+//	//_soundBuffer.allocate(bufferSize, nChannels);
+//	//*float out of an ofSoundBuffer just call:
+//	//*float myBuffer = buffer.getBuffer().data();
+//	//I did tried using buffer.getBuffer() but didn’t realized I had to dig to .data() to get the raw float!
+//	//gist->processAudio(output.getBuffer().data(), output.getNumFrames(), output.getNumChannels(), output.getSampleRate());
+//}
 
 //log
 #ifdef USE_Log
