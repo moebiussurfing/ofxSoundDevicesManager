@@ -21,7 +21,7 @@
 //
 // DEFINES
 //
-//#define USE_PLOTS_AND_AUDIO_CALLBACKS
+#define USE_PLOTS_AND_AUDIO_CALLBACKS
 //#define USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 //
 //-----------------------
@@ -673,22 +673,26 @@ public:
 		float _strW;
 		int _margin = 20;
 
-		_str = "SampleRate [" + ofToString(sampleRate) + "]";
+		//_str = "SampleRate [" + ofToString(sampleRate) + "]";
+		_str = "SampleRate " + ofToString(sampleRate);
 		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
 		fontSmall.drawString(_str, _x, _y);
 		_x += _strW;
 
-		_str = "BufferSize [" + ofToString(bufferSize) + "]";
+		//_str = "BufferSize [" + ofToString(bufferSize) + "]";
+		_str = "BufferSize " + ofToString(bufferSize);
 		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
 		fontSmall.drawString(_str, _x, _y);
 		_x += _strW;
 
-		_str = "InPort [" + ofToString(deviceIn_Port) + "]";
+		//_str = "InPort [" + ofToString(deviceIn_Port) + "]";
+		_str = "InPort " + ofToString(deviceIn_Port);
 		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
 		fontSmall.drawString(_str, _x, _y);
 		_x += _strW;
 
-		_str = "OutPort [" + ofToString(deviceOut_Port) + "]";
+		//_str = "OutPort [" + ofToString(deviceOut_Port) + "]";
+		_str = "OutPort " + ofToString(deviceOut_Port);
 		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
 		fontSmall.drawString(_str, _x, _y);
 		//_x += _strW;
@@ -1094,11 +1098,12 @@ public:
 	//-
 
 #ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-
-	float waveformInput[4096]; //make this bigger, just in case
+#define SIZE_BUFFER 4096
+	float waveformInput[SIZE_BUFFER]; //make this bigger, just in case
 	int waveInputIndex;
-	float waveformOutput[4096]; //make this bigger, just in case
+	float waveformOutput[SIZE_BUFFER]; //make this bigger, just in case
 	int waveOutputIndex;
+
 
 	//alternative plot 1
 	//rms, vu's
@@ -1191,12 +1196,52 @@ public:
 		int _margin = 50;
 
 		//input
-		ofTranslate(0, ofGetHeight() / 4.f);
-		ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
-		for (int i = 1; i < (ofGetWidth() - 1); ++i) {
-			ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
-		}
 		ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, +5);
+		ofTranslate(0, ofGetHeight() / 4.f);
+
+		////oscilloscope style
+		//ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
+		//for (int i = 1; i < (ofGetWidth() - 1); ++i) {
+		//	ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
+		//}
+
+		//bars style
+		ofFill();
+		int _h = 1000;
+		int _width = ofGetWidth();
+		bool bLine, bBars;
+		bLine = true;
+		bBars = false;
+		int _spread;//use one bar x 20 buffer frames. ignore the others. but depends on relation beetween viewport width vs bufferSize
+		if (bLine)
+			_spread = 1;
+		if (bBars)
+			_spread = 10;
+		//float _maxBars = _width /
+		int _gap = 5;//space between bars
+		float y1 = 0;
+		float numVars = (bufferSize / _spread);
+		float wVars = _width / numVars;
+		float _pw = abs(wVars - _gap);
+		for (int i = 0; i < bufferSize; i++) {
+			if (i%_spread == 0)//spread spaces
+			{
+				float p = (i / (float)(bufferSize));//normalized pos in array
+				float x = p * _width;
+
+				float _ph = 1.0f + abs(waveformInput[i] * _h);//make positive. 1.0 for minimal line
+				float y2 = 0.1f + y1 - _ph;//0.1 for minimal line
+
+				if (bLine)
+					ofDrawLine(x, y1, x, y2);//line
+
+				if (bBars)
+					ofDrawRectangle(x, y1, _pw, -_ph);//bars could be nice with rms not scope style
+			}
+		}
+		//drawWaveform(waveformInput, 0, 0, 0, 0);
+
+		//--
 
 		//output
 		ofTranslate(0, 2 * ofGetHeight() / 4);
@@ -1238,6 +1283,10 @@ public:
 
 		ofPopMatrix();
 		ofPopStyle();
+
+		//--
+
+
 	}
 
 	//--------------------------------------------------------------
@@ -1534,6 +1583,10 @@ public:
 
 
 //NOTES
+
+//example to convert to ofSoundBuffer
+//https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78
+
 //https://forum.openframeworks.cc/t/question-around-void-audioin-ofsoundbuffer-buffer/22284/2
 
 //https://forum.openframeworks.cc/t/openframeworks-and-speech-synthesis-tts-with-flite/12117/7
@@ -1605,3 +1658,44 @@ public:
 //settings.setOutListener(&myobj);
 // set any other required settings
 //soundStream.setup(settings);
+
+
+//TODO:
+//must learn how to pass a vector as reference...
+//void drawWaveform(vector<float> buffer, float x, float y, float w, float h)
+//{
+//	//bars style
+//	ofFill();
+//	int _h = 1000;
+//	int _width = ofGetWidth();
+//	bool bLine, bBars;
+//	bLine = true;
+//	bBars = false;
+//	int _spread;//use one bar x 20 buffer frames. ignore the others. but depends on relation beetween viewport width vs bufferSize
+//	if (bLine)
+//		_spread = 1;
+//	if (bBars)
+//		_spread = 10;
+//	//float _maxBars = _width /
+//	int _gap = 5;//space between bars
+//	float y1 = 0;
+//	float numVars = (bufferSize / _spread);
+//	float wVars = _width / numVars;
+//	float _pw = abs(wVars - _gap);
+//	for (int i = 0; i < bufferSize; i++) {
+//		if (i%_spread == 0)//spread spaces
+//		{
+//			float p = (i / (float)(bufferSize));//normalized pos in array
+//			float x = p * _width;
+//
+//			float _ph = 1.0f + abs(buffer[i] * _h);//make positive. 1.0 for minimal line
+//			float y2 = 0.1f + y1 - _ph;//0.1 for minimal line
+//
+//			if (bLine)
+//				ofDrawLine(x, y1, x, y2);//line
+//
+//			if (bBars)
+//				ofDrawRectangle(x, y1, _pw, -_ph);//bars could be nice with rms not scope style
+//		}
+//	}
+//}
