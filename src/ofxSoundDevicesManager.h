@@ -21,7 +21,7 @@
 //
 // DEFINES
 //
-#define USE_PLOTS_AND_AUDIO_CALLBACKS
+//#define USE_PLOTS_AND_AUDIO_CALLBACKS
 //#define USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 //
 //-----------------------
@@ -315,7 +315,7 @@ public:
 
 		//widgets colors
 		colorDark = ofColor::black;
-		colorGrey = ofColor(128);
+		colorGrey = ofColor(64);
 		colorWhite = ofColor::white;
 		drawCounter = 0;
 	};
