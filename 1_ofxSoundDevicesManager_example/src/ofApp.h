@@ -21,6 +21,9 @@ class ofApp : public ofBaseApp{
 		void exit();
 		void keyPressed(int key);
 		
+		//-
+
+		void setupSoundDevicesManager();
 		ofxSoundDevicesManager audioDevices;
 
 		int sampleRate;
@@ -30,6 +33,8 @@ class ofApp : public ofBaseApp{
 		void audioIn(ofSoundBuffer& input) override;
 		void audioOut(ofSoundBuffer& output) override;
 		
+		//-
+
 		////TODO:
 		////for when we are not using ofSoundBuffer
 		//void audioIn(float * input, int bufferSize, int nChannels) override;

@@ -3,23 +3,7 @@
 //#define USE_ofBaseApp_Pointer
 
 //--------------------------------------------------------------
-void ofApp::setup() {
-
-#ifdef USE_ofxWindowApp
-	windowApp.setSettingsFps(60);
-	windowApp.setSettingsVsync(true);
-#else
-	ofSetFrameRate(60);
-	ofSetVerticalSync(true);
-#endif
-
-	//-
-	
-#ifdef USE_Log
-	setupLogDebug();
-#endif
-
-	//-
+void ofApp::setupSoundDevicesManager() {
 
 	//these are the default settings
 	sampleRate = 44100;
@@ -36,6 +20,29 @@ void ofApp::setup() {
 	//api: Windows DS
 	//input device: #8
 	//output device: #4
+}
+
+//--------------------------------------------------------------
+void ofApp::setup() {
+	ofSetBackgroundColor(32);
+
+#ifdef USE_ofxWindowApp
+	//windowApp.setFrameRate(60);
+	//windowApp.setSetVerticalSync(true);
+#else
+	ofSetFrameRate(60);
+	ofSetVerticalSync(true);
+#endif
+
+	//-
+	
+#ifdef USE_Log
+	setupLogDebug();
+#endif
+
+	//-
+	
+	setupSoundDevicesManager();
 }
 
 //--------------------------------------------------------------

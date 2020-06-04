@@ -23,11 +23,11 @@
 //
 //#define USE_PLOTS_AND_AUDIO_CALLBACKS
 //#define USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
+//#define USE_Log //can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
 //
 //-----------------------
 
 
-//#define USE_Log //can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
 #ifdef USE_Log
 #include "ofxTextFlow.h"
 #endif
@@ -1196,7 +1196,6 @@ public:
 		int _margin = 50;
 
 		//input
-		ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, +5);
 		ofTranslate(0, ofGetHeight() / 4.f);
 
 		////oscilloscope style
@@ -1231,15 +1230,19 @@ public:
 
 				float _ph = 1.0f + abs(waveformInput[i] * _h);//make positive. 1.0 for minimal line
 				float y2 = 0.1f + y1 - _ph;//0.1 for minimal line
+				float y22 = 0.1f + y1 + _ph;//0.1 for dual minimal line
 
-				if (bLine)
-					ofDrawLine(x, y1, x, y2);//line
-
-				if (bBars)
+				if (bLine) {
+					//ofDrawLine(x, y1, x, y2);//line
+					ofDrawLine(x, y22, x, y2);//dual line
+				}
+				if (bBars) {
 					ofDrawRectangle(x, y1, _pw, -_ph);//bars could be nice with rms not scope style
+				}
 			}
 		}
 		//drawWaveform(waveformInput, 0, 0, 0, 0);
+		ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, +5);
 
 		//--
 
@@ -1285,8 +1288,6 @@ public:
 		ofPopStyle();
 
 		//--
-
-
 	}
 
 	//--------------------------------------------------------------
