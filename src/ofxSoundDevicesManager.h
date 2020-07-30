@@ -1,15 +1,18 @@
 #pragma once
 
 /// TODO:
-/// ++	change all to ofSoundBuffer, not buffer, channels..etc
-/// ++	add disconnectors to use only input or output. now, enablers are only like mutes. 
-/// ++	add switch api/device. without exceptions.
-/// +	add user gui toggle for advanced mode. key to 'G'
-/// +	add macOS/linux apis?
-/// +	samplerate and other settings to gui selectors. store to xml too. restar required maybe
-/// +	store devices by names? just editing xml file bc sorting can change on the system?
-/// +	alternative waveforms plotting: https://github.com/Feliszt/sound-analyzer-OF
-/// +	better vumeter usign other rms snippets
+///
+///	+++		enable output
+///	+++		add background box to clarify text
+/// ++		change all to ofSoundBuffer, not buffer, channels..etc
+/// ++		add disconnectors to use only input or output. now, enablers are only like mutes. 
+/// ++		add switch api/device. without exceptions/crashes.
+/// +		add user gui toggle for advanced mode. key to 'G'
+/// +		add macOS/linux apis?
+/// +		samplerate and other settings to gui selectors. store to xml too. restar required maybe
+/// +		store devices by names? just editing xml file bc sorting can change on the system?
+/// +		alternative waveforms plotting: https://github.com/Feliszt/sound-analyzer-OF
+/// +		better vumeter usign other rms snippets
 
 #include "ofMain.h"
 
@@ -21,7 +24,7 @@
 //
 // DEFINES
 //
-//#define USE_PLOTS_AND_AUDIO_CALLBACKS
+#define USE_PLOTS_AND_AUDIO_CALLBACKS
 //#define USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 //#define USE_Log //can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
 //
@@ -1409,32 +1412,33 @@ public:
 			float rms = 0.0;
 			int numCounted = 0;
 
-			for (size_t i = 0; i < output.getNumFrames(); ++i)
-			{
-				output[i * outChannels] = ofRandom(-1, 1)
-					* getVolumeOutput()
-					;
-				output[i * outChannels + 1] = output[i * outChannels];
+			////fill buffer with noise
+			//for (size_t i = 0; i < output.getNumFrames(); ++i)
+			//{
+			//	output[i * outChannels] = ofRandom(-1, 1)
+			//		* getVolumeOutput()
+			//		;
+			//	output[i * outChannels + 1] = output[i * outChannels];
 
-				waveformOutput[waveOutputIndex] = output[i * outChannels];
-				if (waveOutputIndex < (ofGetWidth() - 1)) {
-					++waveOutputIndex;
-				}
-				else {
-					waveOutputIndex = 0;
-				}
+			//	waveformOutput[waveOutputIndex] = output[i * outChannels];
+			//	if (waveOutputIndex < (ofGetWidth() - 1)) {
+			//		++waveOutputIndex;
+			//	}
+			//	else {
+			//		waveOutputIndex = 0;
+			//	}
 
-				//-
+			//	//-
 
-				//vu
-				//code from here: https://github.com/edap/examplesOfxMaxim
-				//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
-				float left = output[0];
-				float right = output[1];
-				rms += left * left;
-				rms += right * right;
-				numCounted += 2;
-			}
+			//	//vu
+			//	//code from here: https://github.com/edap/examplesOfxMaxim
+			//	//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+			//	float left = output[0];
+			//	float right = output[1];
+			//	rms += left * left;
+			//	rms += right * right;
+			//	numCounted += 2;
+			//}
 
 			//--
 
