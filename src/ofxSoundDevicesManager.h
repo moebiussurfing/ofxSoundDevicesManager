@@ -390,7 +390,8 @@ public:
 		if (GUI_deviceIndexOutput.getValueInt() != deviceOut_Port)
 		{
 			outStream.close();
-			outSettings.setOutDevice(outDevices[GUI_deviceIndexOutput.getValueInt()]);
+			if (outDevices.size() > GUI_deviceIndexOutput.getValueInt())
+				outSettings.setOutDevice(outDevices[GUI_deviceIndexOutput.getValueInt()]);
 			outStream.setup(outSettings);
 			deviceOut_Port = GUI_deviceIndexOutput.getValueInt();
 		}
@@ -557,7 +558,8 @@ public:
 #else
 		inSettings.setInListener(ofGetAppPtr());//?
 #endif
-		inSettings.setInDevice(inDevices[deviceIn_Port]);
+		if (inDevices.size() > deviceIn_Port)
+			inSettings.setInDevice(inDevices[deviceIn_Port]);
 
 		inStream.setup(inSettings);
 
@@ -592,7 +594,8 @@ public:
 		outSettings.setOutListener(ofGetAppPtr());//?
 #endif
 
-		outSettings.setOutDevice(outDevices[deviceOut_Port]);
+		if (outDevices.size() > deviceOut_Port)
+			outSettings.setOutDevice(outDevices[deviceOut_Port]);
 
 		outStream.setup(outSettings);
 
@@ -626,7 +629,8 @@ public:
 
 		deviceIn_Api = _apiEnum;
 		deviceIn_ApiName = str_api;
-		deviceIn_PortName = inDevices[deviceIn_Port].name;
+		if (inDevices.size() > deviceIn_Port)
+			deviceIn_PortName = inDevices[deviceIn_Port].name;
 
 		deviceOut_Api = _apiEnum;
 		deviceOut_ApiName = str_api;
@@ -711,7 +715,7 @@ public:
 		//row 1
 		_y = 0;
 
-		fontMedium.drawString("API", _x, _y);
+		if (fontMedium.isLoaded()) fontMedium.drawString("API", _x, _y);
 		_y += _spacerY;
 		GUI_Api.draw(_x, _y, translation);
 
@@ -728,11 +732,13 @@ public:
 
 		//label
 		__str = "INPUT";
-		fontMedium.drawString(__str, _x, _y);
+		if (fontMedium.isLoaded()) fontMedium.drawString(__str, _x, _y);
 
 		//vu
 #ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-		_wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
+		if (fontMedium.isLoaded()) _wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
+		else _wVu = 200;
+
 		drawVU(smoothedVolume_Input, _x + _wVu, _y, _ww, _hh);
 		_y += _spacerY;
 		//enable toggle
@@ -764,11 +770,13 @@ public:
 
 		//label
 		__str = "OUTPUT";
-		fontMedium.drawString(__str, _x, _y);
+		if (fontMedium.isLoaded()) fontMedium.drawString(__str, _x, _y);
 
 		//vu
 #ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-		_wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
+		if (fontMedium.isLoaded()) _wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
+		else _wVu = 200;
+
 		drawVU(smoothedVolume_Out, _x + _wVu, _y, _ww, _hh);
 		_y += _spacerY;
 		//enable toggle
@@ -995,6 +1003,9 @@ public:
 
 #ifdef USE_Log
 		ofxTextFlow::setShowing(SHOW_Log);
+
+		string _font = "assets/fonts/telegrama_render.otf";
+		ofxTextFlow::loadFont(_font, 7);
 #endif
 
 	}
@@ -1007,7 +1018,7 @@ public:
 		//gui 
 
 		//fonts
-		string _font = "fonts/telegrama_render.otf";
+		string _font = "assets/fonts/telegrama_render.otf";
 		fontSmall.load(_font, 8);
 		fontMedium.load(_font, 10);
 		fontBig.load(_font, 12);
