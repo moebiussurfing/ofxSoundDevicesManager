@@ -173,6 +173,7 @@ public:
 	void toggleVisibleGui()
 	{
 		bSHOW_Gui = !bSHOW_Gui;
+		if (!SHOW_Active && bSHOW_Gui) SHOW_Active = true;
 	}
 #ifdef USE_Log
 	void setVisibleLog(bool b)
@@ -325,7 +326,7 @@ public:
 
 	//--------------------------------------------------------------
 	~ofxSoundDevicesManager() {
-		//exit();
+		exit();
 	};
 
 	//--------------------------------------------------------------

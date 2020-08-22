@@ -119,7 +119,7 @@ void ofApp::audioOut(ofSoundBuffer& output) {
 #ifdef USE_Log
 //--------------------------------------------------------------
 void ofApp::setupLogDebug() {
-	string pathFont = "fonts/telegrama_render.otf";
+	string pathFont = "assets/fonts/telegrama_render.otf";
 	float fontSize = 8;
 	ofFile file(pathFont);
 	if (file.exists())//must check this font file is found there
