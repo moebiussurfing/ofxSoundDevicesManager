@@ -26,12 +26,12 @@
 //
 #define USE_PLOTS_AND_AUDIO_CALLBACKS
 //#define USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
-//#define USE_Log //can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
+//#define USE_ofxTextFlow //can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
 //
 //-----------------------
 
 
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 #include "ofxTextFlow.h"
 #endif
 
@@ -91,7 +91,7 @@ private:
 
 	//-
 
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 	ofParameter<bool> SHOW_Log;
 #endif
 	ofParameter<bool> SHOW_Active;
@@ -175,7 +175,7 @@ public:
 		bSHOW_Gui = !bSHOW_Gui;
 		if (!SHOW_Active && bSHOW_Gui) SHOW_Active = true;
 	}
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 	void setVisibleLog(bool b)
 	{
 		SHOW_Log = b;
@@ -215,7 +215,7 @@ public:
 		SHOW_Advanced.set("ADVANCED", true);
 		params_Control.add(SHOW_Active);
 		params_Control.add(SHOW_Advanced);
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 		SHOW_Log.set("LOG", true);
 		params_Control.add(SHOW_Log);
 #endif
@@ -1002,7 +1002,7 @@ public:
 
 		setupGuiUser();
 
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 		ofxTextFlow::setShowing(SHOW_Log);
 
 		string _font = "assets/fonts/telegrama_render.otf";
@@ -1490,7 +1490,7 @@ public:
 		{
 			string name = e.getName();
 
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 			if (name == "LOG")
 			{
 				ofxTextFlow::setShowing(SHOW_Log);
@@ -1504,7 +1504,7 @@ public:
 				}
 				else
 				{
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 					SHOW_Log = false;
 #endif
 
@@ -1588,7 +1588,7 @@ public:
 	void logLine(string s)
 	{
 		ofLogNotice(__FUNCTION__) << s;
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 		if (SHOW_Log)
 		{
 			ofxTextFlow::addText(s);

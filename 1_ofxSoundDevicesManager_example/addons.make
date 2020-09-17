@@ -1,5 +1,0 @@
-ofxGui
-ofxSimpleFloatingGui
-ofxSoundDevicesManager
-ofxTextFlow
-ofxWindowApp

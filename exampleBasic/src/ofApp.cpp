@@ -27,8 +27,8 @@ void ofApp::setup() {
 	ofSetBackgroundColor(32);
 
 #ifdef USE_ofxWindowApp
-	//windowApp.setFrameRate(60);
-	//windowApp.setSetVerticalSync(true);
+	windowApp.setFrameRate(60);
+	windowApp.setSetVerticalSync(true);
 #else
 	ofSetFrameRate(60);
 	ofSetVerticalSync(true);
@@ -36,7 +36,7 @@ void ofApp::setup() {
 
 	//-
 	
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 	setupLogDebug();
 #endif
 
@@ -67,7 +67,7 @@ void ofApp::keyPressed(int key) {
 	{
 		audioDevices.toggleVisibleGui();
 	}
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 	if (key == 'l')
 	{
 		audioDevices.toggleVisibleLog();
@@ -116,7 +116,7 @@ void ofApp::audioOut(ofSoundBuffer& output) {
 //}
 
 //log
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 //--------------------------------------------------------------
 void ofApp::setupLogDebug() {
 	string pathFont = "assets/fonts/telegrama_render.otf";

@@ -2,12 +2,16 @@
 
 #include "ofMain.h"
 
-#define USE_ofxWindowApp
+//----
+// OPTIONAL
+//#define USE_ofxWindowApp	//handle window framerate, vertical sync, position and size
+#define USE_ofxTextFlow//enable log. can be commented to avoid ofxTextFlow dependecy 
+//----
+
 #ifdef USE_ofxWindowApp
 #include "ofxWindowApp.h"
 #endif
 
-#define USE_Log//can be commented to avoid ofxTextFlow dependecy 
 
 #include "ofxSoundDevicesManager.h"
 
@@ -39,7 +43,7 @@ class ofApp : public ofBaseApp{
 		////for when we are not using ofSoundBuffer
 		//void audioIn(float * input, int bufferSize, int nChannels) override;
 
-#ifdef USE_Log
+#ifdef USE_ofxTextFlow
 		void setupLogDebug();
 #endif
 
