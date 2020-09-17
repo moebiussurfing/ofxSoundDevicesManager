@@ -1,7 +1,8 @@
 # ofxSoundDevicesManager
 
 # Overview
-**ofxSoundDevicesManager** is an **openFrameworks** addon to easy handle selected system sound devices. **[WORK IN PROGRESS / ALPHA STATE]**
+**ofxSoundDevicesManager** is an **openFrameworks** addon to easy handle selected system sound devices.  
+**[WORK IN PROGRESS / ALPHA STATE]**
 
 ## Screenshot
 **exampleBasic**  
@@ -85,3 +86,4 @@ Addon by **@moebiusSurfing**
 *(ManuMolina). 2020.*
 
 ## License
+*MIT License*
