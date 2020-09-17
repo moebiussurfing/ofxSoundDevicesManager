@@ -67,7 +67,9 @@ void ofApp::audioOut(ofSoundBuffer& output) {
 ```
 
 ## Dependencies
-- Already included into **/libs**
+- Already included into **/libs**. You don't need to add them manualy to your project.  
+- https://github.com/Feliszt/ofxSimpleFloatingGui from **@Feliszt**. Thanks!  
+- https://github.com/tettou771/ofxTextFlow from **@tettou771**, Thanks!  
 
 ## Tested systems
 - **Windows10** / **VS2017** / **OF 0.11**
