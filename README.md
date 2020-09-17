@@ -9,12 +9,12 @@
 ![image](/readme_images/Capture1.PNG?raw=true "image")  
 
 ## Features
-- Select input and output devices by GUI.
-- Auto store/Recall settings on startup/exit.
-- Plot preview waveforms and VU meters.
-- Enable bypass channels.
-- Display list devices. 
-- Windows only for the momment!
+- **Select** input and output **devices** using a **nice GUI**.
+- Auto **Store/Recall settings** on startup/exit.
+- Plot preview **waveforms** and **VU meters**.
+- **Enable/Bypass** channels & **gain sliders**.
+- Display **list devices** from all sound APIs: **DS/ASIO/WASAPI**. 
+- **Windows only** for the moment!
 
 ## Usage
  
@@ -72,7 +72,7 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self
 
 ### Notes
 * *ALPHA STATE / WORK IN PROGRESS*  
-* Would crash  when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app. 
+* Would crash when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app. 
 
 ## Author
 An addon by **@moebiusSurfing**  
