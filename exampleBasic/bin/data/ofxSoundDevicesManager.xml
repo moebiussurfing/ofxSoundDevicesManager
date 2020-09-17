@@ -2,17 +2,17 @@
 <ofxSoundDevicesManager>
 	<INPUT>
 		<ENABLE>1</ENABLE>
-		<VOLUME>1</VOLUME>
+		<VOLUME>0.47</VOLUME>
 		<PORT>6</PORT>
 	</INPUT>
 	<OUTPUT>
-		<ENABLE>1</ENABLE>
-		<VOLUME>1</VOLUME>
-		<PORT>1</PORT>
+		<ENABLE>0</ENABLE>
+		<VOLUME>0.49</VOLUME>
+		<PORT>4</PORT>
 	</OUTPUT>
 	<CONTROL>
 		<ACTIVE>1</ACTIVE>
 		<ADVANCED>0</ADVANCED>
-		<LOG>0</LOG>
+		<LOG>1</LOG>
 	</CONTROL>
 </ofxSoundDevicesManager>

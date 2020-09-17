@@ -11,10 +11,10 @@
 ## Features
 - Select input and output devices by GUI.
 - Auto store/Recall settings on startup/exit.
-- Plot preview waveforms.
+- Plot preview waveforms and VU meters.
 - Enable bypass channels.
 - Display list devices. 
-- Windows only!
+- Windows only for the momment!
 
 ## Usage
  
@@ -59,8 +59,8 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self
 
 ## Dependencies
 - Already included into **/libs**. You don't need to add them manually to your project.  
-- https://github.com/Feliszt/ofxSimpleFloatingGui from **@Feliszt**. Thanks!  
-- https://github.com/tettou771/ofxTextFlow from **@tettou771**, Thanks!  
+	https://github.com/Feliszt/ofxSimpleFloatingGui from **@Feliszt**. Thanks!  
+	https://github.com/tettou771/ofxTextFlow from **@tettou771**, Thanks!  
 
 ## Tested systems
 - **Windows10** / **VS2017** / **OF 0.11**
@@ -68,11 +68,11 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self
 
 ### TODO/IDEAS
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible.  
-* Make macOS compatible.  
+* Make it macOS compatible. Is not so hard to add. Help is wellcome.  
 
 ### Notes
 * *ALPHA STATE / WORK IN PROGRESS*  
-* Would crash sometimes, like when changing **DS/ASIO/WASAPI** but should wake up and reload settings after restarting the app. 
+* Would crash  when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app. 
 
 ## Author
 An addon by **@moebiusSurfing**  
