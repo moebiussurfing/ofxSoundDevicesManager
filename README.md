@@ -1,7 +1,7 @@
 # ofxSoundDevicesManager
 
 # Overview
-**ofxSoundDevicesManager** is an **openFrameworks** addon to easy handle selected system sound devices.  
+**openFrameworks** addon to easy handle selected system sound devices.  
 **[WORK IN PROGRESS / ALPHA STATE]**
 
 ## Screenshot
@@ -39,7 +39,7 @@ ofApp::draw(){
 }
 
 void ofApp::exit() {
-	audioDevices.close();//to close devices. auto store session settings on class destructor
+	audioDevices.close();//to close devices. (will auto store session settings on class destructor)
 }
 
 void ofApp::keyPressed(int key) {
@@ -58,13 +58,13 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self
 ```
 
 ## Dependencies
-- Already included into **/libs**. You don't need to add them manually to your project.  
+- Already included into **/libs**. You don't need to add them manually to your project:  
 	https://github.com/Feliszt/ofxSimpleFloatingGui from **@Feliszt**. Thanks!  
 	https://github.com/tettou771/ofxTextFlow from **@tettou771**, Thanks!  
 
 ## Tested systems
 - **Windows10** / **VS2017** / **OF 0.11**
-- ONLY WORKS ON WINDOWS.
+- ONLY WORKS ON WINDOWS YET.
 
 ### TODO/IDEAS
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible.  
