@@ -11,7 +11,7 @@
 ## Features
 - Select input and output devices by GUI.
 - Auto store/Recall settings on startup/exit.
-- Plot preview wavefroms.
+- Plot preview waveforms.
 - Enable bypass channels.
 - Display list devices. 
 - Windows only!
@@ -27,7 +27,7 @@ ofxSoundDevicesManager audioDevices;
 ### ofApp.cpp
 ```.cpp
 ofApp::setup(){
-	audioDevices.setup(44100, 512);
+	audioDevices.setup(44100, 512);//set samplerate and buffer size
 }
 
 ofApp::update(){
@@ -35,39 +35,30 @@ ofApp::update(){
 }
 
 ofApp::draw(){
-	audioDevices.draw();
+	audioDevices.draw();//show gui
 }
 
 void ofApp::exit() {
-	audioDevices.close();
+	audioDevices.close();//to close devices. auto store session settings on class destructor
 }
 
 void ofApp::keyPressed(int key) {
-	if (key == 'g')
-	{
-		audioDevices.toggleVisibleGui();
-	}
-	if (key == 'l')
-	{
-		audioDevices.toggleVisibleLog();
-	}
-	if (key == 'a')
-	{
-		audioDevices.toggleActive();
-	}
+	if (key == 'g') audioDevices.toggleVisibleGui();
+	if (key == 'l') audioDevices.toggleVisibleLog();
+	if (key == 'a') audioDevices.toggleActive();
 }
 
-void ofApp::audioIn(ofSoundBuffer& input) {
+void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self
 	audioDevices.audioIn(input);
 }
 
-void ofApp::audioOut(ofSoundBuffer& output) {
+void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self
 	audioDevices.audioOut(output);
 }
 ```
 
 ## Dependencies
-- Already included into **/libs**. You don't need to add them manualy to your project.  
+- Already included into **/libs**. You don't need to add them manually to your project.  
 - https://github.com/Feliszt/ofxSimpleFloatingGui from **@Feliszt**. Thanks!  
 - https://github.com/tettou771/ofxTextFlow from **@tettou771**, Thanks!  
 
@@ -84,7 +75,7 @@ void ofApp::audioOut(ofSoundBuffer& output) {
 * Would crash sometimes, like when changing **DS/ASIO/WASAPI** but should wake up and reload settings after restarting the app. 
 
 ## Author
-Addon by **@moebiusSurfing**  
+An addon by **@moebiusSurfing**  
 *(ManuMolina). 2020.*
 
 ## License
