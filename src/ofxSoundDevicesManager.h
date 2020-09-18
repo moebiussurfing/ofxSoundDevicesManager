@@ -2,35 +2,34 @@
 
 /// TODO:
 ///
-///	+++		enable output
+/// +		add some other example
+///	+++		enable output and test with an example
+///	+++		integrate with ofSoundObjects
+/// ++		add switch api/device. without exceptions/crashes.
 ///	+++		add background box to clarify text
 /// ++		change all to ofSoundBuffer, not buffer, channels..etc
 /// ++		add disconnectors to use only input or output. now, enablers are only like mutes. 
-/// ++		add switch api/device. without exceptions/crashes.
 /// +		add user gui toggle for advanced mode. key to 'G'
 /// +		add macOS/linux apis?
-/// +		samplerate and other settings to gui selectors. store to xml too. restar required maybe
+/// +		add samplerate and other settings to gui selectors. store to xml too. restart must be required maybe
 /// +		store devices by names? just editing xml file bc sorting can change on the system?
 /// +		alternative waveforms plotting: https://github.com/Feliszt/sound-analyzer-OF
-/// +		better vumeter usign other rms snippets
+/// +		better vumeter using other rms snippets
 
 #include "ofMain.h"
-
-#include "ofxGui.h"
-#include "ofxSimpleFloatingGui.h"
-
 
 //-----------------------
 //
 // DEFINES
 //
 #define USE_PLOTS_AND_AUDIO_CALLBACKS
-//#define USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
-//#define USE_ofxTextFlow //can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
+//#define USE_ofBaseApp_Pointer		//enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/ou callbacks..
+//#define USE_ofxTextFlow			//can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
 //
 //-----------------------
 
-
+#include "ofxGui.h"
+#include "ofxSimpleFloatingGui.h"
 #ifdef USE_ofxTextFlow
 #include "ofxTextFlow.h"
 #endif
@@ -462,7 +461,7 @@ public:
 		//supported apis
 		enum Api {
 			UNSPECIFIED = 0,
-			DEFAULT,
+			DEFAULT,		//TODO: must implement all other APIs: macOS. I don't have Linux...
 			ALSA,			/*!< The Advanced Linux Sound Architecture API. */
 			PULSE,			/*!< The Linux PulseAudio API. */
 			OSS,			/*!< The Linux Open Sound System API. */
