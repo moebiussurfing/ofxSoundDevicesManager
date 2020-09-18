@@ -64,7 +64,7 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self. look othe
 
 ### Tested systems
 - **Windows10** / **VS2017** / **OF 0.11**
-- ONLY WORKS ON WINDOWS YET.
+  ONLY WORKS ON WINDOWS YET.
 
 ### TODO/IDEAS
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible.  
