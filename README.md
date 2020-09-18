@@ -48,27 +48,27 @@ void ofApp::keyPressed(int key) {
 	if (key == 'a') audioDevices.toggleActive();
 }
 
-void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self
+void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self. look other examples
 	audioDevices.audioIn(input);
 }
 
-void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self
+void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self. look other examples
 	audioDevices.audioOut(output);
 }
 ```
 
-## Dependencies
+### Dependencies
 - Already included into **/libs**. You don't need to add them manually to your project:  
 	https://github.com/Feliszt/ofxSimpleFloatingGui from **@Feliszt**. Thanks!  
 	https://github.com/tettou771/ofxTextFlow from **@tettou771**, Thanks!  
 
-## Tested systems
+### Tested systems
 - **Windows10** / **VS2017** / **OF 0.11**
 - ONLY WORKS ON WINDOWS YET.
 
 ### TODO/IDEAS
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible.  
-* Make it macOS compatible. Is not so hard to add. Help is wellcome.  
+* Make it macOS compatible. Is not so hard to add. Help/collaboration is wellcome!  
 
 ### Notes
 * *ALPHA STATE / WORK IN PROGRESS*  
@@ -79,4 +79,6 @@ An addon by **@moebiusSurfing**
 *(ManuMolina). 2020.*
 
 ## License
-*MIT License*
+*MIT License*  
+
+**_PLEASE FEEL FREE TO ADD MODIFICATIONS, EXAMPLES OR FEATURES AND TO SEND ME PULL REQUESTS OR ISSUES!_**
