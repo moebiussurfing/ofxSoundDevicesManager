@@ -2,7 +2,7 @@
 <ofxSoundDevicesManager>
 	<CONTROL>
 		<MAIN>1</MAIN>
-		<Input>1</Input>
+		<Input>0</Input>
 		<Output>0</Output>
 		<Waveforms>0</Waveforms>
 		<Internal>0</Internal>

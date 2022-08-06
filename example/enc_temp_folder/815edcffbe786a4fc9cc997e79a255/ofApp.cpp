@@ -3,11 +3,9 @@
 //#define USE_ofBaseApp_Pointer
 
 //--------------------------------------------------------------
-void ofApp::setup()
+void ofApp::setup() 
 {
-#ifdef USE_ofxWindowApp
 	windowApp.setFrameRate(60);
-#endif
 
 	setupSoundDevicesManager();
 }
@@ -39,7 +37,7 @@ void ofApp::audioOut(ofSoundBuffer& output) {
 }
 
 //--------------------------------------------------------------
-void ofApp::keyPressed(int key)
+void ofApp::keyPressed(int key) 
 {
 	if (key == 'g')
 	{

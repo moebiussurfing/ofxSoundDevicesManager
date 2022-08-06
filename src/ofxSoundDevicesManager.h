@@ -4,24 +4,26 @@
 
 TODO:
 
-	+	fix api selector
+	+	draggable rectangle to draw the waveforms
+	+	fix api selector. add switch API/device. without exceptions/crashes.
+
 	+	enable output and test with an example
-	+	integrate with ofSoundObjects
-	+	add switch API/device. without exceptions/crashes.
-	+	change all to ofSoundBuffer, not buffer, channels..etc
-	+	add disconnect to allow use only input or output. now, enablers are only like mutes.
 	+	add macOS/Linux apis ? https://github.com/roymacdonald/ofxSoundDeviceManager
+	+	add disconnect to allow use only input or output. now, enablers are only like mutes.
+	+	store devices by names? just editing xml file bc sorting can change on the system?
+	
+	+	integrate with ofSoundObjects
+	+	change all to ofSoundBuffer, not buffer, channels..etc
 	+	add sample-rate and other settings to gui selectors. store to XML too. Restart must be required maybe
 	https://github.com/roymacdonald/ofxSoundDeviceManager
-	+	store devices by names? just editing xml file bc sorting can change on the system?
+	
 	+	alternative waveforms plotting:
-	+	better vu meter using other rms snippets:
-	https://github.com/Feliszt/sound-analyzer-OF
-	https://github.com/roymacdonald/ofxSoundObjects
-
 	+	alternative plots or vu's
 		code from here: https://github.com/edap/examplesOfxMaxim
 		rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+	+	better vu meter using other rms snippets:
+	https://github.com/Feliszt/sound-analyzer-OF
+	https://github.com/roymacdonald/ofxSoundObjects
 
 */
 
