@@ -6,7 +6,7 @@
 **WORK IN PROGRESS**
 
 ## Screenshot
-**exampleBasic**  
+
 ![](/example/Capture.PNG)  
 
 ## Features
