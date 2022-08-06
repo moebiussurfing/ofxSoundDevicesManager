@@ -21,227 +21,86 @@
 //-----------------------
 //
 // DEFINES
-//
+
 #define USE_PLOTS_AND_AUDIO_CALLBACKS
-//#define USE_ofBaseApp_Pointer		//enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/ou callbacks..
-//#define USE_ofxTextFlow			//can be commented to avoid ofxTextFlow(cool on window logger) dependecy 
-//
+
+//#define USE_ofBaseApp_Pointer
+// //TODO: WIP		
+//enabled: addon class uses a passed by reference ofBaseApp pointer. 
+//disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/out callbacks..
+
 //-----------------------
 
 #include "ofxGui.h"
 #include "ofxSimpleFloatingGui.h"
-#ifdef USE_ofxTextFlow
-#include "ofxTextFlow.h"
-#endif
+#include "ofxSurfingBoxHelpText.h"
 
-#ifndef USE_ofBaseApp_Pointer
-class ofxSoundDevicesManager : public ofBaseApp {
+#ifdef USE_ofBaseApp_Pointer
+//--------------------------------------------------------------
+class ofxSoundDevicesManager
 #else
-class ofxSoundDevicesManager {
+//--------------------------------------------------------------
+class ofxSoundDevicesManager : public ofBaseApp
 #endif
+{
 
 public:
 
-	string pathSettings = "ofxSoundDevicesManager.xml";
-	string str_error = "";
+	ofxSurfingBoxHelpText textBoxWidget;
 
-	//ofBaseApp differents approach
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
-	ofBaseApp* _app_;
-#endif
+	string helpInfo = "";
 
-	//-
-
-private:
-	//sound devices
-	ofSoundStream inStream;
-	ofSoundStream outStream;
-
-public:
-	int numInputs;
-	int numOutputs;
-	int sampleRate;
-	int bufferSize;
-	int numBuffers;
-	//nBuffers - Is the number of buffers that your system will create and swap out. The more buffers, the faster your computer will write information into the buffer, but the more memory it will take up. You should probably use two for each channel that you’re using. Here’s an example call:
-	//ofSoundStreamSetup(2, 0, 44100, 256, 4);
-	//https://openframeworks.cc/documentation/sound/ofSoundStream/
-
-private:
-
-	//api
-	int apiOnAllOFSystemsIndex;//all OF possile apis!
-	//NOT the index of the available apis on this system.!
-	//ie: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
-	int apiGuiIndex = 0;//this index will be related to all available apis ONLY on this system!
-	//also in your same system, devices will change when disabling on windows sound preferences/devices
-	std::vector<string> ApiNames;
-
-	//devices
-	std::vector<ofSoundDevice> inDevices;
-	std::vector<ofSoundDevice> outDevices;
-
-	std::vector<string> inDevicesNames;
-	std::vector<string> outDevicesNames;
-
-	//settings
-	ofSoundStreamSettings inSettings;
-	ofSoundStreamSettings outSettings;
-
-	//-
-
-#ifdef USE_ofxTextFlow
-	ofParameter<bool> SHOW_Log;
-#endif
-	ofParameter<bool> SHOW_Active;
-	ofParameter<bool> SHOW_Advanced;
-
-	glm::vec2 position;
-
-	//-
-
-private:
-
-	//gui
-
-	//widgets
-	DropDown GUI_deviceIndexInput;
-	DropDown GUI_deviceIndexOutput;
-	DropDown GUI_Api;
-	Toggle GUI_enableInput;
-	SliderB GUI_volumeInput;
-	Toggle GUI_enableOutput;
-	SliderB GUI_volumeOutput;
-
-	//layout
-	ofColor colorDark;
-	ofColor colorGrey;
-	ofColor colorWhite;
-	int drawCounter;
-	int _widgetW;
-	int _widgetH;
-
-	//fonts
-	ofTrueTypeFont fontSmall;
-	ofTrueTypeFont fontMedium;
-	ofTrueTypeFont fontBig;
-
-	//-
-
-private:
-
-	//parameters
-
-	//in
-	ofParameterGroup params_In;
-	ofParameter<bool> deviceIn_Enable;
-	ofParameter<float> deviceIn_Volume;
-	ofParameter<int> deviceIn_Api;
-	ofParameter<string> deviceIn_ApiName;
-	ofParameter<int> deviceIn_Port;
-	ofParameter<string> deviceIn_PortName;
-
-	//out
-	ofParameterGroup params_Out;
-	ofParameter<bool> deviceOut_Enable;
-	ofParameter<float> deviceOut_Volume;
-	ofParameter<int> deviceOut_Api;
-	ofParameter<string> deviceOut_ApiName;
-	ofParameter<int> deviceOut_Port;
-	ofParameter<string> deviceOut_PortName;
-
-	//-
-
-	ofParameterGroup params;
-	ofParameterGroup params_Control;
-	bool DISABLE_Callbacks = false;//to avoid callback crashes or to enable only after setup()
-
-	ofxPanel gui;
-	bool bSHOW_Gui = false;
-
-	//-
-
-public:
-
-	//api
-
-	void setVisibleGui(bool b)
+	//--------------------------------------------------------------
+	void logLine(string text)
 	{
-		bSHOW_Gui = b;
+		helpInfo += text + "\n";
 	}
-	void toggleVisibleGui()
-	{
-		bSHOW_Gui = !bSHOW_Gui;
-		if (!SHOW_Active && bSHOW_Gui) SHOW_Active = true;
-	}
-#ifdef USE_ofxTextFlow
-	void setVisibleLog(bool b)
-	{
-		SHOW_Log = b;
-	}
-	void toggleVisibleLog()
-	{
-		SHOW_Log = !SHOW_Log;
-	}
-#endif
-
-	void setActive(bool b)
-	{
-		SHOW_Active = b;
-	}
-	void toggleActive()
-	{
-		SHOW_Active = !SHOW_Active;
-	}
-
-	void setVisibleAdvanced(bool b)
-	{
-		SHOW_Advanced = b;
-	}
-	void toggleVisibleAdvanced()
-	{
-		SHOW_Advanced = !SHOW_Advanced;
-	}
-
-	//--
 
 	//--------------------------------------------------------------
 	ofxSoundDevicesManager()
 	{
+		ofAddListener(ofEvents().update, this, &ofxSoundDevicesManager::update);
+
 		params_Control.setName("CONTROL");
 
-		SHOW_Active.set("ACTIVE", true);
-		SHOW_Advanced.set("ADVANCED", true);
-		params_Control.add(SHOW_Active);
-		params_Control.add(SHOW_Advanced);
-#ifdef USE_ofxTextFlow
-		SHOW_Log.set("LOG", true);
-		params_Control.add(SHOW_Log);
-#endif
+		bGui.set("SOUND DEVICES", true);
+		//bGui_Waveform.set("Waveform", true);
+		//bGui_Advanced.set("Advanced", true);
+
+		params_Control.add(bGui);
+		params_Control.add(bGui_In);
+		params_Control.add(bGui_Out);
+		//params_Control.add(bGui_Advanced);
+		//params_Control.add(bGui_Waveform);
+		params_Control.add(textBoxWidget.bGui);
+
 		//-
 
-		DISABLE_Callbacks = true;
+		bDISABLE_CALBACKS = true;
 
-		//default audio seetings
+		// default audio seTtings
 
-		sampleRate = 44100;//internal default
+		// internal default
+		sampleRate = 44100;
 		//sampleRate = 48000;
 
+		// internal default
 		bufferSize = 512;
-		//bufferSize = 256;//internal default
+		//bufferSize = 256; 
 
-		numBuffers = 4;//internal default
+		// internal default
+		numBuffers = 4;
 		//numBuffers = 2;
 
 		//-
 
-		//channels
+		// channels
 		numInputs = 2;
 		numOutputs = 2;
 
 		//-
 
-		//params
+		// params
 		deviceIn_Enable.set("ENABLE", false);
 		deviceIn_Volume.set("VOLUME", 0.5f, 0.f, 1.f);
 		deviceIn_Api.set("API", 0, 0, 10);
@@ -256,7 +115,7 @@ public:
 		deviceOut_Port.set("PORT", 0, 0, 10);
 		deviceOut_PortName.set("", "");
 
-		//serializers
+		// serializers
 		//deviceIn_Enable.setSerializable(false);
 		deviceIn_Api.setSerializable(false);
 		deviceIn_ApiName.setSerializable(false);
@@ -292,10 +151,35 @@ public:
 		//params_Out.add(deviceOut_ApiName);//hide labels
 		//params_Out.add(deviceOut_PortName);
 
+		//--
+
+		// Waveform
+		params_Waveform.setName("WAVEFORM");
+		params_Waveform.add(bGui_WaveIn);
+		params_Waveform.add(bGui_WaveOut);
+		params_Waveform.add(_h);
+		params_Waveform.add(bAbs);
+		params_Waveform.add(_spread);
+		params_Waveform.add(bLine);
+		params_Waveform.add(_lineWidth);
+		params_Waveform.add(bRectangle);
+		params_Waveform.add(_gap);
+		params_Waveform.add(bReset);
+		//params_Waveform.add(_max);
+		//params_Waveform.add(_margin);
+		//params_Waveform.add(bLine);
+		//params_Waveform.add(bBars);
+
+		//--
+
 		params.setName("ofxSoundDevicesManager");
+		params.add(params_Control);
 		params.add(params_In);
 		params.add(params_Out);
-		params.add(params_Control);
+		params.add(params_Waveform);
+
+		ofAddListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
+
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 
@@ -309,23 +193,31 @@ public:
 
 		//-
 
-		//layout
+		// layout
 
-		//user gui
+		// user gui
 		position = glm::vec2(25, 25);
+
+		// text box
+		textBoxWidget.setTitle("\nSOUND DEVICES");
+		textBoxWidget.setFontSize(8);
+		textBoxWidget.setFontTitleSize(11);
+		textBoxWidget.setup();
 
 		//-
 
-		//widgets colors
+		// widgets colors
 		colorDark = ofColor::black;
 		colorGrey = ofColor(64);
 		colorWhite = ofColor::white;
-		drawCounter = 0;
+		//drawCounter = 0;
 	};
 
 	//--------------------------------------------------------------
 	~ofxSoundDevicesManager() {
 		exit();
+
+		ofRemoveListener(ofEvents().update, this, &ofxSoundDevicesManager::update);
 	};
 
 	//--------------------------------------------------------------
@@ -334,11 +226,184 @@ public:
 
 		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
+
 #ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
 #endif
+		ofRemoveListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
+
 		close();
 	};
+
+	//--
+
+public:
+
+	string pathSettings = "ofxSoundDevicesManager.xml";
+	string str_error = "";
+
+#ifdef USE_ofBaseApp_Pointer 
+	ofBaseApp* _app_;
+#endif
+
+	//-
+
+private:
+
+	// Sound devices
+	ofSoundStream inStream;
+	ofSoundStream outStream;
+
+public:
+
+	int numInputs;
+	int numOutputs;
+	int sampleRate;
+	int bufferSize;
+	int numBuffers;
+	//nBuffers - Is the number of buffers that your system will create and swap out. The more buffers, the faster your computer will write information into the buffer, but the more memory it will take up. You should probably use two for each channel that you’re using. Here’s an example call:
+	//ofSoundStreamSetup(2, 0, 44100, 256, 4);
+	//https://openframeworks.cc/documentation/sound/ofSoundStream/
+
+private:
+
+	// Api
+	int apiOnAllOFSystemsIndex;//all OF possile apis!
+	//NOT the index of the available apis on this system.!
+	//ie: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
+	int apiGuiIndex = 0;//this index will be related to all available apis ONLY on this system!
+	//also in your same system, devices will change when disabling on windows sound preferences/devices
+	std::vector<string> ApiNames;
+
+	// devices
+	std::vector<ofSoundDevice> inDevices;
+	std::vector<ofSoundDevice> outDevices;
+
+	std::vector<string> inDevicesNames;
+	std::vector<string> outDevicesNames;
+
+	// settings
+	ofSoundStreamSettings inSettings;
+	ofSoundStreamSettings outSettings;
+
+	//-
+
+	ofParameter<bool> bGui;
+	//ofParameter<bool> bGui_Advanced;
+
+	glm::vec2 position;
+
+	//-
+
+private:
+
+	// gui
+
+	// widgets
+	DropDown GUI_deviceIndexInput;
+	DropDown GUI_deviceIndexOutput;
+	DropDown GUI_Api;
+	Toggle GUI_enableInput;
+	SliderB GUI_volumeInput;
+	Toggle GUI_enableOutput;
+	SliderB GUI_volumeOutput;
+
+	// layout
+	ofColor colorDark;
+	ofColor colorGrey;
+	ofColor colorWhite;
+	//int drawCounter;
+	int _widgetW;
+	int _widgetH;
+
+	// fonts
+	ofTrueTypeFont fontSmall;
+	ofTrueTypeFont fontMedium;
+	ofTrueTypeFont fontBig;
+
+	//-
+
+private:
+
+	// parameters
+
+	// in
+	ofParameterGroup params_In;
+	ofParameter<bool> deviceIn_Enable;
+	ofParameter<float> deviceIn_Volume;
+	ofParameter<int> deviceIn_Api;
+	ofParameter<string> deviceIn_ApiName;
+	ofParameter<int> deviceIn_Port;
+	ofParameter<string> deviceIn_PortName;
+
+	// out
+	ofParameterGroup params_Out;
+	ofParameter<bool> deviceOut_Enable;
+	ofParameter<float> deviceOut_Volume;
+	ofParameter<int> deviceOut_Api;
+	ofParameter<string> deviceOut_ApiName;
+	ofParameter<int> deviceOut_Port;
+	ofParameter<string> deviceOut_PortName;
+
+	//-
+
+	ofParameterGroup params;
+	ofParameterGroup params_Control;
+	bool bDISABLE_CALBACKS = false;//to avoid callback crashes or to enable only after setup()
+
+	ofxPanel gui;
+
+	ofParameter<bool> bGui_Internal{ "Internal", true };
+
+	//--
+
+	//ofxPanel gui_waveform;
+	ofParameterGroup params_Waveform;
+	//ofParameter<bool> bGui_Waveform{ "Waveforms", true };
+	ofParameter<bool> bGui_WaveIn{ "Wave In", true };
+	ofParameter<bool> bGui_WaveOut{ "Wave Out", false };
+	ofParameter<bool> bAbs{ "Abs", true };
+	ofParameter<float>_spread{ "Spread", 0, 0, 1 };
+	ofParameter<int>_h{ "Hight", 500, 10, 5000 };
+	ofParameter<bool>bRectangle{ "Rectangle", false };
+	ofParameter<float>_gap{ "Gap", 1, 0, 1 };
+	ofParameter<bool>bLine{ "Line", true };
+	ofParameter<int>_lineWidth{ "LineWidth", 3, 1, 100 };
+	ofParameter<bool>bReset{ "Reset", false };
+	//ofParameter<float>_max{ "Max", 200, 100, 500 };
+	//ofParameter<int>_margin{ "Margin", 50, 10, 100 };
+	//ofParameter<bool>bLine{ "Line", false };
+	//ofParameter<bool>bBars{ "Bars", false };
+
+	ofParameter<bool> bGui_In{ "Input", true };
+	ofParameter<bool> bGui_Out{ "Output", false };
+
+	//-
+
+public:
+
+	// API
+
+	void setVisible(bool b)
+	{
+		bGui_Internal = b;
+	}
+	void setVisibleToggle()
+	{
+		bGui_Internal = !bGui_Internal;
+		if (!bGui && bGui_Internal) bGui = true;
+	}
+
+	//void setVisibleAdvanced(bool b)
+	//{
+	//	bGui_Advanced = b;
+	//}
+	//void toggleVisibleAdvanced()
+	//{
+	//	bGui_Advanced = !bGui_Advanced;
+	//}
+
+	//--
 
 	//----
 
@@ -431,7 +496,7 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	void update()
+	void update(ofEventArgs& args)
 	{
 		//updateWaveforms();//for using alternative plot engines
 
@@ -474,7 +539,7 @@ public:
 		} _apiEnum = UNSPECIFIED;
 
 		//TODO:
-		//api choice
+		// api choice
 
 		//index is related to (above enum) all OF supported apis
 		//_apiEnum = MS_WASAPI;//7
@@ -498,7 +563,7 @@ public:
 
 		//------------------
 
-		//apis and devices
+		// apis and devices
 
 		inDevices.clear();
 		outDevices.clear();
@@ -553,7 +618,7 @@ public:
 		}
 
 
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
+#ifdef USE_ofBaseApp_Pointer 
 		inSettings.setInListener(_app_);
 #else
 		inSettings.setInListener(ofGetAppPtr());//?
@@ -588,7 +653,7 @@ public:
 			break;
 		}
 
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
+#ifdef USE_ofBaseApp_Pointer 
 		outSettings.setOutListener(_app_);
 #else
 		outSettings.setOutListener(ofGetAppPtr());//?
@@ -604,7 +669,7 @@ public:
 		str = "------------------------------------------";
 		logLine(str);
 
-		str = "\n> CONNECTED SOUND DEVICES\n\n";
+		str = "\n> CONNECTED DEVICE\n";
 		logLine(str);
 
 		str = "API    [ " + str_api + " ]";
@@ -618,6 +683,11 @@ public:
 
 		str = "------------------------------------------";
 		logLine(str);
+
+		str = "\n";
+		logLine(str);
+
+		textBoxWidget.setText(helpInfo);
 
 		//-
 
@@ -706,107 +776,118 @@ public:
 
 		//---
 
-		//api
+		// api
+		{
+			ofSetColor(colorGrey);
 
-		ofSetColor(colorGrey);
+			//column 1
+			_x = 0;
+			//row 1
+			_y = 0;
 
-		//column 1
-		_x = 0;
-		//row 1
-		_y = 0;
-
-		if (fontMedium.isLoaded()) fontMedium.drawString("API", _x, _y);
-		_y += _spacerY;
-		GUI_Api.draw(_x, _y, translation);
+			if (fontMedium.isLoaded()) fontMedium.drawString("API", _x, _y);
+			_y += _spacerY;
+			GUI_Api.draw(_x, _y, translation);
+		}
 
 		//----
 
-		//input
+		// input
 
-		ofSetColor(colorGrey);
+		if (bGui_In)
+		{
+			ofSetColor(colorGrey);
 
-		//column 2
-		_x = 145;
-		//row 2
-		_y = 0;
+			//column 2
+			int _x0 = 145;
+			_x = _x0;
+			//row 2
+			_y = 0;
 
-		//label
-		__str = "INPUT";
-		if (fontMedium.isLoaded()) fontMedium.drawString(__str, _x, _y);
+			//label
+			__str = "INPUT";
+			if (fontMedium.isLoaded()) fontMedium.drawString(__str, _x, _y);
 
-		//vu
+			//vu
 #ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-		if (fontMedium.isLoaded()) _wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
-		else _wVu = 200;
+			if (fontMedium.isLoaded()) _wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
+			else _wVu = 200;
 
-		drawVU(smoothedVolume_Input, _x + _wVu, _y, _ww, _hh);
-		_y += _spacerY;
-		//enable toggle
-		GUI_enableInput.draw(_x, _y, translation);
-		_x += _spacerX;
+			drawVU(smoothedVolume_Input, _x + _wVu, _y, _ww, _hh);
+			_y += _spacerY;
+			//enable toggle
+			GUI_enableInput.draw(_x, _y, translation);
+			_x += _spacerX;
 
-		//input volume 
-		GUI_volumeInput.draw(_x, _y, translation);//_y + _widgetH*1.f
-		_y += _spacerY;
+			//input volume 
+			GUI_volumeInput.draw(_x, _y, translation);//_y + _widgetH*1.f
+			_y += _spacerY;
 #endif
 
-		//-
+			//-
 
-		//dropdown
-		_x = +145;
-		_y += _spacerY;
-		GUI_deviceIndexInput.draw(_x, _y, translation);
+			//dropdown
+			//_x = +145;
+			_y += _spacerY;
+			GUI_deviceIndexInput.draw(_x, _y, translation);
+		}
 
 		//---
 
-		//out
+		// out
 
-		ofSetColor(colorGrey);
+		if (bGui_Out)
+		{
 
-		//row 3
-		_y = 0;
-		//column 3
-		_x += _wColumn;
+			ofSetColor(colorGrey);
 
-		//label
-		__str = "OUTPUT";
-		if (fontMedium.isLoaded()) fontMedium.drawString(__str, _x, _y);
+			//row 3
+			_y = 0;
+			//column 3
+			_x += _wColumn;
+			int _x0 = _x;
 
-		//vu
+			//label
+			__str = "OUTPUT";
+			if (fontMedium.isLoaded()) fontMedium.drawString(__str, _x, _y);
+
+			//vu
 #ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-		if (fontMedium.isLoaded()) _wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
-		else _wVu = 200;
+			if (fontMedium.isLoaded()) _wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
+			else _wVu = 200;
 
-		drawVU(smoothedVolume_Out, _x + _wVu, _y, _ww, _hh);
-		_y += _spacerY;
-		//enable toggle
-		GUI_enableOutput.draw(_x, _y, translation);
-		_x += _spacerX;
+			drawVU(smoothedVolume_Out, _x + _wVu, _y, _ww, _hh);
+			_y += _spacerY;
+			//enable toggle
+			GUI_enableOutput.draw(_x, _y, translation);
+			_x += _spacerX;
 
-		//output volume 
-		GUI_volumeOutput.draw(_x, _y, translation);
-		_y += _spacerY;
+			//output volume 
+			GUI_volumeOutput.draw(_x, _y, translation);
+			_y += _spacerY;
 #endif
 
-		//-
+			//-
 
-		//dropdown
-		_x = +145 + _wColumn;
-		_y += _spacerY;
-		GUI_deviceIndexOutput.draw(_x, _y, translation);
+			//dropdown
+			//_x = +145 + _wColumn;
+			_x = _x0;
+			_y += _spacerY;
+			GUI_deviceIndexOutput.draw(_x, _y, translation);
+		}
 
 		//---
 
-		drawCounter++;
+		//drawCounter++;
 
 		ofPopStyle();
 		ofPopMatrix();
 	}
 
 	//--------------------------------------------------------------
-	void draw()
+	void drawGui()
 	{
-		if (SHOW_Active)
+		if (bGui)
 		{
 
 #ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
@@ -814,13 +895,17 @@ public:
 #endif
 			//--
 
-			//gui
 			drawGuiUser();
 
 			//--
 
-			if (bSHOW_Gui)
-				gui.draw();
+			if (bGui_Internal) gui.draw();
+
+			//auto p = gui.getShape().getTopRight();
+			//gui_waveform.setPosition(p);
+			//if (bGui_Waveform) gui_waveform.draw();
+
+			textBoxWidget.draw();
 		}
 	}
 
@@ -837,11 +922,12 @@ public:
 		ofSoundStreamClose();
 	}
 
-	//settings
+	// Settings
+#ifdef USE_ofBaseApp_Pointer 
 	//--------------------------------------------------------------
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
 	void setup(ofBaseApp* _app, int _samplerate, int _buffersize, int _numbuffers)
 #else
+	//--------------------------------------------------------------
 	void setup(int _samplerate, int _buffersize, int _numbuffers)
 #endif
 	{
@@ -849,7 +935,7 @@ public:
 		bufferSize = _buffersize;
 		numBuffers = _numbuffers;
 
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
+#ifdef USE_ofBaseApp_Pointer 
 		setup(_app);
 #else
 		setup();
@@ -857,7 +943,7 @@ public:
 	}
 
 	//--------------------------------------------------------------
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
+#ifdef USE_ofBaseApp_Pointer
 	void setup(ofBaseApp* _app, int _samplerate, int _buffersize)
 #else
 	void setup(int _samplerate, int _buffersize)
@@ -866,7 +952,7 @@ public:
 		sampleRate = _samplerate;
 		bufferSize = _buffersize;
 
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
+#ifdef USE_ofBaseApp_Pointer 
 		setup(_app);
 #else
 		setup();
@@ -891,24 +977,13 @@ public:
 
 	//-
 
-//--------------------------------------------------------------
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
-	void setup(ofBaseApp* _app) {
-#else
-	void setup() {
-#endif
-
-#ifdef USE_ofBaseApp_Pointer //enabled: addon class uses a passed by reference ofBaseApp pointer. disabled: gets ofBaseApp 'locally'
-		_app_ = _app;
-#endif
-
-		//--
-
+	void setupHelpInfo()
+	{
 		string _str;
 		string str;
 
-		//log
-		_str = "\n> SETUP SOUND DEVICES\n\n";
+		// Log
+		_str = "\n> SETUP DEVICE\n";
 		logLine(_str);
 		_str = "SAMPLERATE  : " + ofToString(sampleRate);
 		logLine(_str);
@@ -921,93 +996,113 @@ public:
 		_str = "NUM OUTPUTS : " + ofToString(numOutputs);
 		logLine(_str);
 
-		//-
-
-		//TODO:
-		//windows only
-		ApiNames.clear();
-		ApiNames.push_back("MS_WASAPI");//0
-		ApiNames.push_back("MS_ASIO");//1
-		ApiNames.push_back("MS_DS");//2
-
 		//------------------
 
-		//_str = "> SETUP SOUND DEVICES";
-		//logLine(_str);
-
-		str = "\n> LIST AUDIO DEVICES FROM ANY API\n\n";
+		str = "\n> LIST AUDIO DEVICES FROM ALL APIS\n";
 		logLine(str);
 
-		//list all apis
+		// List all APIS
+
+		// ASIO
+		logLine("ASIO\n");
 		auto devicesAsio = inStream.getDeviceList(ofSoundDevice::Api::MS_ASIO);
 		for (auto dev : devicesAsio)
 		{
 			str = ofToString(dev);
 			logLine(str);
 		}
-		str = "\n";
+		str = "";
 		logLine(str);
 
+		// DS
+		logLine("DS\n");
 		auto devicesDs = inStream.getDeviceList(ofSoundDevice::Api::MS_DS);
 		for (auto dev : devicesDs)
 		{
 			str = ofToString(dev);
 			logLine(str);
 		}
-
-		str = "\n";
+		str = "";
 		logLine(str);
 
+		// WASAPI
+		logLine("WASAPI\n");
 		auto devicesWs = inStream.getDeviceList(ofSoundDevice::Api::MS_WASAPI);
 		for (auto dev : devicesWs)
 		{
 			str = ofToString(dev);
 			logLine(str);
 		}
-
-		str = "\n";
+		str = "";
 		logLine(str);
 
+		//--
+
+		textBoxWidget.setText(helpInfo);
+	}
+
+#ifdef USE_ofBaseApp_Pointer
+	//--------------------------------------------------------------
+	void setup(ofBaseApp* _app) {
+#else
+	//--------------------------------------------------------------
+	void setup() {
+#endif
+
+#ifdef USE_ofBaseApp_Pointer 
+		_app_ = _app;
+#endif
 		//-
 
-		DISABLE_Callbacks = false;
+		//TODO:
+		// windows only
+		ApiNames.clear();
+		ApiNames.push_back("MS_WASAPI");//0
+		ApiNames.push_back("MS_ASIO");//1
+		ApiNames.push_back("MS_DS");//2
 
-		//settings
+		//--
+
+		setupHelpInfo();
+
+		//--
+
+		bDISABLE_CALBACKS = false;
+
+		// Settings
 		loadGroup(params, pathSettings);
 
 		//-
 
-		//api
+		// API
 
 		//connectAp(_app, apiOnAllOFSystemsIndex);//MS_DS
 		connectAp(apiOnAllOFSystemsIndex);//MS_DS
 
-		//TODO:
-		//harcoded
+		// TODO:
+		// Harcoded
 		apiGuiIndex = 2;//for gui
 
 		//-
 
-		//control gui
-		gui.setup();
+		// Control
+		gui.setup("DEVICES");
 		gui.add(params);
 		gui.getGroup("ofxSoundDevicesManager").minimizeAll();
 		gui.getGroup("ofxSoundDevicesManager").minimize();
 
-		//advanced gui
+		// Advanced
 		gui.setPosition(700, 400);
 
 		//--
 
+		//// waveform
+		//gui_waveform.setup("WAVEFORM");
+		//gui_waveform.add(params_Waveform);
+
+		//--
+
 		setupGuiUser();
-
-#ifdef USE_ofxTextFlow
-		ofxTextFlow::setShowing(SHOW_Log);
-
-		string _font = "assets/fonts/telegrama_render.otf";
-		ofxTextFlow::loadFont(_font, 7);
-#endif
-
 	}
 
 	//--------------------------------------------------------------
@@ -1023,7 +1118,7 @@ public:
 		fontMedium.load(_font, 10);
 		fontBig.load(_font, 12);
 
-		//dropdowns
+		// dropdowns
 
 		//1. api
 		GUI_Api.setup(ApiNames, apiGuiIndex, fontSmall, colorGrey, ofColor::whiteSmoke);
@@ -1046,9 +1141,9 @@ public:
 		_widgetH = 15;
 
 		GUI_enableInput.setup(deviceIn_Enable, colorDark);
-		GUI_volumeInput.setup(deviceIn_Volume, _widgetW, _widgetH, _widgetH*.7f, colorDark, colorGrey);
+		GUI_volumeInput.setup(deviceIn_Volume, _widgetW, _widgetH, _widgetH * .7f, colorDark, colorGrey);
 		GUI_enableOutput.setup(deviceOut_Enable, colorDark);
-		GUI_volumeOutput.setup(deviceOut_Volume, _widgetW, _widgetH, _widgetH*.7f, colorDark, colorGrey);
+		GUI_volumeOutput.setup(deviceOut_Volume, _widgetW, _widgetH, _widgetH * .7f, colorDark, colorGrey);
 	}
 
 	//--------------------------------------------------------------
@@ -1076,7 +1171,7 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	void loadGroup(ofParameterGroup &g, string path)
+	void loadGroup(ofParameterGroup & g, string path)
 	{
 		ofLogNotice(__FUNCTION__) << "loadGroup: " << g.getName() << " to " << path;
 		ofLogVerbose(__FUNCTION__) << "parameters: " << g.toString();
@@ -1100,7 +1195,7 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	void saveGroup(ofParameterGroup &g, string path)
+	void saveGroup(ofParameterGroup & g, string path)
 	{
 		ofLogNotice(__FUNCTION__) << "saveGroup: " << g.getName() << " to " << path;
 		ofLogVerbose(__FUNCTION__) << "parameters: " << g.toString();
@@ -1125,7 +1220,7 @@ public:
 	//ofParameter<float> smoothRatio;
 	float smoothedVolume_Input = 0;//rms signal to use on VU
 	float smoothedVolume_Out = 0;//rms signal to use on VU
-	ofParameterGroup paramsWaveforms;
+	//ofParameterGroup paramsWaveforms;
 	//float scaledVolume = 0;
 	//alternative plots
 	//ofParameter<int> radius;
@@ -1202,102 +1297,109 @@ public:
 	void drawWaveforms() {
 		ofPushStyle();
 		ofPushMatrix();
+		{
+			ofFill();
+			ofSetColor(0, 225);
+			ofSetLineWidth(_lineWidth);
 
-		ofFill();
-		ofSetColor(0, 225);
-		ofSetLineWidth(3.0f);
-		float _max = 200;
-		int _margin = 50;
+			int _width = ofGetWidth();
+			float _max = 200;
+			int _margin = 50;
 
-		//input
-		ofTranslate(0, ofGetHeight() / 4.f);
+			// input
+			ofTranslate(0, ofGetHeight() / 4.f);
 
-		////oscilloscope style
-		//ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
-		//for (int i = 1; i < (ofGetWidth() - 1); ++i) {
-		//	ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
-		//}
-
-		//bars style
-		ofFill();
-		int _h = 1000;
-		int _width = ofGetWidth();
-		bool bLine, bBars;
-		bLine = true;
-		bBars = false;
-		int _spread;//use one bar x 20 buffer frames. ignore the others. but depends on relation beetween viewport width vs bufferSize
-		if (bLine)
-			_spread = 1;
-		if (bBars)
-			_spread = 10;
-		//float _maxBars = _width /
-		int _gap = 5;//space between bars
-		float y1 = 0;
-		float numVars = (bufferSize / _spread);
-		float wVars = _width / numVars;
-		float _pw = abs(wVars - _gap);
-		for (int i = 0; i < bufferSize; i++) {
-			if (i%_spread == 0)//spread spaces
+			if (bGui_WaveIn)
 			{
-				float p = (i / (float)(bufferSize));//normalized pos in array
-				float x = p * _width;
+				////oscilloscope style
+				//ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
+				//for (int i = 1; i < (ofGetWidth() - 1); ++i) {
+				//	ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
+				//}
 
-				float _ph = 1.0f + abs(waveformInput[i] * _h);//make positive. 1.0 for minimal line
-				float y2 = 0.1f + y1 - _ph;//0.1 for minimal line
-				float y22 = 0.1f + y1 + _ph;//0.1 for dual minimal line
+				// bars style
 
-				if (bLine) {
-					//ofDrawLine(x, y1, x, y2);//line
-					ofDrawLine(x, y22, x, y2);//dual line
+				int __spread = _spread * bufferSize;
+				__spread = ofClamp(__spread, 1, bufferSize);
+
+				float y1 = 0;
+
+				float numBars = (bufferSize / __spread);
+				float wBars = _width / numBars;
+
+				//float _pw = abs(wBars - _gap);
+				float _pw = (wBars * _gap);
+				_pw = MAX(1, _pw);
+
+				//TODO: this could be redone
+				for (int i = 0; i < bufferSize; i++)
+				{
+					if (i % __spread == 0)//spread spaces
+					{
+						float p = (i / (float)(bufferSize));//normalized pos in array
+						float x = p * _width;
+
+						float _ph;
+						if (bAbs) _ph = abs(waveformInput[i] * _h);//make positive
+						else _ph = waveformInput[i] * _h;
+						//_ph = MAX(0, _ph);
+
+						//y1 = ofClamp(y1, 0, _h);
+						//_ph = ofClamp(_ph, 0, _h);
+
+						if (bLine) ofDrawLine(x, y1, x, -_ph);//line
+						if (bRectangle) ofDrawRectangle(x, y1, _pw, -_ph);//rectangle
+					}
 				}
-				if (bBars) {
-					ofDrawRectangle(x, y1, _pw, -_ph);//bars could be nice with rms not scope style
-				}
+
+				ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, 5);
+				//drawWaveform(waveformInput, 0, 0, 0, 0);
 			}
+
+			//--
+
+			if (bGui_WaveOut) {
+				// output
+				ofTranslate(0, 2 * ofGetHeight() / 4);
+				ofDrawLine(0, 0, 1, waveformOutput[1] * _max); // first line
+
+				for (int i = 1; i < (ofGetWidth() - 1); ++i) {
+					ofDrawLine(i, waveformOutput[i] * _max, i + 1, waveformOutput[i + 1] * _max);
+				}
+
+				ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - _margin, +5);
+			}
+
+			//-
+
+			////alternative plots
+			////ofSetColor(255, 0, 0);
+			////ofDrawCircle(500, -500, smoothedVolume_Out * radius);
+			////line.draw();
+			//////cout << "smoothedVolume_Out:" << smoothedVolume_Out << endl;
+
+			//ofTranslate(0, -ofGetHeight() / 2.f);
+			//int WW = 500;
+			//int HW = 500;
+
+			//// draw circle for scaled volume
+			//ofSetColor(255,0,0,200);
+			//ofFill();
+			//ofDrawCircle(WW / 2, HW / 2, ofClamp(smoothedVol * 100, 0, HW / 2));
+
+			////lets draw the volume history as a graph
+			//ofBeginShape();
+			//for (unsigned int i = 0; i < derVolHistory.size(); i++) {
+			//	float abs = ofMap(i, 0, derVolHistory.size(), 0, WW);
+			//	if (i == 0) ofVertex(i, HW);
+			//	float value = ofClamp(ofMap(derVolHistory[i], 0, volScale.getValue(), 0, HW), 0, HW);
+			//	ofVertex(abs, HW - value);
+			//	if (i == derVolHistory.size() - 1) ofVertex(abs, HW);
+			//}
+			//ofEndShape(false);
+
+			//-
 		}
-		//drawWaveform(waveformInput, 0, 0, 0, 0);
-		ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, +5);
-
-		//--
-
-		//output
-		ofTranslate(0, 2 * ofGetHeight() / 4);
-		ofDrawLine(0, 0, 1, waveformOutput[1] * _max); //first line
-		for (int i = 1; i < (ofGetWidth() - 1); ++i) {
-			ofDrawLine(i, waveformOutput[i] * _max, i + 1, waveformOutput[i + 1] * _max);
-		}
-		ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - _margin, +5);
-
-		//-
-
-		////alternative plots
-		////ofSetColor(255, 0, 0);
-		////ofDrawCircle(500, -500, smoothedVolume_Out * radius);
-		////line.draw();
-		//////cout << "smoothedVolume_Out:" << smoothedVolume_Out << endl;
-
-		//ofTranslate(0, -ofGetHeight() / 2.f);
-		//int WW = 500;
-		//int HW = 500;
-
-		//// draw circle for scaled volume
-		//ofSetColor(255,0,0,200);
-		//ofFill();
-		//ofDrawCircle(WW / 2, HW / 2, ofClamp(smoothedVol * 100, 0, HW / 2));
-
-		////lets draw the volume history as a graph
-		//ofBeginShape();
-		//for (unsigned int i = 0; i < derVolHistory.size(); i++) {
-		//	float abs = ofMap(i, 0, derVolHistory.size(), 0, WW);
-		//	if (i == 0) ofVertex(i, HW);
-		//	float value = ofClamp(ofMap(derVolHistory[i], 0, volScale.getValue(), 0, HW), 0, HW);
-		//	ofVertex(abs, HW - value);
-		//	if (i == derVolHistory.size() - 1) ofVertex(abs, HW);
-		//}
-		//ofEndShape(false);
-
-		//-
-
 		ofPopMatrix();
 		ofPopStyle();
 
@@ -1305,13 +1407,13 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	void audioIn(ofSoundBuffer& input) {
+	void audioIn(ofSoundBuffer & input) {
 
 		std::size_t nChannels = input.getNumChannels();
 
 		if (deviceIn_Enable)
 		{
-			//vu
+			// vu
 			float rms = 0.0;
 			int numCounted1 = 0;
 
@@ -1414,7 +1516,7 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	void audioOut(ofSoundBuffer& output) {
+	void audioOut(ofSoundBuffer & output) {
 		std::size_t outChannels = output.getNumChannels();
 
 		if (deviceOut_Enable)
@@ -1483,37 +1585,48 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	void Changed_params_Control(ofAbstractParameter &e)
+	void Changed_params_Control(ofAbstractParameter & e)
 	{
-		if (!DISABLE_Callbacks)
+		if (!bDISABLE_CALBACKS)
 		{
 			string name = e.getName();
 
-#ifdef USE_ofxTextFlow
-			if (name == "LOG")
-			{
-				ofxTextFlow::setShowing(SHOW_Log);
-			}
-#endif
-			if (name == "ACTIVE")
-			{
-				if (SHOW_Active)
-				{
+		}
+	}
 
-				}
-				else
-				{
-#ifdef USE_ofxTextFlow
-					SHOW_Log = false;
-#endif
+	//--------------------------------------------------------------
+	void Changed_params_Waveform(ofAbstractParameter & e)
+	{
+		if (!bDISABLE_CALBACKS)
+		{
+			string name = e.getName();
 
-					//bSHOW_Gui = false;
-				}
+			if (name == bReset.getName() && bReset) {
+				bReset = false;
+
+				_gap = 1;
+				_spread = 0;
+				_h = 500;
+				bRectangle = false;
+				bLine = true;
+				bAbs = true;
+				_lineWidth = 3;
 			}
-			if (name == "ADVANCED")
-			{
-				bSHOW_Gui = SHOW_Advanced;
+
+			if (name == bLine.getName()) {
+				if (bLine) bRectangle = false;
+				else bRectangle = true;
 			}
+
+			if (name == bRectangle.getName()) {
+				if (bRectangle) bLine = false;
+				else bLine = true;
+			}
+
+			//if (name == bBars.getName() && bBars) {
+			//	bBars = false;
+			//	_spread = 10;
+			//}
 		}
 	}
 
@@ -1522,9 +1635,9 @@ public:
 	//-
 
 	//--------------------------------------------------------------
-	void Changed_params_In(ofAbstractParameter &e)
+	void Changed_params_In(ofAbstractParameter & e)
 	{
-		if (!DISABLE_Callbacks)
+		if (!bDISABLE_CALBACKS)
 		{
 			string name = e.getName();
 
@@ -1544,9 +1657,9 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	void Changed_params_Out(ofAbstractParameter &e)
+	void Changed_params_Out(ofAbstractParameter & e)
 	{
-		if (!DISABLE_Callbacks)
+		if (!bDISABLE_CALBACKS)
 		{
 			string name = e.getName();
 
@@ -1577,25 +1690,13 @@ public:
 
 		ofSetColor(colorWhite);
 		ofFill();
-		ofDrawRectangle(x, y - h, val*w, h);
+		ofDrawRectangle(x, y - h, val * w, h);
 
 		ofPopStyle();
 	}
 #endif
 
-	//--------------------------------------------------------------
-	void logLine(string s)
-	{
-		ofLogNotice(__FUNCTION__) << s;
-#ifdef USE_ofxTextFlow
-		if (SHOW_Log)
-		{
-			ofxTextFlow::addText(s);
-		}
-#endif
-	}
-
-};
+	};
 
 
 //NOTES
@@ -1695,9 +1796,9 @@ public:
 //	//float _maxBars = _width /
 //	int _gap = 5;//space between bars
 //	float y1 = 0;
-//	float numVars = (bufferSize / _spread);
-//	float wVars = _width / numVars;
-//	float _pw = abs(wVars - _gap);
+//	float numBars = (bufferSize / _spread);
+//	float wBars = _width / numBars;
+//	float _pw = abs(wBars - _gap);
 //	for (int i = 0; i < bufferSize; i++) {
 //		if (i%_spread == 0)//spread spaces
 //		{

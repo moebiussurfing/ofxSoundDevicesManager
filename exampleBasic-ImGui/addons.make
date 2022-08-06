@@ -1,0 +1,7 @@
+ofxGui
+ofxImGui
+ofxSoundDevicesManager
+ofxSurfingBox
+ofxSurfingHelpers
+ofxSurfingImGui
+ofxWindowApp
