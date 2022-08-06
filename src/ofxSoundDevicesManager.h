@@ -1,61 +1,56 @@
 #pragma once
 
-/// TODO:
-///
-/// +		add some other example
-///	+++		enable output and test with an example
-///	+++		integrate with ofSoundObjects
-/// ++		add switch api/device. without exceptions/crashes.
-///	+++		add background box to clarify text
-/// ++		change all to ofSoundBuffer, not buffer, channels..etc
-/// ++		add disconnectors to use only input or output. now, enablers are only like mutes. 
-/// +		add user gui toggle for advanced mode. key to 'G'
-/// +		add macOS/linux apis?
-/// +		add samplerate and other settings to gui selectors. store to xml too. restart must be required maybe
-/// +		store devices by names? just editing xml file bc sorting can change on the system?
-/// +		alternative waveforms plotting: https://github.com/Feliszt/sound-analyzer-OF
-/// +		better vumeter using other rms snippets
+/*
+
+TODO:
+
+	+	enable output and test with an example
+	+	integrate with ofSoundObjects
+	+	add switch API/device. without exceptions/crashes.
+	+	change all to ofSoundBuffer, not buffer, channels..etc
+	+	add disconnect to allow use only input or output. now, enablers are only like mutes.
+	+	add macOS/Linux apis ? https://github.com/roymacdonald/ofxSoundDeviceManager
+	+	add sample-rate and other settings to gui selectors. store to XML too. Restart must be required maybe
+	https://github.com/roymacdonald/ofxSoundDeviceManager
+	+	store devices by names? just editing xml file bc sorting can change on the system?
+	+	alternative waveforms plotting:
+	+	better vu meter using other rms snippets:
+	https://github.com/Feliszt/sound-analyzer-OF
+	https://github.com/roymacdonald/ofxSoundObjects
+
+	+	alternative plots or vu's
+		code from here: https://github.com/edap/examplesOfxMaxim
+		rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+
+*/
 
 #include "ofMain.h"
 
 //-----------------------
 
-// DEFINES
-
+//TODO: WIP		
 //#define USE_ofBaseApp_Pointer
-// //TODO: WIP		
 //enabled: addon class uses a passed by reference ofBaseApp pointer. 
 //disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/out callbacks..
 
 //-----------------------
 
 #include "ofxGui.h"
-#include "ofxSimpleFloatingGui.h"
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingImGui.h"
 
 #ifdef USE_ofBaseApp_Pointer
 //--------------------------------------------------------------
 class ofxSoundDevicesManager
-#else
-//--------------------------------------------------------------
-class ofxSoundDevicesManager : public ofBaseApp
 #endif
-{
 
-public:
-
-	ofxSurfing_ImGui_Manager guiManager;
-
-	ofxSurfingBoxHelpText textBoxWidget;
-
-	string helpInfo = "";
-
+#ifndef USE_ofBaseApp_Pointer
 	//--------------------------------------------------------------
-	void logLine(string text)
-	{
-		helpInfo += text + "\n";
-	}
+	class ofxSoundDevicesManager : public ofBaseApp
+#endif
+
+{
+public:
 
 	//--------------------------------------------------------------
 	ofxSoundDevicesManager()
@@ -92,10 +87,11 @@ public:
 		bGui_Main.set("MAIN", true);
 
 		params_Control.setName("CONTROL");
-		params_Control.add(apiGuiIndex);
+		params_Control.add(bGui_Main);
 		params_Control.add(bGui_In);
 		params_Control.add(bGui_Out);
 		params_Control.add(bGui_Waveform);
+		params_Control.add(apiGuiIndex);
 		params_Control.add(bGui_Internal);
 		params_Control.add(textBoxWidget.bGui);
 
@@ -207,11 +203,6 @@ public:
 
 	//--
 
-public:
-
-	string pathSettings = "ofxSoundDevicesManager.xml";
-	string str_error = "";
-
 #ifdef USE_ofBaseApp_Pointer 
 	ofBaseApp* _app_;
 #endif
@@ -230,6 +221,7 @@ public:
 	int numOutputs;
 	int sampleRate;
 	int bufferSize;
+
 	int numBuffers;
 	//nBuffers - Is the number of buffers that your system will create and swap out. The more buffers, the faster your computer will write information into the buffer, but the more memory it will take up. You should probably use two for each channel that you’re using. Here’s an example call:
 	//ofSoundStreamSetup(2, 0, 44100, 256, 4);
@@ -237,19 +229,21 @@ public:
 
 private:
 
-	// Api
-	int apiOnAllOFSystemsIndex;//all OF possile apis!
+	// API
+	int apiOnAllOFSystemsIndex;//all OF possible apis!
 	//NOT the index of the available apis on this system.!
 	//ie: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
 	ofParameter<int> apiGuiIndex{ "API", 0, 0, 2 };//this index will be related to all available apis ONLY on this system!
 	//also in your same system, devices will change when disabling on windows sound preferences/devices
+
+	//TODO:
+	// add macOS + Linux
 
 	std::vector<string> ApiNames;
 
 	// devices
 	std::vector<ofSoundDevice> inDevices;
 	std::vector<ofSoundDevice> outDevices;
-
 	std::vector<string> inDevicesNames;
 	std::vector<string> outDevicesNames;
 
@@ -293,16 +287,13 @@ private:
 	ofParameterGroup params;
 	ofParameterGroup params_Control;
 
-	ofxPanel gui;
-	ofParameter<bool> bGui_Internal{ "Internal", true };
-
 	ofParameter<bool> bGui_In{ "Input", true };
 	ofParameter<bool> bGui_Out{ "Output", false };
 
 	//--
 
 	ofParameterGroup params_Waveform;
-	ofParameter<bool> bGui_Waveform{ "Waveforms", true };
+	ofParameter<bool> bGui_Waveform{ "Waveforms", false };
 	ofParameter<bool> bGui_WaveIn{ "Wave In", true };
 	ofParameter<bool> bGui_WaveOut{ "Wave Out", false };
 	ofParameter<bool> W_bAbs{ "Abs", true };
@@ -314,138 +305,60 @@ private:
 	ofParameter<int> W_LineWidth{ "LineWidth", 3, 1, 100 };
 	ofParameter<bool> W_bReset{ "Reset", false };
 
-	//-
+	ofParameter<bool> bGui_Internal{ "Internal", false };
+
+	ofxPanel gui;
 
 	bool bDISABLE_CALBACKS = false;//to avoid callback crashes or to enable only after setup()
+
+	//--
+
+private:
+
+	ofxSurfing_ImGui_Manager guiManager;
+
+	ofxSurfingBoxHelpText textBoxWidget;
+
+	string helpInfo = "";
+
+	//--------------------------------------------------------------
+	void logLine(string text)
+	{
+		helpInfo += text + "\n";
+	}
+
+	string pathSettings = "ofxSoundDevicesManager.xml";
+	string str_error = "";
+
+	//--
 
 public:
 
 	// API
 
+	//--------------------------------------------------------------
 	void setVisible(bool b)
 	{
-		bGui_Internal = b;
+		bGui = b;
 	}
+	//--------------------------------------------------------------
 	void setVisibleToggle()
 	{
-		bGui_Internal = !bGui_Internal;
-		if (!bGui && bGui_Internal) bGui = true;
+		bGui = !bGui;
 	}
 
-	//void setVisibleAdvanced(bool b)
-	//{
-	//	bGui_Advanced = b;
-	//}
-	//void toggleVisibleAdvanced()
-	//{
-	//	bGui_Advanced = !bGui_Advanced;
-	//}
-
-	//--
-
-	//----
-
-public:
-
-	////--------------------------------------------------------------
-	//void updateGuiUser()
-	//{
-	//	//simple callbacks
-
-	//	//in
-
-	//	//enable
-	//	if (GUI_enableInput.getValue() != deviceIn_Enable)
-	//	{
-	//		deviceIn_Enable = GUI_enableInput.getValue();
-	//	}
-	//	//volumen
-	//	if (GUI_volumeInput.getValue() != deviceIn_Volume)
-	//	{
-	//		deviceIn_Volume = GUI_volumeInput.getValue();
-	//	}
-	//	//port
-	//	if (GUI_deviceIndexInput.getValueInt() != deviceIn_Port)
-	//	{
-	//		inStream.close();
-	//		inSettings.setInDevice(inDevices[GUI_deviceIndexInput.getValueInt()]);
-	//		inStream.setup(inSettings);
-	//		deviceIn_Port = GUI_deviceIndexInput.getValueInt();
-	//	}
-
-	//	//-
-
-	//	//out
-
-	//	//enable
-	//	if (GUI_enableOutput.getValue() != deviceOut_Enable)
-	//	{
-	//		deviceOut_Enable = GUI_enableOutput.getValue();
-	//	}
-
-	//	//volumen
-	//	if (GUI_volumeOutput.getValue() != deviceOut_Volume)
-	//	{
-	//		deviceOut_Volume = GUI_volumeOutput.getValue();
-	//	}
-
-	//	//port
-	//	if (GUI_deviceIndexOutput.getValueInt() != deviceOut_Port)
-	//	{
-	//		outStream.close();
-	//		if (outDevices.size() > GUI_deviceIndexOutput.getValueInt())
-	//			outSettings.setOutDevice(outDevices[GUI_deviceIndexOutput.getValueInt()]);
-	//		outStream.setup(outSettings);
-	//		deviceOut_Port = GUI_deviceIndexOutput.getValueInt();
-	//	}
-
-	//	//-
-
-	//	//api
-	//	if (GUI_Api.getValueInt() != apiGuiIndex)
-	//	{
-	//		int iEnum;
-	//		int _i = GUI_Api.getValueInt();
-	//		ofLogVerbose(__FUNCTION__) << "GUI_Api.getValueInt() " << _i << endl;
-
-	//		//windows apis
-	//		switch (_i)
-	//		{
-	//		case 0:
-	//			iEnum = 7;//MS_WASAPI
-	//			break;
-	//		case 1:
-	//			iEnum = 8;//MS_ASIO
-	//			break;
-	//		case 2:
-	//			iEnum = 9;//MS_DS
-	//			break;
-	//		default:
-	//			ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
-	//			break;
-	//		}
-	//		ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
-
-	//		//-
-
-	//		connectAp(iEnum);
-	//		apiGuiIndex = GUI_Api.getValueInt();
-	//	}
-	//}
+private:
 
 	//--------------------------------------------------------------
 	void update(ofEventArgs& args)
 	{
-		//updateWaveforms();//for using alternative plot engines
-
-		//-
-
-		////user gui
-		//updateGuiUser();
 	}
 
-	//--------------------------------------------------------------
+private:
+
 	//void connectAp(ofBaseApp* _app, int _apiIndex)
+	// 
+	//--------------------------------------------------------------
 	void connectAp(int _apiIndex)
 	{
 		close();
@@ -454,15 +367,17 @@ public:
 
 		//-
 
-		//clean
+		// clean
 		ofSoundStreamSettings _settings;
 		inSettings = _settings;
 		outSettings = _settings;
 
 		//----
 
-		//supported apis
-		enum Api {
+		// supported APIs by oF
+
+		enum Api
+		{
 			UNSPECIFIED = 0,
 			DEFAULT,		//TODO: must implement all other APIs: macOS. I don't have Linux...
 			ALSA,			/*!< The Advanced Linux Sound Architecture API. */
@@ -477,8 +392,8 @@ public:
 		} _apiEnum = UNSPECIFIED;
 
 		//TODO:
-		// api choice
-
+		// API choice
+		// 
 		//index is related to (above enum) all OF supported apis
 		//_apiEnum = MS_WASAPI;//7
 		//_apiEnum = MS_ASIO;//8
@@ -501,7 +416,7 @@ public:
 
 		//------------------
 
-		// apis and devices
+		// APIs and devices
 
 		inDevices.clear();
 		outDevices.clear();
@@ -530,9 +445,9 @@ public:
 
 		//-
 
-		// api settings & devices
+		// API settings & devices
 
-		//input
+		// Input
 
 		inSettings.sampleRate = sampleRate;
 		inSettings.bufferSize = bufferSize;
@@ -555,7 +470,6 @@ public:
 			break;
 		}
 
-
 #ifdef USE_ofBaseApp_Pointer 
 		inSettings.setInListener(_app_);
 #else
@@ -568,7 +482,7 @@ public:
 
 		//-
 
-		//output
+		// Output
 
 		outSettings.bufferSize = bufferSize;
 		outSettings.numBuffers = numBuffers;
@@ -629,9 +543,8 @@ public:
 
 		//-
 
-		//update params
 
-		//max ports
+		// max ports
 		deviceIn_Port.setMax(inDevices.size() - 1);
 		deviceOut_Port.setMax(outDevices.size() - 1);
 
@@ -644,6 +557,8 @@ public:
 		deviceOut_ApiName = str_api;
 		deviceOut_PortName = outDevices[deviceOut_Port].name;
 	}
+
+private:
 
 	//--------------------------------------------------------------
 	void drawImGui()
@@ -682,13 +597,15 @@ public:
 		guiManager.end();
 	}
 
+public:
+
 	//--------------------------------------------------------------
 	void drawGui()
 	{
 		if (bGui)
 		{
 			drawWaveforms();
-	
+
 			//--
 
 			drawImGui();
@@ -700,6 +617,8 @@ public:
 			textBoxWidget.draw();
 		}
 	}
+
+private:
 
 	//--------------------------------------------------------------
 	void close()
@@ -714,7 +633,8 @@ public:
 		ofSoundStreamClose();
 	}
 
-	// Settings
+public:
+
 #ifdef USE_ofBaseApp_Pointer 
 	//--------------------------------------------------------------
 	void setup(ofBaseApp* _app, int _samplerate, int _buffersize, int _numbuffers)
@@ -752,7 +672,7 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	//devices
+	// devices
 	void setDevices(int input, int output)
 	{
 		deviceIn_Port = input;
@@ -767,8 +687,11 @@ public:
 		deviceOut_Port = output;
 	}
 
-	//-
+	//--
 
+private:
+
+	//--------------------------------------------------------------
 	void setupHelpInfo()
 	{
 		string _str;
@@ -833,6 +756,10 @@ public:
 		textBoxWidget.setText(helpInfo);
 	}
 
+	//--
+
+public:
+
 #ifdef USE_ofBaseApp_Pointer
 	//--------------------------------------------------------------
 	void setup(ofBaseApp* _app) {
@@ -857,28 +784,28 @@ public:
 
 		setupHelpInfo();
 
-		
+
 		//--
 
 		bDISABLE_CALBACKS = false;
 
-		// Settings
+		// Load Settings
 		loadGroup(params, pathSettings);
 
-		//-
+		//--
 
 		// API
 
-		//connectAp(_app, apiOnAllOFSystemsIndex);//MS_DS
 		connectAp(apiOnAllOFSystemsIndex);//MS_DS
+		//connectAp(_app, apiOnAllOFSystemsIndex);//MS_DS
 
 		// TODO:
-		// Harcoded
+		// Hardcoded
 		apiGuiIndex = 2;//for gui
 
 		//-
 
-		// Control
+		// Internal Gui
 		gui.setup("DEVICES");
 		gui.add(params);
 		gui.getGroup("ofxSoundDevicesManager").minimizeAll();
@@ -889,14 +816,10 @@ public:
 
 		//--
 
-		//// waveform
-		//gui_waveform.setup("WAVEFORM");
-		//gui_waveform.add(params_Waveform);
-
-		//--
-
 		setupGui();
 	}
+
+private:
 
 	//--------------------------------------------------------------
 	void setupGui()
@@ -961,94 +884,20 @@ public:
 
 	//-
 
+private:
+
 #define SIZE_BUFFER 4096
 	float waveformInput[SIZE_BUFFER]; //make this bigger, just in case
 	int waveInputIndex;
 	float waveformOutput[SIZE_BUFFER]; //make this bigger, just in case
 	int waveOutputIndex;
 
-
-	//alternative plot 1
-	//rms, vu's
-	//ofParameter<bool> enableSmooth;//enable smooth VU
-	//ofParameter<float> smoothRatio;
 	float smoothedVolume_Input = 0;//rms signal to use on VU
 	float smoothedVolume_Out = 0;//rms signal to use on VU
-	//ofParameterGroup paramsWaveforms;
-	//float scaledVolume = 0;
-	//alternative plots
-	//ofParameter<int> radius;
-	//ofParameter<int> lineScale;
-	//vector <float> outHistory;
-	//ofPolyline line;
-
-	////alternative plot 2
-	//SliderB     volScale;
-	//float curVol, curVolPrev, divVol, maxDivVol;
-	//int   numHist;
-	//float smoothedVol;
-	//float scaledVol;
-	//int 	bufferCounter;
-	//vector <float> left;
-	//vector <float> right;
-	//vector <float> volHistory;
-	//vector <float> derVolHistory;
-	//vector <float> freq_amp;
-	//vector <float> magnitude;
-	//vector <float> phase;
-	//vector <float> power;
-	//vector <float> binsAmp, binsAmpNormalized, maxFreqBins;
-
-	////--------------------------------------------------------------
-	//void setupWaveforms() {
-	//	paramsWaveforms.setName("VU");
-	//	paramsWaveforms.add(enableSmooth.set("ENABLE SMOOTH", false));
-	//	paramsWaveforms.add(smoothRatio.set("SMOOTH", 0.97, 0.70, 0.99));
-
-	//	//alternative plots
-	//	//paramsWaveforms.add(radius.set("MAX", 200, 100, 800));
-	//	//paramsWaveforms.add(lineScale.set("SCALE", 500, 200, 1200));
-	//	//outHistory.assign(ofGetWidth(), 0.0);
-
-	//	//////plot2
-	//	//// Signals setup
-	//	//left.assign(bufferSize, 0.0);
-	//	//right.assign(bufferSize, 0.0);
-	//	//freq_amp.assign((int)bufferSize / 2, 0.0);
-	//	//volHistory.assign(ofGetWidth(), 0.0);
-	//	////volHistory.assign(WW, 0.0);
-	//	//magnitude.assign(bufferSize, 0.0);
-	//	//power.assign(bufferSize, 0.0);
-	//	//phase.assign(bufferSize, 0.0);
-	//	////binsAmp.assign(numBinsSetting, 0.0);
-	//	////binsAmpNormalized.assign(numBinsSetting, 0.0);
-	//	////maxFreqBins.assign(50, 0.0);
-	//}
-
-	//alternative plots
-	////--------------------------------------------------------------
-	//void updateWaveforms() {
-	//	//copied from audioInExample
-	//	outHistory.push_back(smoothedVolume_Out);
-	//	//if we are bigger the the size we want to record - lets drop the oldest value
-	//	if (outHistory.size() >= ofGetWidth()) {
-	//		outHistory.erase(outHistory.begin(), outHistory.begin() + 1);
-	//	}
-	//	int x = 0;
-	//	for (auto vol : outHistory) {
-	//		auto ver = glm::vec3(x, -vol * lineScale, 0);
-	//		line.addVertex(ver);
-	//		if (line.size() > ofGetWidth()) {
-	//			line.getVertices().erase(
-	//				line.getVertices().begin()
-	//			);
-	//		}
-	//		x++;
-	//	}
-	//}
 
 	//--------------------------------------------------------------
-	void drawWaveforms() {
+	void drawWaveforms()
+	{
 		ofPushStyle();
 		ofPushMatrix();
 		{
@@ -1065,12 +914,6 @@ public:
 
 			if (bGui_WaveIn)
 			{
-				////oscilloscope style
-				//ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
-				//for (int i = 1; i < (ofGetWidth() - 1); ++i) {
-				//	ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
-				//}
-
 				// bars style
 
 				int __spread = W_Spread * bufferSize;
@@ -1107,7 +950,6 @@ public:
 				}
 
 				ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, 5);
-				//drawWaveform(waveformInput, 0, 0, 0, 0);
 			}
 
 			//--
@@ -1123,42 +965,12 @@ public:
 
 				ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - _margin, +5);
 			}
-
-			//-
-
-			////alternative plots
-			////ofSetColor(255, 0, 0);
-			////ofDrawCircle(500, -500, smoothedVolume_Out * radius);
-			////line.draw();
-			//////cout << "smoothedVolume_Out:" << smoothedVolume_Out << endl;
-
-			//ofTranslate(0, -ofGetHeight() / 2.f);
-			//int WW = 500;
-			//int HW = 500;
-
-			//// draw circle for scaled volume
-			//ofSetColor(255,0,0,200);
-			//ofFill();
-			//ofDrawCircle(WW / 2, HW / 2, ofClamp(smoothedVol * 100, 0, HW / 2));
-
-			////lets draw the volume history as a graph
-			//ofBeginShape();
-			//for (unsigned int i = 0; i < derVolHistory.size(); i++) {
-			//	float abs = ofMap(i, 0, derVolHistory.size(), 0, WW);
-			//	if (i == 0) ofVertex(i, HW);
-			//	float value = ofClamp(ofMap(derVolHistory[i], 0, volScale.getValue(), 0, HW), 0, HW);
-			//	ofVertex(abs, HW - value);
-			//	if (i == derVolHistory.size() - 1) ofVertex(abs, HW);
-			//}
-			//ofEndShape(false);
-
-			//-
 		}
 		ofPopMatrix();
 		ofPopStyle();
-
-		//--
 	}
+
+public:
 
 	//--------------------------------------------------------------
 	void audioIn(ofSoundBuffer & input) {
@@ -1174,8 +986,7 @@ public:
 			for (size_t i = 0; i < input.getNumFrames(); i++)
 			{
 				waveformInput[waveInputIndex] = input[i * nChannels]
-					* getVolumeInput()
-					;
+					* getVolumeInput();
 
 				if (waveInputIndex < (ofGetWidth() - 1)) {
 					++waveInputIndex;
@@ -1186,9 +997,9 @@ public:
 
 				//-
 
-				//vu
-				//code from here: https://github.com/edap/examplesOfxMaxim
-				//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+				// vu
+				// code from here: https://github.com/edap/examplesOfxMaxim
+				// rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
 				float left = input[0];
 				float right = input[1];
 				rms += left * left;
@@ -1199,62 +1010,13 @@ public:
 
 			//--
 
-			//vu
+			// vu
 			rms /= (float)numCounted1;
 			rms = sqrt(rms);
 
-			//if (enableSmooth) {
-			//	// normalize to 1
-			//	//smoothedVolume_Input = ofMap(rms, 0, 0.707 * 1, 0, 1);
-			//	smoothedVolume_Input *= smoothRatio;
-			//	smoothedVolume_Input += 0.07 * rms;
-			//}
-			//else {
-			//	smoothedVolume_Input = rms;
-			//}
-
 			smoothedVolume_Input = rms * deviceIn_Volume;
-
-			//----
-
-			////plot2
-			//float avg_power = 0.0f;
-			//curVol = 0.0;
-
-			//// samples are "interleaved"
-			//int numCounted = 0;
-
-			////lets go through each sample and calculate the root mean square which is a rough way to calculate volume
-			//for (int i = 0; i < bufferSize; i++) {
-			//	left[i] = input[i * 2] * 1.0f;
-			//	curVol += left[i] * left[i];
-			//	numCounted += 1;
-			//}
-
-			//// compute mean of rms
-			//curVol /= (float)numCounted;
-
-			//// compute root of rms
-			//curVol = sqrt(curVol);
-
-			//// normalize to 1
-			//curVol = ofMap(curVol, 0, 0.707 * 1, 0, 1);
-
-			//// compute diff
-			//divVol = ofClamp(curVol - curVolPrev, 0, 999);
-			//if (divVol > maxDivVol) maxDivVol = divVol;
-			//derVolHistory.push_back(divVol);
-			//if (derVolHistory.size() >= numHist) {
-			//	derVolHistory.erase(derVolHistory.begin(), derVolHistory.begin() + 1);
-			//}
-			//curVolPrev = curVol;
-
-			//smoothedVol *= 0.93;
-			//smoothedVol += 0.07 * curVol;
-
-			//bufferCounter++;
 		}
-		else//erase plot
+		else //erase plot
 		{
 			for (size_t i = 0; i < input.getNumFrames(); ++i)
 			{
@@ -1275,55 +1037,15 @@ public:
 
 		if (deviceOut_Enable)
 		{
-			//vu
 			float rms = 0.0;
 			int numCounted = 0;
 
-			////fill buffer with noise
-			//for (size_t i = 0; i < output.getNumFrames(); ++i)
-			//{
-			//	output[i * outChannels] = ofRandom(-1, 1)
-			//		* getVolumeOutput()
-			//		;
-			//	output[i * outChannels + 1] = output[i * outChannels];
-
-			//	waveformOutput[waveOutputIndex] = output[i * outChannels];
-			//	if (waveOutputIndex < (ofGetWidth() - 1)) {
-			//		++waveOutputIndex;
-			//	}
-			//	else {
-			//		waveOutputIndex = 0;
-			//	}
-
-			//	//-
-
-			//	//vu
-			//	//code from here: https://github.com/edap/examplesOfxMaxim
-			//	//rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
-			//	float left = output[0];
-			//	float right = output[1];
-			//	rms += left * left;
-			//	rms += right * right;
-			//	numCounted += 2;
-			//}
-
-			//--
-
-			//vu
 			rms /= (float)numCounted;
 			rms = sqrt(rms);
 
-			//if (enableSmooth) {
-			//	smoothedVolume_Out *= smoothRatio;
-			//	smoothedVolume_Out += 0.07 * rms;
-			//}
-			//else {
-			//	smoothedVolume_Out = rms;
-			//}
-
 			smoothedVolume_Out = rms * deviceOut_Volume;
 		}
-		else//erase plot
+		else // erase plot
 		{
 			for (size_t i = 0; i < output.getNumFrames(); ++i)
 			{
@@ -1338,14 +1060,14 @@ public:
 		}
 	}
 
+private:
+
 	//--------------------------------------------------------------
 	void Changed_params_Control(ofAbstractParameter & e)
 	{
-		if (!bDISABLE_CALBACKS)
-		{
-			string name = e.getName();
-
-		}
+		if (bDISABLE_CALBACKS) return;
+	
+		string name = e.getName();
 	}
 
 	//--------------------------------------------------------------
@@ -1353,80 +1075,76 @@ public:
 	{
 		if (bDISABLE_CALBACKS) return;
 
-		{
-			string name = e.getName();
+		string name = e.getName();
 
-			if (name == W_bReset.getName() && W_bReset) {
-				W_bReset = false;
+		if (name == W_bReset.getName() && W_bReset) {
+			W_bReset = false;
 
-				W_WidthGap = 1;
-				W_Spread = 0;
-				W_Height = 500;
-				W_bRectangle = false;
-				W_bLine = true;
-				W_bAbs = true;
-				W_LineWidth = 3;
-			}
-
-			if (name == W_bLine.getName()) {
-				if (W_bLine) W_bRectangle = false;
-				else W_bRectangle = true;
-			}
-
-			if (name == W_bRectangle.getName()) {
-				if (W_bRectangle) W_bLine = false;
-				else W_bLine = true;
-			}
-
-			//in
-			if (name == deviceIn_Port.getName()) {
-				inStream.close();
-				inSettings.setInDevice(inDevices[deviceIn_Port]);
-				inStream.setup(inSettings);
-			}
-
-			//out
-			if (name == deviceOut_Port.getName()) {
-				outStream.close();
-				if (outDevices.size() > deviceOut_Port)
-					outSettings.setOutDevice(outDevices[deviceOut_Port]);
-				outStream.setup(outSettings);
-			}
-
-			if (name == deviceOut_Port.getName()) {
-				outStream.close();
-				if (outDevices.size() > deviceOut_Port)
-					outSettings.setOutDevice(outDevices[deviceOut_Port]);
-				outStream.setup(outSettings);
-			}
-
-			//windows apis
-			if (name == apiGuiIndex.getName()) {
-				int iEnum;
-				switch (apiGuiIndex)
-				{
-				case 0:
-					iEnum = 7;//MS_WASAPI
-					break;
-				case 1:
-					iEnum = 8;//MS_ASIO
-					break;
-				case 2:
-					iEnum = 9;//MS_DS
-					break;
-				default:
-					ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
-					break;
-				}
-				ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
-				connectAp(iEnum);
-			}
-
-			//if (name == bBars.getName() && bBars) {
-			//	bBars = false;
-			//	_spread = 10;
-			//}
+			W_WidthGap = 1;
+			W_Spread = 0;
+			W_Height = 500;
+			W_bRectangle = false;
+			W_bLine = true;
+			W_bAbs = true;
+			W_LineWidth = 3;
 		}
+
+		if (name == W_bLine.getName()) {
+			if (W_bLine) W_bRectangle = false;
+			else W_bRectangle = true;
+		}
+
+		if (name == W_bRectangle.getName()) {
+			if (W_bRectangle) W_bLine = false;
+			else W_bLine = true;
+		}
+
+		// in
+		if (name == deviceIn_Port.getName()) {
+			inStream.close();
+			inSettings.setInDevice(inDevices[deviceIn_Port]);
+			inStream.setup(inSettings);
+		}
+
+		// out
+		if (name == deviceOut_Port.getName()) {
+			outStream.close();
+			if (outDevices.size() > deviceOut_Port)
+				outSettings.setOutDevice(outDevices[deviceOut_Port]);
+			outStream.setup(outSettings);
+		}
+
+		if (name == deviceOut_Port.getName()) {
+			outStream.close();
+			if (outDevices.size() > deviceOut_Port)
+				outSettings.setOutDevice(outDevices[deviceOut_Port]);
+			outStream.setup(outSettings);
+		}
+
+		// MS Windows sound APIs
+		if (name == apiGuiIndex.getName()) {
+			int iEnum;
+			switch (apiGuiIndex)
+			{
+			case 0:
+				iEnum = 7; // MS_WASAPI
+				break;
+			case 1:
+				iEnum = 8; // MS_ASIO
+				break;
+			case 2:
+				iEnum = 9; // MS_DS
+				break;
+			default:
+				ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
+				break;
+			}
+			ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
+			connectAp(iEnum);
+		}
+
+		//TODO:
+		// add macOS + Linux
 	}
 
 	//-
@@ -1434,23 +1152,17 @@ public:
 	//--------------------------------------------------------------
 	void Changed_params_In(ofAbstractParameter & e)
 	{
-		if (!bDISABLE_CALBACKS)
-		{
-			string name = e.getName();
+		if (bDISABLE_CALBACKS) return;
 
-
-		}
+		string name = e.getName();
 	}
 
 	//--------------------------------------------------------------
 	void Changed_params_Out(ofAbstractParameter & e)
 	{
-		if (!bDISABLE_CALBACKS)
-		{
-			string name = e.getName();
+		if (bDISABLE_CALBACKS) return;
 
-
-		}
+		string name = e.getName();
 	}
 
 	//--------------------------------------------------------------
@@ -1459,9 +1171,11 @@ public:
 		ofPushStyle();
 
 		ofNoFill();
+		ofSetColor(ofColor::white);
 		ofDrawRectangle(x, y - h, w, h);
 
 		ofFill();
+		ofSetColor(ofColor::white);
 		ofDrawRectangle(x, y - h, val * w, h);
 
 		ofPopStyle();
@@ -1469,121 +1183,10 @@ public:
 
 };
 
-
-//NOTES
-
-//example to convert to ofSoundBuffer
+// NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78
-
 //https://forum.openframeworks.cc/t/question-around-void-audioin-ofsoundbuffer-buffer/22284/2
-
 //https://forum.openframeworks.cc/t/openframeworks-and-speech-synthesis-tts-with-flite/12117/7
-//The TTS class notifies that event.You should capture that event(look the examples of customEvents) and keep the soundBuffer.
-//Then, you have to use the class ofSoundStream.When you setup up that object, it starts calling the function audioOut(you have to create it).So, you’ll have
-//
-//
-//
-////--------------------------------------------------------------  
-//void testApp::newSoundBuffer(const TTSData & tts) {
-//	mutex.lock();
-//	soundBuffer = *tts.buffer;
-//	mutex.unlock();
-//}
-//
-////--------------------------------------------------------------  
-//void testApp::audioOut(float * output, int buffersize, int nChannels, int deviceID, unsigned long long int tickCount) {
-//	mutex.lock();
-//	soundBuffer.copyTo(output, buffersize, nChannels, position, true);
-//	if (soundBuffer.size() > 0) {
-//		position += buffersize;
-//		position %= soundBuffer.bufferSize();
-//	}
-//	mutex.unlock();
-//}
-
-
 //https://forum.openframeworks.cc/t/playing-audio-input-in-real-time-problems-syncing/29180/2?u=moebiussurfing
-//roymacdonald
-//Apr '18
-//Hi.you can use the ofApp audio callbacks.look at the audioIn and audioOut examples so you can set up the audio streams.
-//make an instance of ofSoundBuffer and copy into it what you get from audioIn and then pass it to audioOut´s buffer.
-//
-//should be something like this.
-//
-//// put these lines in the ofApp.h file
-//ofSoundBuffer buffer;
-//void audioIn(ofSoundBuffer & input);
-//void audioOut(ofSoundBuffer & output);
-//
-//// the following ones go in the ofApp.cpp file
-//void audioIn(ofSoundBuffer & input) {
-//	input.copyTo(buffer);
-//}
-//void audioOut(ofSoundBuffer & output) {
-//	buffer.copyTo(output);
-//}
-//if you need to resample the buffer in order to adjust speed, you can use the ofBuffer’s resampleTo() methdod.
-//http://openframeworks.cc/documentation/sound/ofSoundBuffer/#!show_resampleTo 1
-//hope this helps
-
+//http://openframeworks.cc/documentation/sound/ofSoundBuffer/#!show_resampleTo
 //https://forum.openframeworks.cc/t/listen-to-ofevent-audioin-in-custom-class/27710/3?u=moebiussurfing
-//Apr '19
-//The way to listen to audio events is by setting them in the soundstream settings.If you have a class like :
-//
-//	class MyClass {
-//	void audioIn(ofSoundBuffer & buffer);
-//	void audioOut(ofSoundBuffer & buffer);
-//}
-//In ofApp :
-//
-////.h
-//ofSoundStream soundStream;
-//MyClass myobj;
-//
-////setup
-//ofSoundStreamSettings settings;
-//settings.setInListener(&myobj);
-//settings.setOutListener(&myobj);
-// set any other required settings
-//soundStream.setup(settings);
-
-
-//TODO:
-//must learn how to pass a vector as reference...
-//void drawWaveform(vector<float> buffer, float x, float y, float w, float h)
-//{
-//	//bars style
-//	ofFill();
-//	int _h = 1000;
-//	int _width = ofGetWidth();
-//	bool W_bLine, bBars;
-//	W_bLine = true;
-//	bBars = false;
-//	int _spread;//use one bar x 20 buffer frames. ignore the others. but depends on relation beetween viewport width vs bufferSize
-//	if (W_bLine)
-//		_spread = 1;
-//	if (bBars)
-//		_spread = 10;
-//	//float _maxBars = _width /
-//	int W_WidthGap = 5;//space between bars
-//	float y1 = 0;
-//	float numBars = (bufferSize / _spread);
-//	float wBars = _width / numBars;
-//	float _pw = abs(wBars - W_WidthGap);
-//	for (int i = 0; i < bufferSize; i++) {
-//		if (i%_spread == 0)//spread spaces
-//		{
-//			float p = (i / (float)(bufferSize));//normalized pos in array
-//			float x = p * _width;
-//
-//			float _ph = 1.0f + abs(buffer[i] * _h);//make positive. 1.0 for minimal line
-//			float y2 = 0.1f + y1 - _ph;//0.1 for minimal line
-//
-//			if (W_bLine)
-//				ofDrawLine(x, y1, x, y2);//line
-//
-//			if (bBars)
-//				ofDrawRectangle(x, y1, _pw, -_ph);//bars could be nice with rms not scope style
-//		}
-//	}
-//}
