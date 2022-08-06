@@ -87,7 +87,8 @@ public:
 		//--
 
 		bGui.set("SOUND DEVICES", true);
-		bGui_Main.set("MAIN", true);
+		bGui_Main.set("SOUND DEVICES", true);
+		//bGui_Main.set("MAIN", true);
 
 		params_Control.setName("CONTROL");
 		params_Control.add(bGui_Main);
