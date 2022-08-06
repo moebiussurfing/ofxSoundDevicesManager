@@ -6,10 +6,20 @@
 
 ## can exclude some sttings files
 
-#*.XML
-#*.xml
-#*.JSON
-#*.json
+## macOS files
+config.make
+Makefile
+openFrameworks-Info.plist
+Project.xcconfig
+icon.rc
+
+#*.ps1
+#*.bat
+*.ini
+*.XML
+*.xml
+*.JSON
+*.json
 
 #*/bin/*
 #!*/bin/data/
@@ -49,6 +59,7 @@ icon.rc
 *.sln
 *.filters
 *.user
+*.exp
 
 #vs2017
 *.sln
@@ -549,4 +560,3 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
-1_ofxSoundDevicesManager_example/bin/1_ofxSoundDevicesManager_example_debug.exp
