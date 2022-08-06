@@ -19,10 +19,8 @@
 #include "ofMain.h"
 
 //-----------------------
-//
-// DEFINES
 
-#define USE_PLOTS_AND_AUDIO_CALLBACKS
+// DEFINES
 
 //#define USE_ofBaseApp_Pointer
 // //TODO: WIP		
@@ -34,6 +32,7 @@
 #include "ofxGui.h"
 #include "ofxSimpleFloatingGui.h"
 #include "ofxSurfingBoxHelpText.h"
+#include "ofxSurfingImGui.h"
 
 #ifdef USE_ofBaseApp_Pointer
 //--------------------------------------------------------------
@@ -45,6 +44,8 @@ class ofxSoundDevicesManager : public ofBaseApp
 {
 
 public:
+
+	ofxSurfing_ImGui_Manager guiManager;
 
 	ofxSurfingBoxHelpText textBoxWidget;
 
@@ -61,22 +62,9 @@ public:
 	{
 		ofAddListener(ofEvents().update, this, &ofxSoundDevicesManager::update);
 
-		params_Control.setName("CONTROL");
-
-		bGui.set("SOUND DEVICES", true);
-		//bGui_Waveform.set("Waveform", true);
-		//bGui_Advanced.set("Advanced", true);
-
-		params_Control.add(bGui);
-		params_Control.add(bGui_In);
-		params_Control.add(bGui_Out);
-		//params_Control.add(bGui_Advanced);
-		//params_Control.add(bGui_Waveform);
-		params_Control.add(textBoxWidget.bGui);
+		bDISABLE_CALBACKS = true;
 
 		//-
-
-		bDISABLE_CALBACKS = true;
 
 		// default audio seTtings
 
@@ -98,9 +86,21 @@ public:
 		numInputs = 2;
 		numOutputs = 2;
 
+		//--
+
+		bGui.set("SOUND DEVICES", true);
+		bGui_Main.set("MAIN", true);
+
+		params_Control.setName("CONTROL");
+		params_Control.add(apiGuiIndex);
+		params_Control.add(bGui_In);
+		params_Control.add(bGui_Out);
+		params_Control.add(bGui_Waveform);
+		params_Control.add(bGui_Internal);
+		params_Control.add(textBoxWidget.bGui);
+
 		//-
 
-		// params
 		deviceIn_Enable.set("ENABLE", false);
 		deviceIn_Volume.set("VOLUME", 0.5f, 0.f, 1.f);
 		deviceIn_Api.set("API", 0, 0, 10);
@@ -115,23 +115,19 @@ public:
 		deviceOut_Port.set("PORT", 0, 0, 10);
 		deviceOut_PortName.set("", "");
 
-		// serializers
-		//deviceIn_Enable.setSerializable(false);
+		// exclude
 		deviceIn_Api.setSerializable(false);
 		deviceIn_ApiName.setSerializable(false);
-		//deviceIn_Port.setSerializable(false);
 		deviceIn_PortName.setSerializable(false);
 
-		//deviceOut_Enable.setSerializable(false);
 		deviceOut_Api.setSerializable(false);
 		deviceOut_ApiName.setSerializable(false);
-		//deviceOut_Port.setSerializable(false);
 		deviceOut_PortName.setSerializable(false);
 
 		//-
 
 		//TODO:
-		apiOnAllOFSystemsIndex = 9;//api #9 on OF is MS-DS
+		apiOnAllOFSystemsIndex = 9; // api #9 on OF is MS-DS
 
 		//-
 
@@ -140,16 +136,16 @@ public:
 		params_In.add(deviceIn_Volume);
 		params_In.add(deviceIn_Api);
 		params_In.add(deviceIn_Port);
-		//params_In.add(deviceIn_ApiName);//hide labels
-		//params_In.add(deviceIn_PortName);
+		params_In.add(deviceIn_ApiName);//labels
+		params_In.add(deviceIn_PortName);
 
 		params_Out.setName("OUTPUT");
 		params_Out.add(deviceOut_Enable);
 		params_Out.add(deviceOut_Volume);
 		params_Out.add(deviceOut_Api);
 		params_Out.add(deviceOut_Port);
-		//params_Out.add(deviceOut_ApiName);//hide labels
-		//params_Out.add(deviceOut_PortName);
+		params_Out.add(deviceOut_ApiName);//labels
+		params_Out.add(deviceOut_PortName);
 
 		//--
 
@@ -157,18 +153,14 @@ public:
 		params_Waveform.setName("WAVEFORM");
 		params_Waveform.add(bGui_WaveIn);
 		params_Waveform.add(bGui_WaveOut);
-		params_Waveform.add(_h);
-		params_Waveform.add(bAbs);
-		params_Waveform.add(_spread);
-		params_Waveform.add(bLine);
-		params_Waveform.add(_lineWidth);
-		params_Waveform.add(bRectangle);
-		params_Waveform.add(_gap);
-		params_Waveform.add(bReset);
-		//params_Waveform.add(_max);
-		//params_Waveform.add(_margin);
-		//params_Waveform.add(bLine);
-		//params_Waveform.add(bBars);
+		params_Waveform.add(W_Height);
+		params_Waveform.add(W_Spread);
+		params_Waveform.add(W_bAbs);
+		params_Waveform.add(W_bLine);
+		params_Waveform.add(W_LineWidth);
+		params_Waveform.add(W_bRectangle);
+		params_Waveform.add(W_WidthGap);
+		params_Waveform.add(W_bReset);
 
 		//--
 
@@ -179,21 +171,10 @@ public:
 		params.add(params_Waveform);
 
 		ofAddListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
-
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 
-#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-		//setupWaveforms();
-		//TODO:
-		//hide smooth bc must be improved
-		//params.add(paramsWaveforms);
 		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
-#endif
-
-		//-
-
-		// layout
 
 		// user gui
 		position = glm::vec2(25, 25);
@@ -203,14 +184,6 @@ public:
 		textBoxWidget.setFontSize(8);
 		textBoxWidget.setFontTitleSize(11);
 		textBoxWidget.setup();
-
-		//-
-
-		// widgets colors
-		colorDark = ofColor::black;
-		colorGrey = ofColor(64);
-		colorWhite = ofColor::white;
-		//drawCounter = 0;
 	};
 
 	//--------------------------------------------------------------
@@ -226,10 +199,7 @@ public:
 
 		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
-
-#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
-#endif
 		ofRemoveListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
 
 		close();
@@ -271,8 +241,9 @@ private:
 	int apiOnAllOFSystemsIndex;//all OF possile apis!
 	//NOT the index of the available apis on this system.!
 	//ie: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
-	int apiGuiIndex = 0;//this index will be related to all available apis ONLY on this system!
+	ofParameter<int> apiGuiIndex{ "API", 0, 0, 2 };//this index will be related to all available apis ONLY on this system!
 	//also in your same system, devices will change when disabling on windows sound preferences/devices
+
 	std::vector<string> ApiNames;
 
 	// devices
@@ -289,37 +260,9 @@ private:
 	//-
 
 	ofParameter<bool> bGui;
-	//ofParameter<bool> bGui_Advanced;
+	ofParameter<bool> bGui_Main;
 
 	glm::vec2 position;
-
-	//-
-
-private:
-
-	// gui
-
-	// widgets
-	DropDown GUI_deviceIndexInput;
-	DropDown GUI_deviceIndexOutput;
-	DropDown GUI_Api;
-	Toggle GUI_enableInput;
-	SliderB GUI_volumeInput;
-	Toggle GUI_enableOutput;
-	SliderB GUI_volumeOutput;
-
-	// layout
-	ofColor colorDark;
-	ofColor colorGrey;
-	ofColor colorWhite;
-	//int drawCounter;
-	int _widgetW;
-	int _widgetH;
-
-	// fonts
-	ofTrueTypeFont fontSmall;
-	ofTrueTypeFont fontMedium;
-	ofTrueTypeFont fontBig;
 
 	//-
 
@@ -349,36 +292,31 @@ private:
 
 	ofParameterGroup params;
 	ofParameterGroup params_Control;
-	bool bDISABLE_CALBACKS = false;//to avoid callback crashes or to enable only after setup()
 
 	ofxPanel gui;
-
 	ofParameter<bool> bGui_Internal{ "Internal", true };
-
-	//--
-
-	//ofxPanel gui_waveform;
-	ofParameterGroup params_Waveform;
-	//ofParameter<bool> bGui_Waveform{ "Waveforms", true };
-	ofParameter<bool> bGui_WaveIn{ "Wave In", true };
-	ofParameter<bool> bGui_WaveOut{ "Wave Out", false };
-	ofParameter<bool> bAbs{ "Abs", true };
-	ofParameter<float>_spread{ "Spread", 0, 0, 1 };
-	ofParameter<int>_h{ "Hight", 500, 10, 5000 };
-	ofParameter<bool>bRectangle{ "Rectangle", false };
-	ofParameter<float>_gap{ "Gap", 1, 0, 1 };
-	ofParameter<bool>bLine{ "Line", true };
-	ofParameter<int>_lineWidth{ "LineWidth", 3, 1, 100 };
-	ofParameter<bool>bReset{ "Reset", false };
-	//ofParameter<float>_max{ "Max", 200, 100, 500 };
-	//ofParameter<int>_margin{ "Margin", 50, 10, 100 };
-	//ofParameter<bool>bLine{ "Line", false };
-	//ofParameter<bool>bBars{ "Bars", false };
 
 	ofParameter<bool> bGui_In{ "Input", true };
 	ofParameter<bool> bGui_Out{ "Output", false };
 
+	//--
+
+	ofParameterGroup params_Waveform;
+	ofParameter<bool> bGui_Waveform{ "Waveforms", true };
+	ofParameter<bool> bGui_WaveIn{ "Wave In", true };
+	ofParameter<bool> bGui_WaveOut{ "Wave Out", false };
+	ofParameter<bool> W_bAbs{ "Abs", true };
+	ofParameter<float> W_Spread{ "Spread", 0, 0, 1 };
+	ofParameter<int> W_Height{ "Hight", 500, 10, 5000 };
+	ofParameter<bool> W_bRectangle{ "Rectangle", false };
+	ofParameter<float> W_WidthGap{ "Gap", 1, 0, 1 };
+	ofParameter<bool> W_bLine{ "Line", true };
+	ofParameter<int> W_LineWidth{ "LineWidth", 3, 1, 100 };
+	ofParameter<bool> W_bReset{ "Reset", false };
+
 	//-
+
+	bool bDISABLE_CALBACKS = false;//to avoid callback crashes or to enable only after setup()
 
 public:
 
@@ -409,91 +347,91 @@ public:
 
 public:
 
-	//--------------------------------------------------------------
-	void updateGuiUser()
-	{
-		//simple callbacks
+	////--------------------------------------------------------------
+	//void updateGuiUser()
+	//{
+	//	//simple callbacks
 
-		//in
+	//	//in
 
-		//enable
-		if (GUI_enableInput.getValue() != deviceIn_Enable)
-		{
-			deviceIn_Enable = GUI_enableInput.getValue();
-		}
-		//volumen
-		if (GUI_volumeInput.getValue() != deviceIn_Volume)
-		{
-			deviceIn_Volume = GUI_volumeInput.getValue();
-		}
-		//port
-		if (GUI_deviceIndexInput.getValueInt() != deviceIn_Port)
-		{
-			inStream.close();
-			inSettings.setInDevice(inDevices[GUI_deviceIndexInput.getValueInt()]);
-			inStream.setup(inSettings);
-			deviceIn_Port = GUI_deviceIndexInput.getValueInt();
-		}
+	//	//enable
+	//	if (GUI_enableInput.getValue() != deviceIn_Enable)
+	//	{
+	//		deviceIn_Enable = GUI_enableInput.getValue();
+	//	}
+	//	//volumen
+	//	if (GUI_volumeInput.getValue() != deviceIn_Volume)
+	//	{
+	//		deviceIn_Volume = GUI_volumeInput.getValue();
+	//	}
+	//	//port
+	//	if (GUI_deviceIndexInput.getValueInt() != deviceIn_Port)
+	//	{
+	//		inStream.close();
+	//		inSettings.setInDevice(inDevices[GUI_deviceIndexInput.getValueInt()]);
+	//		inStream.setup(inSettings);
+	//		deviceIn_Port = GUI_deviceIndexInput.getValueInt();
+	//	}
 
-		//-
+	//	//-
 
-		//out
+	//	//out
 
-		//enable
-		if (GUI_enableOutput.getValue() != deviceOut_Enable)
-		{
-			deviceOut_Enable = GUI_enableOutput.getValue();
-		}
+	//	//enable
+	//	if (GUI_enableOutput.getValue() != deviceOut_Enable)
+	//	{
+	//		deviceOut_Enable = GUI_enableOutput.getValue();
+	//	}
 
-		//volumen
-		if (GUI_volumeOutput.getValue() != deviceOut_Volume)
-		{
-			deviceOut_Volume = GUI_volumeOutput.getValue();
-		}
+	//	//volumen
+	//	if (GUI_volumeOutput.getValue() != deviceOut_Volume)
+	//	{
+	//		deviceOut_Volume = GUI_volumeOutput.getValue();
+	//	}
 
-		//port
-		if (GUI_deviceIndexOutput.getValueInt() != deviceOut_Port)
-		{
-			outStream.close();
-			if (outDevices.size() > GUI_deviceIndexOutput.getValueInt())
-				outSettings.setOutDevice(outDevices[GUI_deviceIndexOutput.getValueInt()]);
-			outStream.setup(outSettings);
-			deviceOut_Port = GUI_deviceIndexOutput.getValueInt();
-		}
+	//	//port
+	//	if (GUI_deviceIndexOutput.getValueInt() != deviceOut_Port)
+	//	{
+	//		outStream.close();
+	//		if (outDevices.size() > GUI_deviceIndexOutput.getValueInt())
+	//			outSettings.setOutDevice(outDevices[GUI_deviceIndexOutput.getValueInt()]);
+	//		outStream.setup(outSettings);
+	//		deviceOut_Port = GUI_deviceIndexOutput.getValueInt();
+	//	}
 
-		//-
+	//	//-
 
-		//api
-		if (GUI_Api.getValueInt() != apiGuiIndex)
-		{
-			int iEnum;
-			int _i = GUI_Api.getValueInt();
-			ofLogVerbose(__FUNCTION__) << "GUI_Api.getValueInt() " << _i << endl;
+	//	//api
+	//	if (GUI_Api.getValueInt() != apiGuiIndex)
+	//	{
+	//		int iEnum;
+	//		int _i = GUI_Api.getValueInt();
+	//		ofLogVerbose(__FUNCTION__) << "GUI_Api.getValueInt() " << _i << endl;
 
-			//windows apis
-			switch (_i)
-			{
-			case 0:
-				iEnum = 7;//MS_WASAPI
-				break;
-			case 1:
-				iEnum = 8;//MS_ASIO
-				break;
-			case 2:
-				iEnum = 9;//MS_DS
-				break;
-			default:
-				ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
-				break;
-			}
-			ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
+	//		//windows apis
+	//		switch (_i)
+	//		{
+	//		case 0:
+	//			iEnum = 7;//MS_WASAPI
+	//			break;
+	//		case 1:
+	//			iEnum = 8;//MS_ASIO
+	//			break;
+	//		case 2:
+	//			iEnum = 9;//MS_DS
+	//			break;
+	//		default:
+	//			ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
+	//			break;
+	//		}
+	//		ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
 
-			//-
+	//		//-
 
-			connectAp(iEnum);
-			apiGuiIndex = GUI_Api.getValueInt();
-		}
-	}
+	//		connectAp(iEnum);
+	//		apiGuiIndex = GUI_Api.getValueInt();
+	//	}
+	//}
 
 	//--------------------------------------------------------------
 	void update(ofEventArgs& args)
@@ -502,8 +440,8 @@ public:
 
 		//-
 
-		//user gui
-		updateGuiUser();
+		////user gui
+		//updateGuiUser();
 	}
 
 	//--------------------------------------------------------------
@@ -708,180 +646,40 @@ public:
 	}
 
 	//--------------------------------------------------------------
-	void drawGuiUser()
+	void drawImGui()
 	{
-		ofPushStyle();
+		if (!bGui) return;
 
-		//anchor pos
-		int _x0 = position.x;//column 0
-		int _y0 = position.y;
-
-		int _wColumn = 500;//space between in/out (column 1-2)
-		int _spacerX = 60;
-		int _spacerY = 20;
-
-		//vu's
-		int _ww = 120;
-		int _hh = 10;
-
-		int _x, _y;
-		int _vuMargin = 30;
-		int _wVu;
-		string __str;
-
-		ofMatrix4x4 translation;
-		translation = ofMatrix4x4::newTranslationMatrix(ofVec3f(_x0, _y0));
-		ofPushMatrix();
-		ofMultMatrix(translation);
-
-		//--
-
-		//column 1
-		_x = 0;
-		//row 3
-#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-		_y = 6 * _spacerY;//make more space
-#else
-		_y = 4 * _spacerY;
-#endif
-		//settings
-		ofSetColor(colorGrey);
-		string _str;
-		float _strW;
-		int _margin = 20;
-
-		//_str = "SampleRate [" + ofToString(sampleRate) + "]";
-		_str = "SampleRate " + ofToString(sampleRate);
-		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
-		fontSmall.drawString(_str, _x, _y);
-		_x += _strW;
-
-		//_str = "BufferSize [" + ofToString(bufferSize) + "]";
-		_str = "BufferSize " + ofToString(bufferSize);
-		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
-		fontSmall.drawString(_str, _x, _y);
-		_x += _strW;
-
-		//_str = "InPort [" + ofToString(deviceIn_Port) + "]";
-		_str = "InPort " + ofToString(deviceIn_Port);
-		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
-		fontSmall.drawString(_str, _x, _y);
-		_x += _strW;
-
-		//_str = "OutPort [" + ofToString(deviceOut_Port) + "]";
-		_str = "OutPort " + ofToString(deviceOut_Port);
-		_strW = fontSmall.getStringBoundingBox(_str, 0, 0).getWidth() + _margin;
-		fontSmall.drawString(_str, _x, _y);
-		//_x += _strW;
-
-		//---
-
-		// api
+		guiManager.begin();
 		{
-			ofSetColor(colorGrey);
+			if (guiManager.beginWindowSpecial(bGui_Main))
+			{
+				guiManager.AddLabelBig(bGui_Main.getName());
+				guiManager.AddGroup(params_Control);
+				guiManager.endWindowSpecial();
+			}
+			if (guiManager.beginWindowSpecial(bGui_In))
+			{
+				guiManager.AddLabelBig(bGui_In.getName());
+				guiManager.AddGroup(params_In);
+				guiManager.endWindowSpecial();
+			}
 
-			//column 1
-			_x = 0;
-			//row 1
-			_y = 0;
+			if (guiManager.beginWindowSpecial(bGui_Out))
+			{
+				guiManager.AddLabelBig(bGui_Out.getName());
+				guiManager.AddGroup(params_Out);
+				guiManager.endWindowSpecial();
+			}
 
-			if (fontMedium.isLoaded()) fontMedium.drawString("API", _x, _y);
-			_y += _spacerY;
-			GUI_Api.draw(_x, _y, translation);
+			if (guiManager.beginWindowSpecial(bGui_Waveform))
+			{
+				guiManager.AddLabelBig(bGui_Out.getName());
+				guiManager.AddGroup(params_Waveform);
+				guiManager.endWindowSpecial();
+			}
 		}
-
-		//----
-
-		// input
-
-		if (bGui_In)
-		{
-			ofSetColor(colorGrey);
-
-			//column 2
-			int _x0 = 145;
-			_x = _x0;
-			//row 2
-			_y = 0;
-
-			//label
-			__str = "INPUT";
-			if (fontMedium.isLoaded()) fontMedium.drawString(__str, _x, _y);
-
-			//vu
-#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-			if (fontMedium.isLoaded()) _wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
-			else _wVu = 200;
-
-			drawVU(smoothedVolume_Input, _x + _wVu, _y, _ww, _hh);
-			_y += _spacerY;
-			//enable toggle
-			GUI_enableInput.draw(_x, _y, translation);
-			_x += _spacerX;
-
-			//input volume 
-			GUI_volumeInput.draw(_x, _y, translation);//_y + _widgetH*1.f
-			_y += _spacerY;
-#endif
-
-			//-
-
-			//dropdown
-			//_x = +145;
-			_y += _spacerY;
-			GUI_deviceIndexInput.draw(_x, _y, translation);
-		}
-
-		//---
-
-		// out
-
-		if (bGui_Out)
-		{
-
-			ofSetColor(colorGrey);
-
-			//row 3
-			_y = 0;
-			//column 3
-			_x += _wColumn;
-			int _x0 = _x;
-
-			//label
-			__str = "OUTPUT";
-			if (fontMedium.isLoaded()) fontMedium.drawString(__str, _x, _y);
-
-			//vu
-#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
-			if (fontMedium.isLoaded()) _wVu = fontMedium.getStringBoundingBox(__str, 0, 0).getWidth() + _vuMargin;
-			else _wVu = 200;
-
-			drawVU(smoothedVolume_Out, _x + _wVu, _y, _ww, _hh);
-			_y += _spacerY;
-			//enable toggle
-			GUI_enableOutput.draw(_x, _y, translation);
-			_x += _spacerX;
-
-			//output volume 
-			GUI_volumeOutput.draw(_x, _y, translation);
-			_y += _spacerY;
-#endif
-
-			//-
-
-			//dropdown
-			//_x = +145 + _wColumn;
-			_x = _x0;
-			_y += _spacerY;
-			GUI_deviceIndexOutput.draw(_x, _y, translation);
-		}
-
-		//---
-
-		//drawCounter++;
-
-		ofPopStyle();
-		ofPopMatrix();
+		guiManager.end();
 	}
 
 	//--------------------------------------------------------------
@@ -889,21 +687,15 @@ public:
 	{
 		if (bGui)
 		{
-
-#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 			drawWaveforms();
-#endif
+	
 			//--
 
-			drawGuiUser();
+			drawImGui();
 
 			//--
 
 			if (bGui_Internal) gui.draw();
-
-			//auto p = gui.getShape().getTopRight();
-			//gui_waveform.setPosition(p);
-			//if (bGui_Waveform) gui_waveform.draw();
 
 			textBoxWidget.draw();
 		}
@@ -1065,6 +857,7 @@ public:
 
 		setupHelpInfo();
 
+		
 		//--
 
 		bDISABLE_CALBACKS = false;
@@ -1102,55 +895,30 @@ public:
 
 		//--
 
-		setupGuiUser();
+		setupGui();
 	}
 
 	//--------------------------------------------------------------
-	void setupGuiUser()
+	void setupGui()
 	{
-		//--
+		guiManager.setWindowsMode(IM_GUI_MODE_WINDOWS_SPECIAL_ORGANIZER);
+		guiManager.setup();
 
-		//gui 
+		guiManager.addWindowSpecial(bGui_Main);
+		guiManager.addWindowSpecial(bGui_In);
+		guiManager.addWindowSpecial(bGui_Out);
+		guiManager.addWindowSpecial(bGui_Waveform);
 
-		//fonts
-		string _font = "assets/fonts/telegrama_render.otf";
-		fontSmall.load(_font, 8);
-		fontMedium.load(_font, 10);
-		fontBig.load(_font, 12);
+		guiManager.startup();
 
-		// dropdowns
-
-		//1. api
-		GUI_Api.setup(ApiNames, apiGuiIndex, fontSmall, colorGrey, ofColor::whiteSmoke);
-
-		//2. in
-		for (int i = 0; i < inDevices.size(); i++) {
-			inDevicesNames.push_back(inDevices[i].name);
-		}
-		GUI_deviceIndexInput.setup(inDevicesNames, deviceIn_Port, fontSmall, colorGrey, ofColor::whiteSmoke);
-
-		//3. out
-		for (int i = 0; i < outDevices.size(); i++) {
-			outDevicesNames.push_back(outDevices[i].name);
-		}
-		GUI_deviceIndexOutput.setup(outDevicesNames, deviceOut_Port, fontSmall, colorGrey, ofColor::whiteSmoke);
-
-		//-
-
-		_widgetW = 200;
-		_widgetH = 15;
-
-		GUI_enableInput.setup(deviceIn_Enable, colorDark);
-		GUI_volumeInput.setup(deviceIn_Volume, _widgetW, _widgetH, _widgetH * .7f, colorDark, colorGrey);
-		GUI_enableOutput.setup(deviceOut_Enable, colorDark);
-		GUI_volumeOutput.setup(deviceOut_Volume, _widgetW, _widgetH, _widgetH * .7f, colorDark, colorGrey);
+		guiManager.bHelpInternal = false;
 	}
 
 	//--------------------------------------------------------------
 	float getVolumeInput()
 	{
-		if (GUI_enableInput.getValue())
-			return GUI_volumeInput.getValue();
+		if (deviceIn_Enable)
+			return deviceIn_Volume;
 		else
 			return 0.0;
 	}
@@ -1158,8 +926,8 @@ public:
 	//--------------------------------------------------------------
 	float getVolumeOutput()
 	{
-		if (GUI_enableOutput.getValue())
-			return GUI_volumeOutput.getValue();
+		if (deviceOut_Enable)
+			return deviceOut_Volume;
 		else
 			return 0.0;
 	}
@@ -1179,19 +947,6 @@ public:
 		settings.load(path);
 		ofDeserialize(settings, g);
 
-		//-
-
-		//startup
-
-		//mirror variables that could not be 'loaded'
-
-		//in
-		GUI_enableInput.setValue(deviceIn_Enable);
-		GUI_volumeInput.setValue(deviceIn_Volume);
-
-		//out
-		GUI_enableOutput.setValue(deviceOut_Enable);
-		GUI_volumeOutput.setValue(deviceOut_Volume);
 	}
 
 	//--------------------------------------------------------------
@@ -1206,7 +961,6 @@ public:
 
 	//-
 
-#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 #define SIZE_BUFFER 4096
 	float waveformInput[SIZE_BUFFER]; //make this bigger, just in case
 	int waveInputIndex;
@@ -1300,7 +1054,7 @@ public:
 		{
 			ofFill();
 			ofSetColor(0, 225);
-			ofSetLineWidth(_lineWidth);
+			ofSetLineWidth(W_LineWidth);
 
 			int _width = ofGetWidth();
 			float _max = 200;
@@ -1319,7 +1073,7 @@ public:
 
 				// bars style
 
-				int __spread = _spread * bufferSize;
+				int __spread = W_Spread * bufferSize;
 				__spread = ofClamp(__spread, 1, bufferSize);
 
 				float y1 = 0;
@@ -1327,8 +1081,8 @@ public:
 				float numBars = (bufferSize / __spread);
 				float wBars = _width / numBars;
 
-				//float _pw = abs(wBars - _gap);
-				float _pw = (wBars * _gap);
+				//float _pw = abs(wBars - W_WidthGap);
+				float _pw = (wBars * W_WidthGap);
 				_pw = MAX(1, _pw);
 
 				//TODO: this could be redone
@@ -1340,15 +1094,15 @@ public:
 						float x = p * _width;
 
 						float _ph;
-						if (bAbs) _ph = abs(waveformInput[i] * _h);//make positive
-						else _ph = waveformInput[i] * _h;
+						if (W_bAbs) _ph = abs(waveformInput[i] * W_Height);//make positive
+						else _ph = waveformInput[i] * W_Height;
 						//_ph = MAX(0, _ph);
 
 						//y1 = ofClamp(y1, 0, _h);
 						//_ph = ofClamp(_ph, 0, _h);
 
-						if (bLine) ofDrawLine(x, y1, x, -_ph);//line
-						if (bRectangle) ofDrawRectangle(x, y1, _pw, -_ph);//rectangle
+						if (W_bLine) ofDrawLine(x, y1, x, -_ph);//line
+						if (W_bRectangle) ofDrawRectangle(x, y1, _pw, -_ph);//rectangle
 					}
 				}
 
@@ -1597,30 +1351,75 @@ public:
 	//--------------------------------------------------------------
 	void Changed_params_Waveform(ofAbstractParameter & e)
 	{
-		if (!bDISABLE_CALBACKS)
+		if (bDISABLE_CALBACKS) return;
+
 		{
 			string name = e.getName();
 
-			if (name == bReset.getName() && bReset) {
-				bReset = false;
+			if (name == W_bReset.getName() && W_bReset) {
+				W_bReset = false;
 
-				_gap = 1;
-				_spread = 0;
-				_h = 500;
-				bRectangle = false;
-				bLine = true;
-				bAbs = true;
-				_lineWidth = 3;
+				W_WidthGap = 1;
+				W_Spread = 0;
+				W_Height = 500;
+				W_bRectangle = false;
+				W_bLine = true;
+				W_bAbs = true;
+				W_LineWidth = 3;
 			}
 
-			if (name == bLine.getName()) {
-				if (bLine) bRectangle = false;
-				else bRectangle = true;
+			if (name == W_bLine.getName()) {
+				if (W_bLine) W_bRectangle = false;
+				else W_bRectangle = true;
 			}
 
-			if (name == bRectangle.getName()) {
-				if (bRectangle) bLine = false;
-				else bLine = true;
+			if (name == W_bRectangle.getName()) {
+				if (W_bRectangle) W_bLine = false;
+				else W_bLine = true;
+			}
+
+			//in
+			if (name == deviceIn_Port.getName()) {
+				inStream.close();
+				inSettings.setInDevice(inDevices[deviceIn_Port]);
+				inStream.setup(inSettings);
+			}
+
+			//out
+			if (name == deviceOut_Port.getName()) {
+				outStream.close();
+				if (outDevices.size() > deviceOut_Port)
+					outSettings.setOutDevice(outDevices[deviceOut_Port]);
+				outStream.setup(outSettings);
+			}
+
+			if (name == deviceOut_Port.getName()) {
+				outStream.close();
+				if (outDevices.size() > deviceOut_Port)
+					outSettings.setOutDevice(outDevices[deviceOut_Port]);
+				outStream.setup(outSettings);
+			}
+
+			//windows apis
+			if (name == apiGuiIndex.getName()) {
+				int iEnum;
+				switch (apiGuiIndex)
+				{
+				case 0:
+					iEnum = 7;//MS_WASAPI
+					break;
+				case 1:
+					iEnum = 8;//MS_ASIO
+					break;
+				case 2:
+					iEnum = 9;//MS_DS
+					break;
+				default:
+					ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
+					break;
+				}
+				ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
+				connectAp(iEnum);
 			}
 
 			//if (name == bBars.getName() && bBars) {
@@ -1629,8 +1428,6 @@ public:
 			//}
 		}
 	}
-
-#endif // USE_PLOTS_AND_AUDIO_CALLBACKS
 
 	//-
 
@@ -1641,18 +1438,7 @@ public:
 		{
 			string name = e.getName();
 
-			if (name == "ENABLE")
-			{
-				GUI_enableInput.setValue(deviceIn_Enable);
-			}
-			else if (name == "VOLUME")
-			{
-				GUI_volumeInput.setValue(deviceIn_Volume);
-			}
-			else if (name == "PORT")
-			{
-				GUI_deviceIndexInput.setValueInt(deviceIn_Port);
-			}
+
 		}
 	}
 
@@ -1663,40 +1449,25 @@ public:
 		{
 			string name = e.getName();
 
-			if (name == "ENABLE")
-			{
-				GUI_enableOutput.setValue(deviceOut_Enable);
-			}
-			else if (name == "VOLUME")
-			{
-				GUI_volumeOutput.setValue(deviceOut_Volume);
-			}
-			else if (name == "PORT")
-			{
-				GUI_deviceIndexOutput.setValueInt(deviceOut_Port);
-			}
+
 		}
 	}
 
-#ifdef USE_PLOTS_AND_AUDIO_CALLBACKS
 	//--------------------------------------------------------------
 	void drawVU(float val, int x, int y, int w, int h)
 	{
 		ofPushStyle();
 
-		ofSetColor(colorGrey);
 		ofNoFill();
 		ofDrawRectangle(x, y - h, w, h);
 
-		ofSetColor(colorWhite);
 		ofFill();
 		ofDrawRectangle(x, y - h, val * w, h);
 
 		ofPopStyle();
 	}
-#endif
 
-	};
+};
 
 
 //NOTES
@@ -1785,20 +1556,20 @@ public:
 //	ofFill();
 //	int _h = 1000;
 //	int _width = ofGetWidth();
-//	bool bLine, bBars;
-//	bLine = true;
+//	bool W_bLine, bBars;
+//	W_bLine = true;
 //	bBars = false;
 //	int _spread;//use one bar x 20 buffer frames. ignore the others. but depends on relation beetween viewport width vs bufferSize
-//	if (bLine)
+//	if (W_bLine)
 //		_spread = 1;
 //	if (bBars)
 //		_spread = 10;
 //	//float _maxBars = _width /
-//	int _gap = 5;//space between bars
+//	int W_WidthGap = 5;//space between bars
 //	float y1 = 0;
 //	float numBars = (bufferSize / _spread);
 //	float wBars = _width / numBars;
-//	float _pw = abs(wBars - _gap);
+//	float _pw = abs(wBars - W_WidthGap);
 //	for (int i = 0; i < bufferSize; i++) {
 //		if (i%_spread == 0)//spread spaces
 //		{
@@ -1808,7 +1579,7 @@ public:
 //			float _ph = 1.0f + abs(buffer[i] * _h);//make positive. 1.0 for minimal line
 //			float y2 = 0.1f + y1 - _ph;//0.1 for minimal line
 //
-//			if (bLine)
+//			if (W_bLine)
 //				ofDrawLine(x, y1, x, y2);//line
 //
 //			if (bBars)
