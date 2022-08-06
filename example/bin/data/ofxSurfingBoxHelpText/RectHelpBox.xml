@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <interactiveRect>
 	<path>ofxSurfingBoxHelpText//</path>
-	<x>113</x>
-	<y>244</y>
+	<x>898</x>
+	<y>313</y>
 	<width>617</width>
 	<height>683.84</height>
 	<name>HelpBox</name>

@@ -1,7 +1,7 @@
 # ofxSoundDevicesManager
 
 # Overview
-**openFrameworks** addon to easy handle selected system sound devices.  
+**openFrameworks** addon to easily handle selected system sound devices.  
 **[WORK IN PROGRESS / ALPHA STATE]**
 
 ## Screenshot
@@ -9,7 +9,7 @@
 ![image](/readme_images/Capture1.PNG?raw=true "image")  
 
 ## Features
-- **Select** input and output **devices** using a **nice GUI**.
+- **Select** input and output **devices** using a **GUI**.
 - Auto **Store/Recall settings** on startup/exit.
 - Plot preview **waveforms** and **VU meters**.
 - **Enable/Bypass** channels & **gain sliders**.
@@ -30,22 +30,8 @@ ofApp::setup(){
 	audioDevices.setup(44100, 512);//set samplerate and buffer size
 }
 
-ofApp::update(){
-	audioDevices.update();
-}
-
 ofApp::draw(){
-	audioDevices.draw();//show gui
-}
-
-void ofApp::exit() {
-	audioDevices.close();//to close devices. (will auto store session settings on class destructor)
-}
-
-void ofApp::keyPressed(int key) {
-	if (key == 'g') audioDevices.toggleVisibleGui();
-	if (key == 'l') audioDevices.toggleVisibleLog();
-	if (key == 'a') audioDevices.toggleActive();
+	audioDevices.drawGui();
 }
 
 void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self. look other examples
@@ -58,17 +44,19 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self. look othe
 ```
 
 ### Dependencies
-- Already included into **/libs**. You don't need to add them manually to your project:  
-	https://github.com/Feliszt/ofxSimpleFloatingGui from **@Feliszt**. Thanks!  
-	https://github.com/tettou771/ofxTextFlow from **@tettou771**, Thanks!  
+- ofxGui
+- ofxSurfingImGui
+- ofxImGui / Fork
+- ofxSurfingBox
+- ofxSurfingHelpers
 
 ### Tested systems
-- **Windows10** / **VS2017** / **OF 0.11**
+- **Windows10** / **VS2017** / **OF 0.11+**
   ONLY WORKS ON WINDOWS YET.
 
 ### TODO/IDEAS
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible.  
-* Make it macOS compatible. Is not so hard to add. Help/collaboration is wellcome!  
+* Make it macOS compatible. 
 
 ### Notes
 * *ALPHA STATE / WORK IN PROGRESS*  

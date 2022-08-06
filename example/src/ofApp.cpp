@@ -22,7 +22,6 @@ void ofApp::setupSoundDevicesManager() {
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-	ofClear(ofColor::orange);
 
 	audioDevices.drawGui();
 }

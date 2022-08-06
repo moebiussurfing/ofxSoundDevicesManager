@@ -4,6 +4,7 @@
 
 TODO:
 
+	+	fix api selector
 	+	enable output and test with an example
 	+	integrate with ofSoundObjects
 	+	add switch API/device. without exceptions/crashes.
@@ -124,20 +125,20 @@ public:
 		params_In.setName("INPUT");
 		params_In.add(deviceIn_Enable);
 		params_In.add(deviceIn_Volume);
-		params_In.add(deviceIn_Api);
 		params_In.add(deviceIn_Port);
-		params_In.add(deviceIn_ApiName);//labels
 		params_In.add(deviceIn_PortName);
-		params_In.add(apiIndex_Windows);
+		//params_In.add(apiIndex_Windows);
+		//params_In.add(deviceIn_Api);
+		//params_In.add(deviceIn_ApiName);//labels
 
 		params_Out.setName("OUTPUT");
 		params_Out.add(deviceOut_Enable);
 		params_Out.add(deviceOut_Volume);
-		params_Out.add(deviceOut_Api);
 		params_Out.add(deviceOut_Port);
-		params_Out.add(deviceOut_ApiName);//labels
 		params_Out.add(deviceOut_PortName);
-		params_Out.add(apiIndex_Windows);
+		//params_Out.add(deviceOut_ApiName);//labels
+		//params_Out.add(deviceOut_Api);
+		//params_Out.add(apiIndex_Windows);
 
 		//--
 
@@ -267,19 +268,19 @@ private:
 	ofParameterGroup params_In;
 	ofParameter<bool> deviceIn_Enable;
 	ofParameter<float> deviceIn_Volume;
-	ofParameter<int> deviceIn_Api;
-	ofParameter<string> deviceIn_ApiName;
 	ofParameter<int> deviceIn_Port;
 	ofParameter<string> deviceIn_PortName;
+	ofParameter<int> deviceIn_Api;
+	ofParameter<string> deviceIn_ApiName;
 
 	// out
 	ofParameterGroup params_Out;
 	ofParameter<bool> deviceOut_Enable;
 	ofParameter<float> deviceOut_Volume;
-	ofParameter<int> deviceOut_Api;
-	ofParameter<string> deviceOut_ApiName;
 	ofParameter<int> deviceOut_Port;
 	ofParameter<string> deviceOut_PortName;
+	ofParameter<int> deviceOut_Api;
+	ofParameter<string> deviceOut_ApiName;
 
 	//-
 
@@ -549,14 +550,21 @@ private:
 		deviceIn_Port.setMax(inDevices.size() - 1);
 		deviceOut_Port.setMax(outDevices.size() - 1);
 
+		// in
+
 		deviceIn_Api = _apiEnum;
 		deviceIn_ApiName = str_api;
+
 		if (inDevices.size() > deviceIn_Port)
 			deviceIn_PortName = inDevices[deviceIn_Port].name;
 
+		// out
+
 		deviceOut_Api = _apiEnum;
 		deviceOut_ApiName = str_api;
-		deviceOut_PortName = outDevices[deviceOut_Port].name;
+
+		if (outDevices.size() > deviceOut_Port)
+			deviceOut_PortName = outDevices[deviceOut_Port].name;
 	}
 
 private:
@@ -570,32 +578,35 @@ private:
 		{
 			if (guiManager.beginWindowSpecial(bGui_Main))
 			{
-				guiManager.AddLabelBig(bGui_Main.getName());
+				//guiManager.AddLabelBig(bGui_Main.getName());
 				//guiManager.AddGroup(params_Control);
-				guiManager.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED);
-				guiManager.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED);
-				guiManager.Add(bGui_Waveform, OFX_IM_TOGGLE_ROUNDED);
+				
+				guiManager.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				guiManager.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				guiManager.Add(bGui_Waveform, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				guiManager.AddSpacing();
+
+				guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED);
 				guiManager.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
-				guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED_MINI);
 				guiManager.endWindowSpecial();
 			}
 			if (guiManager.beginWindowSpecial(bGui_In))
 			{
-				guiManager.AddLabelBig(bGui_In.getName());
+				//guiManager.AddLabelBig(bGui_In.getName());
 				guiManager.AddGroup(params_In);
 				guiManager.endWindowSpecial();
 			}
 
 			if (guiManager.beginWindowSpecial(bGui_Out))
 			{
-				guiManager.AddLabelBig(bGui_Out.getName());
+				//guiManager.AddLabelBig(bGui_Out.getName());
 				guiManager.AddGroup(params_Out);
 				guiManager.endWindowSpecial();
 			}
 
 			if (guiManager.beginWindowSpecial(bGui_Waveform))
 			{
-				guiManager.AddLabelBig(bGui_Waveform.getName());
+				//guiManager.AddLabelBig(bGui_Waveform.getName());
 				guiManager.AddGroup(params_Waveform);
 				guiManager.endWindowSpecial();
 			}
@@ -928,9 +939,7 @@ private:
 				// bars style
 
 				int __spread = W_Spread * bufferSize;
-				__spread = ofClamp(__spread, 1, bufferSize);
-
-				float y1 = 0;
+				__spread = ofClamp(__spread / 20, 1, bufferSize);
 
 				float numBars = (bufferSize / __spread);
 				float wBars = _width / numBars;
@@ -955,24 +964,36 @@ private:
 						//y1 = ofClamp(y1, 0, _h);
 						//_ph = ofClamp(_ph, 0, _h);
 
-						if (W_bLine) ofDrawLine(x, y1, x, -_ph);//line
-						if (W_bRectangle) ofDrawRectangle(x, y1, _pw, -_ph);//rectangle
+						if (W_bLine) ofDrawLine(x, 0, x, -_ph);//line
+						if (W_bRectangle) ofDrawRectangle(x, 0, _pw, -_ph);//rectangle
 					}
 				}
+
+				// horizontal line
+				ofSetLineWidth(1);
+				ofDrawLine(0, 0, ofGetWidth(), 0);
 
 				ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, 5);
 			}
 
 			//--
 
-			if (bGui_WaveOut) {
+			//TODO: WIP:
+			if (bGui_WaveOut)
+			{
 				// output
 				ofTranslate(0, 2 * ofGetHeight() / 4);
+				ofSetLineWidth(W_LineWidth);
+
 				ofDrawLine(0, 0, 1, waveformOutput[1] * _max); // first line
 
 				for (int i = 1; i < (ofGetWidth() - 1); ++i) {
 					ofDrawLine(i, waveformOutput[i] * _max, i + 1, waveformOutput[i + 1] * _max);
 				}
+
+				// horizontal line
+				ofSetLineWidth(1);
+				ofDrawLine(0, 0, ofGetWidth(), 0);
 
 				ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - _margin, +5);
 			}
@@ -1076,7 +1097,7 @@ private:
 	//--------------------------------------------------------------
 	void Changed_params_Control(ofAbstractParameter & e)
 	{
-		return;//hardcoded
+		//return;//hardcoded
 
 		if (bDISABLE_CALBACKS) return;
 
@@ -1111,8 +1132,55 @@ private:
 		// add macOS + Linux
 	}
 
+	//-
+
 	//--------------------------------------------------------------
-	void Changed_params_Waveform(ofAbstractParameter & e)
+	void Changed_params_In(ofAbstractParameter & e)
+	{
+		if (bDISABLE_CALBACKS) return;
+
+		string name = e.getName();
+
+		if (name == deviceIn_Port.getName()) {
+			inStream.close();
+			inSettings.setInDevice(inDevices[deviceIn_Port]);
+			inStream.setup(inSettings);
+
+			if (inDevices.size() > deviceIn_Port)
+				deviceIn_PortName = inDevices[deviceIn_Port].name;
+		}
+
+		////TODO:
+		//if (name == apiIndex_Windows.getName()) {
+		//	connectToSoundAPI(apiIndex_Windows + 7);
+		//}
+	}
+
+	//--------------------------------------------------------------
+	void Changed_params_Out(ofAbstractParameter & e)
+	{
+		if (bDISABLE_CALBACKS) return;
+
+		string name = e.getName();
+
+		if (name == deviceOut_Port.getName()) {
+			outStream.close();
+			if (outDevices.size() > deviceOut_Port)
+				outSettings.setOutDevice(outDevices[deviceOut_Port]);
+			outStream.setup(outSettings);
+
+			if (outDevices.size() > deviceOut_Port)
+				deviceOut_PortName = outDevices[deviceOut_Port].name;
+		}
+
+		////TODO:
+		//if (name == apiIndex_Windows.getName()) {
+		//	connectToSoundAPI(apiIndex_Windows + 7);
+		//}
+	}
+
+	//--------------------------------------------------------------
+	void Changed_params_Waveform(ofAbstractParameter& e)
 	{
 		if (bDISABLE_CALBACKS) return;
 
@@ -1141,37 +1209,7 @@ private:
 		}
 	}
 
-	//-
-
-	//--------------------------------------------------------------
-	void Changed_params_In(ofAbstractParameter & e)
-	{
-		if (bDISABLE_CALBACKS) return;
-
-		string name = e.getName();
-
-		if (name == deviceIn_Port.getName()) {
-			inStream.close();
-			inSettings.setInDevice(inDevices[deviceIn_Port]);
-			inStream.setup(inSettings);
-		}
-	}
-
-	//--------------------------------------------------------------
-	void Changed_params_Out(ofAbstractParameter & e)
-	{
-		if (bDISABLE_CALBACKS) return;
-
-		string name = e.getName();
-
-		if (name == deviceOut_Port.getName()) {
-			outStream.close();
-			if (outDevices.size() > deviceOut_Port)
-				outSettings.setOutDevice(outDevices[deviceOut_Port]);
-			outStream.setup(outSettings);
-		}
-	}
-
+	//TODO:
 	//--------------------------------------------------------------
 	void drawVU(float val, int x, int y, int w, int h)
 	{
@@ -1188,7 +1226,7 @@ private:
 		ofPopStyle();
 	}
 
-};
+	};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78
