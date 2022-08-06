@@ -28,15 +28,6 @@ void ofApp::draw() {
 }
 
 //--------------------------------------------------------------
-void ofApp::keyPressed(int key) 
-{
-	if (key == 'g')
-	{
-		audioDevices.setVisibleToggle();
-	}
-}
-
-//--------------------------------------------------------------
 void ofApp::audioIn(ofSoundBuffer& input) {
 	audioDevices.audioIn(input);
 }
@@ -44,4 +35,13 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 //--------------------------------------------------------------
 void ofApp::audioOut(ofSoundBuffer& output) {
 	audioDevices.audioOut(output);
+}
+
+//--------------------------------------------------------------
+void ofApp::keyPressed(int key) 
+{
+	if (key == 'g')
+	{
+		audioDevices.setVisibleToggle();
+	}
 }

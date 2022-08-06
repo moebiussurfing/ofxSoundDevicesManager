@@ -91,7 +91,6 @@ public:
 		params_Control.add(bGui_In);
 		params_Control.add(bGui_Out);
 		params_Control.add(bGui_Waveform);
-		params_Control.add(apiGuiIndex);
 		params_Control.add(bGui_Internal);
 		params_Control.add(textBoxWidget.bGui);
 
@@ -122,11 +121,6 @@ public:
 
 		//-
 
-		//TODO:
-		apiOnAllOFSystemsIndex = 9; // api #9 on OF is MS-DS
-
-		//-
-
 		params_In.setName("INPUT");
 		params_In.add(deviceIn_Enable);
 		params_In.add(deviceIn_Volume);
@@ -134,6 +128,7 @@ public:
 		params_In.add(deviceIn_Port);
 		params_In.add(deviceIn_ApiName);//labels
 		params_In.add(deviceIn_PortName);
+		params_In.add(apiIndex_Windows);
 
 		params_Out.setName("OUTPUT");
 		params_Out.add(deviceOut_Enable);
@@ -142,6 +137,7 @@ public:
 		params_Out.add(deviceOut_Port);
 		params_Out.add(deviceOut_ApiName);//labels
 		params_Out.add(deviceOut_PortName);
+		params_Out.add(apiIndex_Windows);
 
 		//--
 
@@ -169,14 +165,14 @@ public:
 		ofAddListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
-
 		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
 
 		// user gui
 		position = glm::vec2(25, 25);
 
 		// text box
-		textBoxWidget.setTitle("\nSOUND DEVICES");
+		textBoxWidget.bGui.setName("DEVICES INFO");
+		textBoxWidget.setTitle("\nDEVICES INFO");
 		textBoxWidget.setFontSize(8);
 		textBoxWidget.setFontTitleSize(11);
 		textBoxWidget.setup();
@@ -230,11 +226,14 @@ public:
 private:
 
 	// API
-	int apiOnAllOFSystemsIndex;//all OF possible apis!
-	//NOT the index of the available apis on this system.!
-	//ie: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
-	ofParameter<int> apiGuiIndex{ "API", 0, 0, 2 };//this index will be related to all available apis ONLY on this system!
-	//also in your same system, devices will change when disabling on windows sound preferences/devices
+	int apiIndex_oF;
+	// all oF possible apis!
+	// NOT the index of the available apis on this system.!
+	// eg: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
+	ofParameter<int> apiIndex_Windows{ "API", 0, 0, 2 };
+	// shared by both input and output
+	// this index will be related to all available apis ONLY on this system!
+	// also in your same system, devices will change when disabling on windows sound preferences/devices
 
 	//TODO:
 	// add macOS + Linux
@@ -293,12 +292,14 @@ private:
 	//--
 
 	ofParameterGroup params_Waveform;
+
 	ofParameter<bool> bGui_Waveform{ "Waveforms", false };
 	ofParameter<bool> bGui_WaveIn{ "Wave In", true };
 	ofParameter<bool> bGui_WaveOut{ "Wave Out", false };
+
 	ofParameter<bool> W_bAbs{ "Abs", true };
 	ofParameter<float> W_Spread{ "Spread", 0, 0, 1 };
-	ofParameter<int> W_Height{ "Hight", 500, 10, 5000 };
+	ofParameter<int> W_Height{ "Height", 500, 10, 1000 };
 	ofParameter<bool> W_bRectangle{ "Rectangle", false };
 	ofParameter<float> W_WidthGap{ "Gap", 1, 0, 1 };
 	ofParameter<bool> W_bLine{ "Line", true };
@@ -345,6 +346,7 @@ public:
 	void setVisibleToggle()
 	{
 		bGui = !bGui;
+		if (!bGui_Main) bGui_Main = true;
 	}
 
 private:
@@ -356,10 +358,10 @@ private:
 
 private:
 
-	//void connectAp(ofBaseApp* _app, int _apiIndex)
+	//void connectToSoundAPI(ofBaseApp* _app, int _apiIndex)
 	// 
 	//--------------------------------------------------------------
-	void connectAp(int _apiIndex)
+	void connectToSoundAPI(int _apiIndex)
 	{
 		close();
 
@@ -543,7 +545,6 @@ private:
 
 		//-
 
-
 		// max ports
 		deviceIn_Port.setMax(inDevices.size() - 1);
 		deviceOut_Port.setMax(outDevices.size() - 1);
@@ -570,7 +571,12 @@ private:
 			if (guiManager.beginWindowSpecial(bGui_Main))
 			{
 				guiManager.AddLabelBig(bGui_Main.getName());
-				guiManager.AddGroup(params_Control);
+				//guiManager.AddGroup(params_Control);
+				guiManager.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED);
+				guiManager.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED);
+				guiManager.Add(bGui_Waveform, OFX_IM_TOGGLE_ROUNDED);
+				guiManager.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
+				guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED_MINI);
 				guiManager.endWindowSpecial();
 			}
 			if (guiManager.beginWindowSpecial(bGui_In))
@@ -589,7 +595,7 @@ private:
 
 			if (guiManager.beginWindowSpecial(bGui_Waveform))
 			{
-				guiManager.AddLabelBig(bGui_Out.getName());
+				guiManager.AddLabelBig(bGui_Waveform.getName());
 				guiManager.AddGroup(params_Waveform);
 				guiManager.endWindowSpecial();
 			}
@@ -774,7 +780,11 @@ public:
 		//-
 
 		//TODO:
-		// windows only
+		// For MS Windows only.
+
+		//TODO:
+		// add macOS + Linux
+
 		ApiNames.clear();
 		ApiNames.push_back("MS_WASAPI");//0
 		ApiNames.push_back("MS_ASIO");//1
@@ -788,20 +798,6 @@ public:
 		//--
 
 		bDISABLE_CALBACKS = false;
-
-		// Load Settings
-		loadGroup(params, pathSettings);
-
-		//--
-
-		// API
-
-		connectAp(apiOnAllOFSystemsIndex);//MS_DS
-		//connectAp(_app, apiOnAllOFSystemsIndex);//MS_DS
-
-		// TODO:
-		// Hardcoded
-		apiGuiIndex = 2;//for gui
 
 		//-
 
@@ -817,6 +813,25 @@ public:
 		//--
 
 		setupGui();
+
+		//--
+
+		// API
+
+		// TODO:
+		// Hardcoded
+		apiIndex_Windows = 2; // for the gui?
+
+		//TODO:
+		apiIndex_oF = 9; // API #9 on oF is Windows MS DS
+		connectToSoundAPI(apiIndex_oF);//MS_DS
+		//connectToSoundAPI(_app, apiIndex_oF);//MS_DS
+
+		//--
+
+		// Startup
+		// Load Settings
+		loadGroup(params, pathSettings);
 	}
 
 private:
@@ -840,19 +855,15 @@ private:
 	//--------------------------------------------------------------
 	float getVolumeInput()
 	{
-		if (deviceIn_Enable)
-			return deviceIn_Volume;
-		else
-			return 0.0;
+		if (deviceIn_Enable) return deviceIn_Volume;
+		else return 0.0;
 	}
 
 	//--------------------------------------------------------------
 	float getVolumeOutput()
 	{
-		if (deviceOut_Enable)
-			return deviceOut_Volume;
-		else
-			return 0.0;
+		if (deviceOut_Enable) return deviceOut_Volume;
+		else return 0.0;
 	}
 
 	//--------------------------------------------------------------
@@ -869,7 +880,6 @@ private:
 		ofXml settings;
 		settings.load(path);
 		ofDeserialize(settings, g);
-
 	}
 
 	//--------------------------------------------------------------
@@ -887,6 +897,7 @@ private:
 private:
 
 #define SIZE_BUFFER 4096
+
 	float waveformInput[SIZE_BUFFER]; //make this bigger, just in case
 	int waveInputIndex;
 	float waveformOutput[SIZE_BUFFER]; //make this bigger, just in case
@@ -1065,9 +1076,39 @@ private:
 	//--------------------------------------------------------------
 	void Changed_params_Control(ofAbstractParameter & e)
 	{
+		return;//hardcoded
+
 		if (bDISABLE_CALBACKS) return;
-	
+
 		string name = e.getName();
+
+		// MS Windows sound APIs
+		if (name == apiIndex_Windows.getName())
+		{
+			int iEnum;
+			switch (apiIndex_Windows)
+			{
+			case 0:
+				iEnum = 7; // MS_WASAPI
+				break;
+			case 1:
+				iEnum = 8; // MS_ASIO
+				break;
+			case 2:
+				iEnum = 9; // MS_DS
+				break;
+			default:
+				ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
+				break;
+			}
+			ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
+
+			apiIndex_oF = iEnum;
+			connectToSoundAPI(apiIndex_oF);
+		}
+
+		//TODO:
+		// add macOS + Linux
 	}
 
 	//--------------------------------------------------------------
@@ -1098,53 +1139,6 @@ private:
 			if (W_bRectangle) W_bLine = false;
 			else W_bLine = true;
 		}
-
-		// in
-		if (name == deviceIn_Port.getName()) {
-			inStream.close();
-			inSettings.setInDevice(inDevices[deviceIn_Port]);
-			inStream.setup(inSettings);
-		}
-
-		// out
-		if (name == deviceOut_Port.getName()) {
-			outStream.close();
-			if (outDevices.size() > deviceOut_Port)
-				outSettings.setOutDevice(outDevices[deviceOut_Port]);
-			outStream.setup(outSettings);
-		}
-
-		if (name == deviceOut_Port.getName()) {
-			outStream.close();
-			if (outDevices.size() > deviceOut_Port)
-				outSettings.setOutDevice(outDevices[deviceOut_Port]);
-			outStream.setup(outSettings);
-		}
-
-		// MS Windows sound APIs
-		if (name == apiGuiIndex.getName()) {
-			int iEnum;
-			switch (apiGuiIndex)
-			{
-			case 0:
-				iEnum = 7; // MS_WASAPI
-				break;
-			case 1:
-				iEnum = 8; // MS_ASIO
-				break;
-			case 2:
-				iEnum = 9; // MS_DS
-				break;
-			default:
-				ofLogError(__FUNCTION__) << "error: iEnum: " << iEnum << endl;
-				break;
-			}
-			ofLogVerbose(__FUNCTION__) << "iEnum:" << iEnum;
-			connectAp(iEnum);
-		}
-
-		//TODO:
-		// add macOS + Linux
 	}
 
 	//-
@@ -1155,6 +1149,12 @@ private:
 		if (bDISABLE_CALBACKS) return;
 
 		string name = e.getName();
+
+		if (name == deviceIn_Port.getName()) {
+			inStream.close();
+			inSettings.setInDevice(inDevices[deviceIn_Port]);
+			inStream.setup(inSettings);
+		}
 	}
 
 	//--------------------------------------------------------------
@@ -1163,6 +1163,13 @@ private:
 		if (bDISABLE_CALBACKS) return;
 
 		string name = e.getName();
+
+		if (name == deviceOut_Port.getName()) {
+			outStream.close();
+			if (outDevices.size() > deviceOut_Port)
+				outSettings.setOutDevice(outDevices[deviceOut_Port]);
+			outStream.setup(outSettings);
+		}
 	}
 
 	//--------------------------------------------------------------

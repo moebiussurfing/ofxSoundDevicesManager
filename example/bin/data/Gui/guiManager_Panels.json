@@ -1,0 +1,17 @@
+{
+    "guiManager": {
+        "Params_Advanced": {
+            "Auto_Resize": "1",
+            "Debug": "0",
+            "Help_App": "1",
+            "Help_Internal": "0",
+            "Keys": "1",
+            "Link_Windows": "0",
+            "Log": "0",
+            "Minimize": "1",
+            "MouseWheel": "1",
+            "Pad": "0",
+            "Solo": "0"
+        }
+    }
+}
