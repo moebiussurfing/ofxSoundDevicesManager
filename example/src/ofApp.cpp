@@ -5,16 +5,6 @@
 //--------------------------------------------------------------
 void ofApp::setup()
 {
-#ifdef USE_ofxWindowApp
-	windowApp.setFrameRate(60);
-#endif
-
-	setupSoundDevicesManager();
-}
-
-//--------------------------------------------------------------
-void ofApp::setupSoundDevicesManager() {
-
 	sampleRate = 44100;
 	bufferSize = 512;
 	numBuffers = 4;

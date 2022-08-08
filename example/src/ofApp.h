@@ -12,15 +12,15 @@
 
 #include "ofxSoundDevicesManager.h"
 
-class ofApp : public ofBaseApp{
-
+class ofApp : public ofBaseApp
+{
 	public:
 
 		void setup();
 		void draw();
 		void keyPressed(int key);
 		
-		//-
+		//--
 
 		ofxSoundDevicesManager audioDevices;
 
@@ -28,12 +28,10 @@ class ofApp : public ofBaseApp{
 		int bufferSize;
 		int numBuffers;
 
-		void setupSoundDevicesManager();
-
 		void audioIn(ofSoundBuffer& input) override;
 		void audioOut(ofSoundBuffer& output) override;
 		
-		//-
+		//--
 
 #ifdef USE_ofxWindowApp
 		ofxWindowApp windowApp;
