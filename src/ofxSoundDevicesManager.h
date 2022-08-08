@@ -396,14 +396,16 @@ private:
 
 	//-
 
+	public:
 	ofParameter<bool> bGui;
 	ofParameter<bool> bGui_Main;
 
-	glm::vec2 position;
 
 	//-
 
 private:
+
+	glm::vec2 position;
 
 	// Parameters
 
