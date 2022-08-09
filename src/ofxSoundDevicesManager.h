@@ -241,7 +241,7 @@ private:
 		bGui.set("SOUND DEVICES", true);
 
 		bGui_Main.set("SOUND DEVICES", true);
-		//bGui_Main.set("MAIN", true);
+		bGui_Plots.set("Plots", true);
 
 		params_Control.setName("CONTROL");
 		params_Control.add(bEnableAudio);
@@ -319,6 +319,7 @@ private:
 		params_Waveform.add(W_bAbs);
 		params_Waveform.add(W_bLine);
 		params_Waveform.add(W_bHLine);
+		params_Waveform.add(W_bLabel);
 		params_Waveform.add(W_LineWidth);
 		params_Waveform.add(W_bRectangle);
 		params_Waveform.add(W_WidthGap);
@@ -403,6 +404,7 @@ public:
 
 	ofParameter<bool> bGui;
 	ofParameter<bool> bGui_Main;
+	ofParameter<bool> bGui_Plots;
 
 
 	//-
@@ -457,6 +459,7 @@ private:
 	ofParameter<float> W_WidthGap{ "Gap", 1, 0, 1 };
 	ofParameter<bool> W_bLine{ "Line", true };
 	ofParameter<bool> W_bHLine{ "H Line", true };
+	ofParameter<bool> W_bLabel{ "Label", true };
 	ofParameter<int> W_LineWidth{ "Width", 3, 1, 100 };
 	ofParameter<bool> W_bReset{ "Reset", false };
 
@@ -761,6 +764,7 @@ private:
 
 		guiManager.begin();
 		{
+			// Main
 			if (guiManager.beginWindowSpecial(bGui_Main))
 			{
 				//guiManager.AddLabelBig(bGui_Main.getName());
@@ -769,24 +773,31 @@ private:
 				guiManager.Add(guiManager.bMinimize, OFX_IM_TOGGLE_ROUNDED);
 				guiManager.AddSpacing();
 
-				guiManager.Add(bEnableAudio, OFX_IM_TOGGLE_BIG);
-				guiManager.AddCombo(apiIndex_Windows, ApiNames);
+				guiManager.Add(bEnableAudio, OFX_IM_TOGGLE);
+				if (!guiManager.bMinimize) {
+					guiManager.AddCombo(apiIndex_Windows, ApiNames);
+				}
 				guiManager.AddSpacing();
 
 				guiManager.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				guiManager.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 
-				guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED);
 				if (!guiManager.bMinimize) {
-					guiManager.AddSpacing();
+					guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED);
+				}
+				guiManager.AddSpacing();
 
-					guiManager.Add(bGui_Waveform, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				guiManager.Add(bGui_Waveform, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				guiManager.Add(bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+				if (!guiManager.bMinimize)
+				{
 					guiManager.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 				}
 
 				guiManager.endWindowSpecial();
 			}
 
+			// In
 			if (guiManager.beginWindowSpecial(bGui_In))
 			{
 				guiManager.Add(deviceIn_Enable, OFX_IM_TOGGLE);
@@ -796,6 +807,7 @@ private:
 				guiManager.endWindowSpecial();
 			}
 
+			// Out
 			if (guiManager.beginWindowSpecial(bGui_Out))
 			{
 				guiManager.Add(deviceOut_Enable, OFX_IM_TOGGLE);
@@ -805,27 +817,36 @@ private:
 				guiManager.endWindowSpecial();
 			}
 
+			//--
+
+			// Waveform
 			if (guiManager.beginWindowSpecial(bGui_Waveform))
 			{
 				//guiManager.AddLabelBig(bGui_Waveform.getName());
 				//guiManager.AddGroup(params_Waveform);
 
-				guiManager.AddCombo(waveformsTypes, waveformsTypesNames);
 				guiManager.Add(bGui_WaveIn, OFX_IM_TOGGLE_ROUNDED);
 				guiManager.Add(bGui_WaveOut, OFX_IM_TOGGLE_ROUNDED);
-				guiManager.Add(W_Height, OFX_IM_SLIDER);
-				if (waveformsTypes != 0)
-				{
-					guiManager.Add(W_Spread, OFX_IM_STEPPER);
-					guiManager.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED);
-					guiManager.Add(W_WidthGap, OFX_IM_STEPPER);
+				guiManager.AddSpacingSeparated();
+
+				guiManager.AddCombo(waveformsTypes, waveformsTypesNames);
+				if (!guiManager.bMinimize) {
+					guiManager.Add(W_Height, OFX_IM_SLIDER);
+					if (waveformsTypes != 0)
+					{
+						guiManager.Add(W_Spread, OFX_IM_STEPPER);
+						guiManager.Add(W_WidthGap, OFX_IM_STEPPER);
+						guiManager.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
+					}
+					if (waveformsTypes != 2)
+					{
+						guiManager.Add(W_LineWidth, OFX_IM_STEPPER);
+					}
+					//if (waveformsTypes != 0)
+					guiManager.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+					guiManager.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
+					guiManager.Add(W_bReset, OFX_IM_BUTTON_SMALL);
 				}
-				if (waveformsTypes != 2)
-				{
-					guiManager.Add(W_LineWidth, OFX_IM_STEPPER);
-				}
-				guiManager.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
-				guiManager.Add(W_bReset, OFX_IM_BUTTON_SMALL);
 
 				guiManager.endWindowSpecial();
 			}
@@ -838,15 +859,11 @@ public:
 	//--------------------------------------------------------------
 	void drawGui()
 	{
+		if(bGui_Plots) drawWaveforms();
+
 		if (bGui)
 		{
-			drawWaveforms();
-
-			//--
-
 			drawImGui();
-
-			//--
 
 			if (bGui_Internal) gui.draw();
 
@@ -1130,7 +1147,6 @@ private:
 					float numBars = (bufferSize / __spread);
 					float wBars = _width / numBars;
 
-					//float _pw = abs(wBars - W_WidthGap);
 					float _pw = (wBars * W_WidthGap);
 					_pw = MAX(1, _pw);
 
@@ -1139,6 +1155,8 @@ private:
 					//TODO: this could be redone
 					for (int i = 0; i < bufferSize; i++)
 					{
+						if (i > SIZE_BUFFER) continue;
+
 						if (i % __spread == 0)//spread spaces
 						{
 							float p = (i / (float)(bufferSize));//normalized position in array
@@ -1147,21 +1165,12 @@ private:
 							float _ph;
 							if (W_bAbs) _ph = abs(waveformInput[i] * W_Height);//make positive
 							else _ph = waveformInput[i] * W_Height;
-							//_ph = MAX(0, _ph);
-
-							//y1 = ofClamp(y1, 0, _h);
-							//_ph = ofClamp(_ph, 0, _h);
 
 							if (W_bLine) ofDrawLine(x, 0, x, -_ph);//line
 							if (W_bRectangle) ofDrawRectangle(x, 0, _pw, -_ph);//rectangle
 						}
 					}
 
-					// horizontal line
-					if (W_bHLine) {
-						ofSetLineWidth(1);
-						ofDrawLine(0, 0, ofGetWidth(), 0);
-					}
 				}
 				else if (waveformsTypes == 0)
 				{
@@ -1175,7 +1184,15 @@ private:
 					}
 				}
 
-				ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, 5);
+				// horizontal line
+				if (W_bHLine)
+				{
+					ofSetLineWidth(1);
+					ofDrawLine(0, 0, ofGetWidth(), 0);
+				}
+
+				// label
+				if (W_bLabel) ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, 5);
 			}
 
 			//----
