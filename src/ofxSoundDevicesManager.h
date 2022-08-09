@@ -4,15 +4,17 @@
 
 	TODO:
 
-	+	BUG: currently using DS API, changing API on runtime crashes.
+	+	WIP: WINDOWSX ONLY
+	+	add macOS/Linux APIs ? https://github.com/roymacdonald/ofxSoundDeviceManager
+
+	+	BUG: currently using only DS API, now changing API (to ASIO or WASAPI) on runtime crashes!
 	+	currently using only inputs. outputs must be tested.
 
 	+	draggable rectangle to draw the waveforms
 	+	fix api selector. add switch API/device. without exceptions/crashes.
+		add disconnect to allow use only input or output. now, enablers are only like mutes.
 
 	+	enable output and test with an example
-	+	add macOS/Linux APIs ? https://github.com/roymacdonald/ofxSoundDeviceManager
-	+	add disconnect to allow use only input or output. now, enablers are only like mutes.
 	+	store devices by names? just editing xml file bc sorting can change on the system?
 
 	+	integrate / move to with ofSoundObjects
@@ -36,7 +38,7 @@
 //-----------------------
 
 //TODO: WIP		
-//#define USE_ofBaseApp_Pointer
+#define USE_ofBaseApp_Pointer
 //enabled: addon class uses a passed by reference ofBaseApp pointer. 
 //disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/out callbacks..
 
@@ -46,17 +48,15 @@
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingImGui.h"
 
-//#ifdef USE_ofBaseApp_Pointer
-////--------------------------------------------------------------
-//class ofxSoundDevicesManager {
-//#endif
-//
-//#ifndef USE_ofBaseApp_Pointer
-//	//--------------------------------------------------------------
-//	class ofxSoundDevicesManager : public ofBaseApp {
-//#endif
+#ifdef USE_ofBaseApp_Pointer
+//--------------------------------------------------------------
+class ofxSoundDevicesManager
+#else
+//--------------------------------------------------------------
+class ofxSoundDevicesManager : public ofBaseApp
+#endif
 
-class ofxSoundDevicesManager : public ofBaseApp {
+{
 public:
 
 	//--------------------------------------------------------------
@@ -67,8 +67,8 @@ public:
 		// Default audio settings
 
 		// Internal default
-		sampleRate = 44100;
-		//sampleRate = 48000;
+		//sampleRate = 44100;
+		sampleRate = 48000;
 
 		// Internal default
 		bufferSize = 512;
@@ -84,7 +84,7 @@ public:
 		numInputs = 2;
 		numOutputs = 2;
 
-		_apiIndex_oF = 0;
+		_apiIndex_oF = -1;
 
 		//--
 
@@ -114,73 +114,55 @@ public:
 
 public:
 
-	//#ifdef USE_ofBaseApp_Pointer 
-	//		//--------------------------------------------------------------
-	//		void setup(ofBaseApp* _app, int _samplerate, int _buffersize, int _numbuffers)
-	//#else
-	//		//--------------------------------------------------------------
-	//		void setup(int _samplerate, int _buffersize, int _numbuffers)
-	//#endif
-
+	//--------------------------------------------------------------
 	void setup(int _samplerate, int _buffersize, int _numbuffers)
 	{
 		sampleRate = _samplerate;
 		bufferSize = _buffersize;
 		numBuffers = _numbuffers;
 
-		//#ifdef USE_ofBaseApp_Pointer 
-		//			setup(_app);
-		//#else
-		//setup();
-		//#endif
-
+		//TODO: is this save?
+#ifdef USE_ofBaseApp_Pointer 
+		auto _app = ofGetAppPtr();
+		setup(_app);
+#else
 		setup();
+#endif
 	}
 
-	//#ifdef USE_ofBaseApp_Pointer
-	//		//--------------------------------------------------------------
-	//		void setup(ofBaseApp* _app, int _samplerate, int _buffersize)
-	//
-	//#else
-	//		//--------------------------------------------------------------
-	//		void setup(int _samplerate, int _buffersize)
-	//#endif
-
+#ifdef USE_ofBaseApp_Pointer
+	//--------------------------------------------------------------
+	void setup(ofBaseApp* _app, int _samplerate, int _buffersize)
+#else
+	//--------------------------------------------------------------
 	void setup(int _samplerate, int _buffersize)
+#endif
 	{
 		sampleRate = _samplerate;
 		bufferSize = _buffersize;
 
-		//#ifdef USE_ofBaseApp_Pointer 
-		//			setup(_app);
-		//#else
-		//			setup();
-		//#endif
-
+#ifdef USE_ofBaseApp_Pointer 
+		setup(_app);
+#else
 		setup();
+#endif
 	}
 
 	//--
 
-public:
-
-	//#ifdef USE_ofBaseApp_Pointer
-	//		//--------------------------------------------------------------
-	//		void setup(ofBaseApp* _app)
-	//
-	//#else
-	//		//--------------------------------------------------------------
-	//		void setup()
-	//#endif
-
+#ifdef USE_ofBaseApp_Pointer
+	//--------------------------------------------------------------
+	void setup(ofBaseApp* _app)
+#else
+	//--------------------------------------------------------------
 	void setup()
+#endif
 	{
 		ofLogNotice(__FUNCTION__);
 
-		//#ifdef USE_ofBaseApp_Pointer 
-		//			_app_ = _app;
-		//#endif
-
+#ifdef USE_ofBaseApp_Pointer 
+		_app_ = _app;
+#endif
 		//--
 
 		bEnableAudio.set("Enable Audio", true);
@@ -208,22 +190,24 @@ public:
 		//-
 
 		deviceIn_Enable.set("Enable", false);
-		deviceIn_Port.set("Port", 0, 0, 10);//that param is the loaded from settings. not the name. should be the same
+		deviceIn_Port.set("Port", 0, 0, 10);
+		//that param is the loaded from settings. not the name. should be the same
 		deviceIn_Volume.set("Volume", 0.5f, 0.f, 1.f);
 		deviceIn_Api.set("Api", 0, 0, 10);
 		deviceIn_ApiName.set("Api ", "");
 		deviceIn_PortName.set("Port ", "");
 
 		deviceOut_Enable.set("Enable", false);
-		deviceOut_Port.set("Port", 0, 0, 10);//that param is the loaded from settings. not the name. should be the same
+		deviceOut_Port.set("Port", 0, 0, 10);
+		//that param is the loaded from settings. not the name. should be the same
 		deviceOut_Volume.set("Volume", 0.5f, 0.f, 1.f);
 		deviceOut_Api.set("Api", 0, 0, 10);
 		deviceOut_ApiName.set("Api ", "");
 		deviceOut_PortName.set("Port ", "");
 
 		// exclude
-		//not been used
-		/*
+		//not been used. stored on settings for future reading to be protected under new connected devices, or changes of the listing.
+
 		deviceIn_Api.setSerializable(false);
 		deviceIn_ApiName.setSerializable(false);
 		deviceIn_PortName.setSerializable(false);
@@ -231,10 +215,10 @@ public:
 		deviceOut_Api.setSerializable(false);
 		deviceOut_ApiName.setSerializable(false);
 		deviceOut_PortName.setSerializable(false);
-		*/
 
 		//-
 
+		// Input
 		params_In.setName("INPUT");
 		params_In.add(deviceIn_Enable);
 		params_In.add(deviceIn_Volume);
@@ -243,6 +227,7 @@ public:
 		//params_In.add(deviceIn_Api);
 		//params_In.add(deviceIn_ApiName);//labels
 
+		// Output
 		params_Out.setName("OUTPUT");
 		params_Out.add(deviceOut_Enable);
 		params_Out.add(deviceOut_Volume);
@@ -306,12 +291,12 @@ public:
 		// Internal Gui
 		gui.setup("DEVICES");
 		gui.add(params);
-		//gui.getGroup(params.getName()).minimizeAll();
-		//gui.getGroup(params.getName()).minimize();
+		gui.getGroup(params.getName()).minimizeAll();
+		gui.getGroup(params.getName()).minimize();
 
 		// Advanced
 		// user gui
-		position = glm::vec2(25, 25);
+		//position = glm::vec2(25, 25);
 		//gui.setPosition(position.x, position.y);
 
 		//--
@@ -321,10 +306,11 @@ public:
 		//--
 
 		// API
+		// Default settings
 
 		// TODO:
 		// Hardcoded
-		apiIndex_Windows = 2; // For the gui? 0-1-2
+		apiIndex_Windows = 2; // For the gui? 0-1-2 // WASAPI, ASIO, DS
 		//// TODO:
 		//_apiIndex_oF = 9; // API #9 on oF is Windows MS DS
 
@@ -337,15 +323,18 @@ public:
 
 		//----
 
+		// comment to avoid loading settings
+		// helpful for when the app is stucked (when starting maybe)
+		// for ASIO / WASAPI or some other problem.
 		startup();
 	}
 
 	//--
 
-//#ifdef USE_ofBaseApp_Pointer 
-// private:
-//		ofBaseApp* _app_;
-//#endif
+#ifdef USE_ofBaseApp_Pointer 
+private:
+	ofBaseApp* _app_;
+#endif
 
 	//--
 
@@ -373,7 +362,8 @@ private:
 	int _apiIndex_oF;
 	// all oF possible apis!
 	// NOT the index of the available apis on this system.!
-	// eg: on this windows system could be: wasapi, asio, ds -> will be 0 to 2
+	// WASAPI, ASIO, DS
+	// e.g: on this windows system could be: WASAPI, ASIO, DS -> will be 0 to 2
 	ofParameter<int> apiIndex_Windows{ "API", 0, 0, 2 };
 	// shared by both input and output
 	// this index will be related to all available apis ONLY on this system!
@@ -383,6 +373,10 @@ private:
 	// add macOS + Linux
 
 	std::vector<string> ApiNames;
+	////to speed up help info build
+	//std::vector<string> ApiNames_ASIO;
+	//std::vector<string> ApiNames_WASAPI;
+	//std::vector<string> ApiNames_DS;
 
 	// Devices
 	std::vector<ofSoundDevice> inDevices;
@@ -396,7 +390,8 @@ private:
 
 	//-
 
-	public:
+public:
+
 	ofParameter<bool> bGui;
 	ofParameter<bool> bGui_Main;
 
@@ -405,13 +400,13 @@ private:
 
 private:
 
-	glm::vec2 position;
+	//glm::vec2 position;
 
 	// Parameters
 
 	ofParameter<bool> bEnableAudio;
 
-	// in
+	// In
 	ofParameterGroup params_In;
 	ofParameter<bool> deviceIn_Enable;
 	ofParameter<float> deviceIn_Volume;
@@ -420,7 +415,7 @@ private:
 	ofParameter<int> deviceIn_Api;
 	ofParameter<string> deviceIn_ApiName;
 
-	// out
+	// Out
 	ofParameterGroup params_Out;
 	ofParameter<bool> deviceOut_Enable;
 	ofParameter<float> deviceOut_Volume;
@@ -474,6 +469,8 @@ private:
 
 	string pathSettings = "ofxSoundDevicesManager.xml";
 
+	bool bApiConnected = false;
+
 	//--
 
 public:
@@ -497,7 +494,8 @@ private:
 	//--------------------------------------------------------------
 	void update(ofEventArgs& args)
 	{
-		if (bUpdateHelp) {//group all flags on next frame to reduce calls. buils is slow bc strings handling!
+		if (bUpdateHelp)
+		{
 			bUpdateHelp = false;
 
 			buildHelpInfo();
@@ -506,13 +504,12 @@ private:
 
 private:
 
-	//void connectToSoundAPI(ofBaseApp* _app, int _apiIndex)
-
 	//--------------------------------------------------------------
 	void connectToSoundAPI(int _apiIndex)
 	{
 		ofLogNotice(__FUNCTION__);
 
+		//TODO:
 		//if (!bEnableAudio) return;
 
 		close();
@@ -521,12 +518,13 @@ private:
 		// API #9 on oF is Windows MS DS
 		if (_apiIndex_oF != _apiIndex) _apiIndex_oF = _apiIndex;
 
-		//// both locked to the same
-		//deviceIn_Api = _apiIndex_oF;
-		//deviceOut_Api = _apiIndex_oF;
+		//TODO:
+		// both locked to the same
+		deviceIn_Api = _apiIndex_oF;
+		deviceOut_Api = _apiIndex_oF;
 
 		//TODO:
-		if (_apiIndex_oF != 7 && _apiIndex_oF != 8 && _apiIndex_oF != 9)
+		if (_apiIndex_oF != 7 && _apiIndex_oF != 8 && _apiIndex_oF != 9) // WASAPI, ASIO, DS
 		{
 			ofLogError(__FUNCTION__) << "Skip API index bc out of MS Windows range: " << _apiIndex_oF << endl;
 
@@ -564,14 +562,6 @@ private:
 			NUM_APIS
 
 		} _apiEnum = UNSPECIFIED;
-
-		//TODO:
-		// API choice
-		// 
-		//index is related to (above enum) all OF supported apis
-		//_apiEnum = MS_WASAPI;//7
-		//_apiEnum = MS_ASIO;//8
-		//_apiEnum = MS_DS;//9
 
 		switch (_apiIndex_oF)
 		{
@@ -618,15 +608,17 @@ private:
 
 		//--
 
-		// Get string names
-		// input
+		// Get devices string names
+
+		// Input
 		inDevicesNames.clear();
 		inDevicesNames.resize(inDevices.size());
 		for (int d = 0; d < inDevices.size(); d++)
 		{
 			inDevicesNames[d] = inDevices[d].name;
 		}
-		// output
+
+		// Output
 		outDevicesNames.clear();
 		outDevicesNames.resize(outDevices.size());
 		for (int d = 0; d < outDevices.size(); d++)
@@ -661,18 +653,23 @@ private:
 			break;
 		}
 
-		//#ifdef USE_ofBaseApp_Pointer 
-		//			inSettings.setInListener(_app_);
-		//#else
-		//			inSettings.setInListener(ofGetAppPtr());//?
-		//#endif
-
+#ifdef USE_ofBaseApp_Pointer 
+		inSettings.setInListener(_app_);
+#else
 		inSettings.setInListener(ofGetAppPtr());//?
+#endif
 
-		if (inDevices.size() > deviceIn_Port)
+		if (inDevices.size() > deviceIn_Port) {
 			inSettings.setInDevice(inDevices[deviceIn_Port]);
 
-		inStream.setup(inSettings);
+			inStream.setup(inSettings);
+			bApiConnected = true;
+		}
+		else
+		{
+			ofLogError(__FUNCTION__) << "Error: Out of range deviceIn_Port: " << deviceIn_Port << endl;
+			bApiConnected = false;
+		}
 
 		//--
 
@@ -699,41 +696,46 @@ private:
 			break;
 		}
 
-		//#ifdef USE_ofBaseApp_Pointer 
-		//			outSettings.setOutListener(_app_);
-		//#else
-		//			outSettings.setOutListener(ofGetAppPtr());//?
-		//#endif
-
+#ifdef USE_ofBaseApp_Pointer 
+		outSettings.setOutListener(_app_);
+#else
 		outSettings.setOutListener(ofGetAppPtr());//?
+#endif
 
 		if (outDevices.size() > deviceOut_Port)
+		{
 			outSettings.setOutDevice(outDevices[deviceOut_Port]);
 
-		outStream.setup(outSettings);
+			outStream.setup(outSettings);
+			bApiConnected = true;
+		}
+		else {
+			ofLogError(__FUNCTION__) << "Error: Out of range deviceOut_Port: " << deviceOut_Port << endl;
+			bApiConnected = false;
+		}
 
 		//--
 
-		// max ports
+		// Max ports
 		deviceIn_Port.setMax(inDevices.size() - 1);
 		deviceOut_Port.setMax(outDevices.size() - 1);
 
-		// in
+		// In
 		deviceIn_Api = _apiEnum;
 		deviceIn_ApiName = devices_ApiName;
 		if (inDevices.size() > deviceIn_Port)
 			deviceIn_PortName = inDevices[deviceIn_Port].name;
 
-		// out
+		// Out
 		deviceOut_Api = _apiEnum;
 		deviceOut_ApiName = devices_ApiName;
 		if (outDevices.size() > deviceOut_Port)
 			deviceOut_PortName = outDevices[deviceOut_Port].name;
 
 		//TODO:
-		// force enable
-		deviceIn_Enable = true;
-		deviceOut_Enable = true;
+		// Force enable
+		deviceIn_Enable.setWithoutEventNotifications(bApiConnected);
+		deviceOut_Enable.setWithoutEventNotifications(bApiConnected);
 
 		//--
 
@@ -764,11 +766,11 @@ private:
 				guiManager.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				guiManager.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 
+				guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED);
 				if (!guiManager.bMinimize) {
-					guiManager.Add(bGui_Waveform, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 					guiManager.AddSpacing();
 
-					guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED);
+					guiManager.Add(bGui_Waveform, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 					guiManager.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 				}
 
@@ -789,7 +791,7 @@ private:
 				guiManager.Add(deviceOut_Enable, OFX_IM_TOGGLE);
 				guiManager.Add(deviceOut_Volume, OFX_IM_SLIDER);
 				guiManager.AddCombo(deviceOut_Port, outDevicesNames);
-				
+
 				guiManager.endWindowSpecial();
 			}
 
@@ -839,8 +841,11 @@ private:
 		outStream.stop();
 		outStream.close();
 
+		// redundant
 		ofSoundStreamStop();
 		ofSoundStreamClose();
+
+		bApiConnected = false;
 	}
 
 	// Devices
@@ -870,6 +875,10 @@ private:
 	{
 		ofLogNotice(__FUNCTION__);
 
+		//TODO:
+		// getDeviceList is slow. should store each api devices names out of here to speed up.
+		// that slow build happens when minimize
+
 		helpInfo = "";
 
 		helpInfo += "\n> AUDIO DEVICE\n";
@@ -886,70 +895,88 @@ private:
 			helpInfo += "> INPUT DEVICES FROM ALL APIS\n\n";
 		}
 
-		// List all APIS
+		//--
 
+		// List all APIS
+		// this is slow..
+		// 
 		// WASAPI
 		if (_apiIndex_oF == 7 || !guiManager.bMinimize) // MS_WASAPI
 		{
-			helpInfo += "  > WASAPI \n\n";
+			if (!guiManager.bMinimize) helpInfo += "  > WASAPI \n\n";
 			auto devicesWs = inStream.getDeviceList(ofSoundDevice::Api::MS_WASAPI);
-			int d = 0;
+			//auto devicesWs = ApiNames_WASAPI;
+			int d = -1;
 			for (auto dev : devicesWs)
 			{
-				if (d++ == deviceIn_Port && _apiIndex_oF == 7) helpInfo += "* "; else helpInfo += "  ";
+				d++;
+				if (guiManager.bMinimize && d != deviceIn_Port) continue;
+				bool b = _apiIndex_oF == 7 && deviceIn_Enable && bApiConnected;
+				if (d == deviceIn_Port && b) helpInfo += "* "; else helpInfo += "  ";
 				helpInfo += ofToString(dev) + "\n";
 			}
-			helpInfo += "\n";
+			if (!guiManager.bMinimize) helpInfo += "\n";
 		}
 
 		// ASIO
 		if (_apiIndex_oF == 8 || !guiManager.bMinimize) // MS_ASIO
 		{
-			helpInfo += "  > ASIO \n\n";
+			if (!guiManager.bMinimize) helpInfo += "  > ASIO \n\n";
 			auto devicesAsio = inStream.getDeviceList(ofSoundDevice::Api::MS_ASIO);
-			int d = 0;
+			//auto devicesAsio = ApiNames_ASIO;
+			int d = -1;
 			for (auto dev : devicesAsio)
 			{
-				if (d++ == deviceIn_Port && _apiIndex_oF == 8) helpInfo += "* "; else helpInfo += "  ";
+				d++;
+				if (guiManager.bMinimize && d != deviceIn_Port) continue;
+				bool b = _apiIndex_oF == 8 && deviceIn_Enable && bApiConnected;
+				if (d == deviceIn_Port && b) helpInfo += "* "; else helpInfo += "  ";
 				helpInfo += ofToString(dev) + "\n";
 			}
-			helpInfo += "\n";
+			if (!guiManager.bMinimize) helpInfo += "\n";
 		}
 
 		// DS
 		if (_apiIndex_oF == 9 || !guiManager.bMinimize) // MS_DS
 		{
-			helpInfo += "  > MS DIRECTSHOW \n\n";
+			if (!guiManager.bMinimize) helpInfo += "  > MS DIRECTSHOW \n\n";
 			auto devicesDs = inStream.getDeviceList(ofSoundDevice::Api::MS_DS);
-			int d = 0;
+			//auto devicesDs = ApiNames_DS;
+			int d = -1;
 			for (auto dev : devicesDs)
 			{
-				if (d++ == deviceIn_Port && _apiIndex_oF == 9) helpInfo += "* "; else helpInfo += "  ";
+				d++;
+				if (guiManager.bMinimize && d != deviceIn_Port) continue;
+				bool b = _apiIndex_oF == 9 && deviceIn_Enable && bApiConnected;
+				if (d == deviceIn_Port && b) helpInfo += "* "; else helpInfo += "  ";
 				helpInfo += ofToString(dev) + "\n";
 			}
-			helpInfo += "\n";
+			if (!guiManager.bMinimize) helpInfo += "\n";
 		}
 
-		//-
+		//--
 
-		if (!guiManager.bMinimize)
+		if (bApiConnected)
 		{
-			//helpInfo += "------------------------------------------";
-			helpInfo += "\n> CONNECTED \n\n";
-		}
+			//if (!guiManager.bMinimize)
+			{
+				//helpInfo += "------------------------------------------";
+				helpInfo += "\n> CONNECTED \n\n";
+			}
 
-		helpInfo += "  API    \n";
-		helpInfo += "  " + devices_ApiName + "\n\n";
+			helpInfo += "  API \n";
+			helpInfo += "  " + devices_ApiName + "\n\n";
 
-		helpInfo += "  Input  " + ofToString(deviceIn_Port) + "\n";
-		helpInfo += "  " + deviceIn_PortName.get() + "\n\n";
+			helpInfo += "  Input  " + ofToString(deviceIn_Port) + "\n";
+			helpInfo += "  " + deviceIn_PortName.get() + "\n\n";
 
-		helpInfo += "  Output " + ofToString(deviceOut_Port) + "\n";
-		helpInfo += "  " + deviceOut_PortName.get() + "\n\n";
+			helpInfo += "  Output " + ofToString(deviceOut_Port) + "\n";
+			helpInfo += "  " + deviceOut_PortName.get() + "\n\n";
 
-		if (!guiManager.bMinimize)
-		{
-			//helpInfo += "------------------------------------------\n\n\n";
+			//if (!guiManager.bMinimize)
+			//{
+			//	//helpInfo += "------------------------------------------\n\n\n";
+			//}
 		}
 
 		//--
@@ -1001,11 +1028,11 @@ private:
 		else return 0.0f;
 	}
 
-	//--------------------------------------------------------------
-	void setPosition(glm::vec2 _position)
-	{
-		position = _position;
-	}
+	////--------------------------------------------------------------
+	//void setPosition(glm::vec2 _position)
+	//{
+	//	position = _position;
+	//}
 
 	//--------------------------------------------------------------
 	void loadGroup(ofParameterGroup& g, string path)
@@ -1242,7 +1269,7 @@ private:
 		{
 			if (bEnableAudio)
 			{
-				apiIndex_Windows = apiIndex_Windows;
+				connectToSoundAPI(_apiIndex_oF);
 			}
 			else
 			{
@@ -1273,14 +1300,14 @@ private:
 				break;
 
 			default:
-				ofLogError(__FUNCTION__) << "Error: _apiIndex_oF: " << _apiIndex_oF << endl;
+				ofLogError(__FUNCTION__) << "Error: Out of range  _apiIndex_oF: " << _apiIndex_oF << endl;
+				bUpdateHelp = true;
+				return;//skip
 				break;
 			}
 
 			ofLogNotice(__FUNCTION__) << "API: " << _apiIndex_oF << ":" << devices_ApiName;
-
 			connectToSoundAPI(_apiIndex_oF);
-
 			bUpdateHelp = true;
 
 			return;
@@ -1303,9 +1330,8 @@ private:
 		{
 			if (deviceIn_Enable)
 			{
-				//inStream.close();
 				connectToSoundAPI(_apiIndex_oF);
-				deviceIn_Port = deviceIn_Port;//refresh
+				//deviceIn_Port = deviceIn_Port;//refresh
 			}
 			else
 			{
@@ -1349,7 +1375,6 @@ private:
 		{
 			if (deviceOut_Enable)
 			{
-				//outStream.close();
 				connectToSoundAPI(_apiIndex_oF);
 				deviceOut_Port = deviceOut_Port;//refresh
 			}

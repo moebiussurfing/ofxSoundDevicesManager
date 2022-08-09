@@ -1,11 +1,10 @@
 #include "ofApp.h"
 
-//#define USE_ofBaseApp_Pointer
 
 //--------------------------------------------------------------
 void ofApp::setup()
 {
-	sampleRate = 44100;
+	sampleRate = 48000;
 	bufferSize = 512;
 	numBuffers = 4;
 
