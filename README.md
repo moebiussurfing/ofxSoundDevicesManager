@@ -4,7 +4,7 @@
 **openFrameworks** addon to easily handle selected system sound devices.  
 
 **WORK IN PROGRESS**
-- ONLY MS WINDOWS YET. SHOULD ADD macOS APIs.
+- ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs.
 - USING MS DIRECTSHOW. ASIO OR WASAPI NO TESTED BUT COULD WORK.
 - 
 
