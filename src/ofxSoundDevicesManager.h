@@ -165,104 +165,7 @@ public:
 #endif
 		//--
 
-		bEnableAudio.set("Enable Audio", true);
-
-		bGui.set("SOUND DEVICES", true);
-
-		bGui_Main.set("SOUND DEVICES", true);
-		//bGui_Main.set("MAIN", true);
-
-		params_Control.setName("CONTROL");
-		params_Control.add(bEnableAudio);
-		params_Control.add(apiIndex_Windows);
-
-		params_Gui.setName("Gui");
-		params_Gui.add(bGui_Main);
-		params_Gui.add(bGui_In);
-		params_Gui.add(bGui_Out);
-		params_Gui.add(bGui_Waveform);
-		params_Gui.add(bGui_Internal);
-		params_Gui.add(textBoxWidget.bGui);
-		params_Gui.add(guiManager.bMinimize);
-
-		params_Control.add(params_Gui);
-
-		//-
-
-		deviceIn_Enable.set("Enable", false);
-		deviceIn_Port.set("Port", 0, 0, 10);
-		//that param is the loaded from settings. not the name. should be the same
-		deviceIn_Volume.set("Volume", 0.5f, 0.f, 1.f);
-		deviceIn_Api.set("Api", 0, 0, 10);
-		deviceIn_ApiName.set("Api ", "");
-		deviceIn_PortName.set("Port ", "");
-
-		deviceOut_Enable.set("Enable", false);
-		deviceOut_Port.set("Port", 0, 0, 10);
-		//that param is the loaded from settings. not the name. should be the same
-		deviceOut_Volume.set("Volume", 0.5f, 0.f, 1.f);
-		deviceOut_Api.set("Api", 0, 0, 10);
-		deviceOut_ApiName.set("Api ", "");
-		deviceOut_PortName.set("Port ", "");
-
-		// exclude
-		//not been used. stored on settings for future reading to be protected under new connected devices, or changes of the listing.
-
-		deviceIn_Api.setSerializable(false);
-		deviceIn_ApiName.setSerializable(false);
-		deviceIn_PortName.setSerializable(false);
-
-		deviceOut_Api.setSerializable(false);
-		deviceOut_ApiName.setSerializable(false);
-		deviceOut_PortName.setSerializable(false);
-
-		//-
-
-		// Input
-		params_In.setName("INPUT");
-		params_In.add(deviceIn_Enable);
-		params_In.add(deviceIn_Volume);
-		params_In.add(deviceIn_Port);
-		params_In.add(deviceIn_PortName);
-		//params_In.add(deviceIn_Api);
-		//params_In.add(deviceIn_ApiName);//labels
-
-		// Output
-		params_Out.setName("OUTPUT");
-		params_Out.add(deviceOut_Enable);
-		params_Out.add(deviceOut_Volume);
-		params_Out.add(deviceOut_Port);
-		params_Out.add(deviceOut_PortName);
-		//params_Out.add(deviceOut_ApiName);//labels
-		//params_Out.add(deviceOut_Api);
-
-		//--
-
-		// Waveform
-		params_Waveform.setName("WAVEFORM");
-		params_Waveform.add(bGui_WaveIn);
-		params_Waveform.add(bGui_WaveOut);
-		params_Waveform.add(W_Height);
-		params_Waveform.add(W_Spread);
-		params_Waveform.add(W_bAbs);
-		params_Waveform.add(W_bLine);
-		params_Waveform.add(W_LineWidth);
-		params_Waveform.add(W_bRectangle);
-		params_Waveform.add(W_WidthGap);
-		params_Waveform.add(W_bReset);
-
-		//----
-
-		params.setName("ofxSoundDevicesManager");
-		params.add(params_Control);
-		params.add(params_In);
-		params.add(params_Out);
-		params.add(params_Waveform);
-
-		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
-		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
-		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
-		ofAddListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
+		setupParams();
 
 		//--
 
@@ -327,6 +230,112 @@ public:
 		// helpful for when the app is stucked (when starting maybe)
 		// for ASIO / WASAPI or some other problem.
 		startup();
+	}
+
+private:
+
+	void setupParams()
+	{
+		bEnableAudio.set("Enable Audio", true);
+
+		bGui.set("SOUND DEVICES", true);
+
+		bGui_Main.set("SOUND DEVICES", true);
+		//bGui_Main.set("MAIN", true);
+
+		params_Control.setName("CONTROL");
+		params_Control.add(bEnableAudio);
+		params_Control.add(apiIndex_Windows);
+		params_Control.add(waveformsTypes);
+
+		params_Gui.setName("Gui");
+		params_Gui.add(bGui_Main);
+		params_Gui.add(bGui_In);
+		params_Gui.add(bGui_Out);
+		params_Gui.add(bGui_Waveform);
+		params_Gui.add(bGui_Internal);
+		params_Gui.add(textBoxWidget.bGui);
+		params_Gui.add(guiManager.bMinimize);
+
+		params_Control.add(params_Gui);
+
+		//-
+
+		deviceIn_Enable.set("Enable", false);
+		deviceIn_Port.set("Port", 0, 0, 10);
+		//that param is the loaded from settings. not the name. should be the same
+		deviceIn_Volume.set("Volume", 0.5f, 0.f, 1.f);
+		deviceIn_Api.set("Api", 0, 0, 10);
+		deviceIn_ApiName.set("Api ", "");
+		deviceIn_PortName.set("Port ", "");
+
+		deviceOut_Enable.set("Enable", false);
+		deviceOut_Port.set("Port", 0, 0, 10);
+		//that param is the loaded from settings. not the name. should be the same
+		deviceOut_Volume.set("Volume", 0.5f, 0.f, 1.f);
+		deviceOut_Api.set("Api", 0, 0, 10);
+		deviceOut_ApiName.set("Api ", "");
+		deviceOut_PortName.set("Port ", "");
+
+		// Exclude
+		//not been used. stored on settings for future reading to be protected under new connected devices, or changes of the listing.
+		// In
+		deviceIn_Api.setSerializable(false);
+		deviceIn_ApiName.setSerializable(false);
+		deviceIn_PortName.setSerializable(false);
+		// Out
+		deviceOut_Api.setSerializable(false);
+		deviceOut_ApiName.setSerializable(false);
+		deviceOut_PortName.setSerializable(false);
+
+		//-
+
+		// Input
+		params_In.setName("INPUT");
+		params_In.add(deviceIn_Enable);
+		params_In.add(deviceIn_Volume);
+		params_In.add(deviceIn_Port);
+		params_In.add(deviceIn_PortName);
+		//params_In.add(deviceIn_Api);
+		//params_In.add(deviceIn_ApiName);//labels
+
+		// Output
+		params_Out.setName("OUTPUT");
+		params_Out.add(deviceOut_Enable);
+		params_Out.add(deviceOut_Volume);
+		params_Out.add(deviceOut_Port);
+		params_Out.add(deviceOut_PortName);
+		//params_Out.add(deviceOut_ApiName);//labels
+		//params_Out.add(deviceOut_Api);
+
+		//--
+
+		// Waveform
+		params_Waveform.setName("WAVEFORM");
+		params_Waveform.add(bGui_WaveIn);
+		params_Waveform.add(bGui_WaveOut);
+		params_Waveform.add(W_Height);
+		params_Waveform.add(W_Spread);
+		params_Waveform.add(W_bAbs);
+		params_Waveform.add(W_bLine);
+		params_Waveform.add(W_bHLine);
+		params_Waveform.add(W_LineWidth);
+		params_Waveform.add(W_bRectangle);
+		params_Waveform.add(W_WidthGap);
+		params_Waveform.add(W_bReset);
+
+		//----
+
+		params.setName("ofxSoundDevicesManager");
+		params.add(params_Control);
+		params.add(params_In);
+		params.add(params_Out);
+		params.add(params_Waveform);
+
+		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
+		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
+		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
+		ofAddListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
 	}
 
 	//--
@@ -447,7 +456,8 @@ private:
 	ofParameter<bool> W_bRectangle{ "Rectangle", false };
 	ofParameter<float> W_WidthGap{ "Gap", 1, 0, 1 };
 	ofParameter<bool> W_bLine{ "Line", true };
-	ofParameter<int> W_LineWidth{ "LineWidth", 3, 1, 100 };
+	ofParameter<bool> W_bHLine{ "H Line", true };
+	ofParameter<int> W_LineWidth{ "Width", 3, 1, 100 };
 	ofParameter<bool> W_bReset{ "Reset", false };
 
 	ofParameter<bool> bGui_Internal{ "Internal", false };
@@ -798,7 +808,24 @@ private:
 			if (guiManager.beginWindowSpecial(bGui_Waveform))
 			{
 				//guiManager.AddLabelBig(bGui_Waveform.getName());
-				guiManager.AddGroup(params_Waveform);
+				//guiManager.AddGroup(params_Waveform);
+
+				guiManager.AddCombo(waveformsTypes, waveformsTypesNames);
+				guiManager.Add(bGui_WaveIn, OFX_IM_TOGGLE_ROUNDED);
+				guiManager.Add(bGui_WaveOut, OFX_IM_TOGGLE_ROUNDED);
+				guiManager.Add(W_Height, OFX_IM_SLIDER);
+				if (waveformsTypes != 0)
+				{
+					guiManager.Add(W_Spread, OFX_IM_STEPPER);
+					guiManager.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED);
+					guiManager.Add(W_WidthGap, OFX_IM_STEPPER);
+				}
+				if (waveformsTypes != 2)
+				{
+					guiManager.Add(W_LineWidth, OFX_IM_STEPPER);
+				}
+				guiManager.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+				guiManager.Add(W_bReset, OFX_IM_BUTTON_SMALL);
 
 				guiManager.endWindowSpecial();
 			}
@@ -991,6 +1018,10 @@ private:
 	{
 		ofLogNotice(__FUNCTION__);
 
+		// force
+		guiManager.bKeys = false;
+		guiManager.bHelpInternal = false;
+
 		// Startup
 		// Load Settings
 		loadGroup(params, pathSettings);
@@ -1010,8 +1041,6 @@ private:
 		guiManager.addWindowSpecial(bGui_Waveform);
 
 		guiManager.startup();
-
-		guiManager.bHelpInternal = false;
 	}
 
 	//--------------------------------------------------------------
@@ -1070,6 +1099,10 @@ private:
 	float smoothedVolume_Input = 0; // rms signal to use on VU
 	float smoothedVolume_Out = 0; // rms signal to use on VU
 
+
+	ofParameter<int> waveformsTypes{ "Waveform", 0, 0, 2 };
+	vector<string>waveformsTypesNames = { "Scope", "Lines", "Bars" };
+
 	//--------------------------------------------------------------
 	void drawWaveforms()
 	{
@@ -1078,7 +1111,6 @@ private:
 		{
 			ofFill();
 			ofSetColor(0, 225);
-			ofSetLineWidth(W_LineWidth);
 
 			int _width = ofGetWidth();
 			float _max = 200;
@@ -1090,46 +1122,65 @@ private:
 			if (bGui_WaveIn)
 			{
 				// bars style
-
-				int __spread = W_Spread * bufferSize;
-				__spread = ofClamp(__spread / 20, 1, bufferSize);
-
-				float numBars = (bufferSize / __spread);
-				float wBars = _width / numBars;
-
-				//float _pw = abs(wBars - W_WidthGap);
-				float _pw = (wBars * W_WidthGap);
-				_pw = MAX(1, _pw);
-
-				//TODO: this could be redone
-				for (int i = 0; i < bufferSize; i++)
+				if (waveformsTypes == 1 || waveformsTypes == 2)
 				{
-					if (i % __spread == 0)//spread spaces
+					int __spread = W_Spread * bufferSize;
+					__spread = ofClamp(__spread / 20, 1, bufferSize);
+
+					float numBars = (bufferSize / __spread);
+					float wBars = _width / numBars;
+
+					//float _pw = abs(wBars - W_WidthGap);
+					float _pw = (wBars * W_WidthGap);
+					_pw = MAX(1, _pw);
+
+					ofSetLineWidth(W_LineWidth);
+
+					//TODO: this could be redone
+					for (int i = 0; i < bufferSize; i++)
 					{
-						float p = (i / (float)(bufferSize));//normalized pos in array
-						float x = p * _width;
+						if (i % __spread == 0)//spread spaces
+						{
+							float p = (i / (float)(bufferSize));//normalized position in array
+							float x = p * _width;
 
-						float _ph;
-						if (W_bAbs) _ph = abs(waveformInput[i] * W_Height);//make positive
-						else _ph = waveformInput[i] * W_Height;
-						//_ph = MAX(0, _ph);
+							float _ph;
+							if (W_bAbs) _ph = abs(waveformInput[i] * W_Height);//make positive
+							else _ph = waveformInput[i] * W_Height;
+							//_ph = MAX(0, _ph);
 
-						//y1 = ofClamp(y1, 0, _h);
-						//_ph = ofClamp(_ph, 0, _h);
+							//y1 = ofClamp(y1, 0, _h);
+							//_ph = ofClamp(_ph, 0, _h);
 
-						if (W_bLine) ofDrawLine(x, 0, x, -_ph);//line
-						if (W_bRectangle) ofDrawRectangle(x, 0, _pw, -_ph);//rectangle
+							if (W_bLine) ofDrawLine(x, 0, x, -_ph);//line
+							if (W_bRectangle) ofDrawRectangle(x, 0, _pw, -_ph);//rectangle
+						}
+					}
+
+					// horizontal line
+					if (W_bHLine) {
+						ofSetLineWidth(1);
+						ofDrawLine(0, 0, ofGetWidth(), 0);
 					}
 				}
-
-				// horizontal line
-				ofSetLineWidth(1);
-				ofDrawLine(0, 0, ofGetWidth(), 0);
+				else if (waveformsTypes == 0)
+				{
+					float _max = W_Height;
+					ofSetLineWidth(W_LineWidth);
+					ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
+					for (int i = 1; i < (ofGetWidth() - 1); ++i)
+					{
+						if (i > SIZE_BUFFER) continue;
+						ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
+					}
+				}
 
 				ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, 5);
 			}
 
-			//--
+			//----
+
+			// Out
 
 			//TODO: WIP:
 			if (bGui_WaveOut)
@@ -1312,6 +1363,29 @@ private:
 
 			return;
 		}
+
+		//--
+
+		// waveform
+
+		else if (name == waveformsTypes.getName())
+		{
+			switch (waveformsTypes)
+			{
+			case 0:
+				break;
+
+			case 1:
+				W_bLine = true;
+				break;
+
+			case 2:
+				W_bRectangle = true;
+				break;
+			}
+
+			return;
+		}
 	}
 
 	//--
@@ -1419,6 +1493,8 @@ private:
 		else if (name == W_bReset.getName() && W_bReset)
 		{
 			W_bReset = false;
+
+			waveformsTypes = 1;
 
 			W_WidthGap = 1;
 			W_Spread = 0;
