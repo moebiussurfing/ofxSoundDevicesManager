@@ -8,6 +8,7 @@ void ofApp::setup()
 	bufferSize = 512;
 	numBuffers = 4;
 
+	audioDevices.setPath("ofApp/");
 	audioDevices.setup(sampleRate, bufferSize, numBuffers);
 }
 

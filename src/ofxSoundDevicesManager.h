@@ -46,7 +46,10 @@
 
 #include "ofxGui.h"
 #include "ofxSurfingBoxHelpText.h"
+#include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
+
+#define AMP_GAIN_MAX_POWER 30 /// for plots drawing
 
 #ifdef USE_ofBaseApp_Pointer
 //--------------------------------------------------------------
@@ -57,11 +60,22 @@ class ofxSoundDevicesManager : public ofBaseApp
 #endif
 
 {
+
 public:
 
 	//--------------------------------------------------------------
 	ofxSoundDevicesManager()
 	{
+		// font text
+		size_TTF = 11;
+		name_TTF = "JetBrainsMonoNL-ExtraBold.ttf";
+		string pathRoot = "assets/fonts/";
+		path_TTF = pathRoot + name_TTF;
+		bool bLoaded = myFont.load(path_TTF, size_TTF, true, true);
+		path_TTF = pathRoot + "telegrama_render.otf";
+		if (!bLoaded) bLoaded = myFont.load(path_TTF, size_TTF, true, true);
+		else if (!bLoaded) bLoaded = myFont.load(OF_TTF_MONO, size_TTF, true, true);
+
 		//--
 
 		// Default audio settings
@@ -102,12 +116,12 @@ public:
 	//--------------------------------------------------------------
 	void exit()
 	{
-		saveGroup(params, pathSettings);
+		saveGroup(params, pathGlobal + pathSettings);
 
 		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
-		ofRemoveListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
+		ofRemoveListener(params_PlotsWaveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_PlotsWaveform);
 
 		close();
 	}
@@ -158,7 +172,7 @@ public:
 	void setup()
 #endif
 	{
-		ofLogNotice(__FUNCTION__);
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
 
 #ifdef USE_ofBaseApp_Pointer 
 		_app_ = _app;
@@ -174,9 +188,24 @@ public:
 		textBoxWidget.setTitle("DEVICES INFO");
 		textBoxWidget.setFontSize(8);
 		textBoxWidget.setFontTitleSize(11);
-		ofLogNotice(__FUNCTION__) << " ! ";
 		textBoxWidget.setup();
 
+		// Plot boxes
+
+		ofColor cBg = ofColor(0, 255);
+		//ofColor cPlotBg = ofColor(ofColor::yellow, 200);
+
+		boxPlotIn.setUseBorder(true);
+		boxPlotIn.setBorderColor(cBg);
+		boxPlotIn.setPosition(400, 10);
+		boxPlotIn.bGui.setName("Plot In");
+		boxPlotIn.setup();
+
+		boxPlotOut.setUseBorder(true);
+		boxPlotOut.setBorderColor(cBg);
+		boxPlotOut.setPosition(400, 410);
+		boxPlotOut.bGui.setName("Plot Out");
+		boxPlotOut.setup();
 
 		//----
 
@@ -185,9 +214,9 @@ public:
 		//TODO:
 		// add macOS + Linux
 		ApiNames.clear();
-		ApiNames.push_back("MS_WASAPI");//0
-		ApiNames.push_back("MS_ASIO");//1
-		ApiNames.push_back("MS_DS");//2
+		ApiNames.push_back("MS_WASAPI"); // 0
+		ApiNames.push_back("MS_ASIO"); // 1
+		ApiNames.push_back("MS_DS"); // 2
 
 		//-
 
@@ -218,7 +247,9 @@ public:
 		//_apiIndex_oF = 9; // API #9 on oF is Windows MS DS
 
 		connectToSoundAPI(_apiIndex_oF); // MS_DS
-		////connectToSoundAPI(_app, _apiIndex_oF); // MS_DS
+		//connectToSoundAPI(_app, _apiIndex_oF); // MS_DS
+
+		initFbo();
 
 		//--
 
@@ -226,17 +257,38 @@ public:
 
 		//----
 
-		// comment to avoid loading settings
+		// Comment to avoid loading settings
 		// helpful for when the app is stucked (when starting maybe)
 		// for ASIO / WASAPI or some other problem.
+
 		startup();
 	}
 
 private:
 
+	//TODO: WIP
+	bool bUseFbo = false;
+	bool bUpdateFbo = false;
+
+	void initFbo(int width = 320, int height = 240)
+	{
+		if (!bUseFbo) return;
+
+		//if (bUseFbo && !fbo.isAllocated())
+		{
+			fbo.allocate(width, height);
+			fbo.begin();
+			ofClear(0, 0, 0, 0);
+			fbo.end();
+
+			bUpdateFbo = true;
+		}
+	}
+
+	//--------------------------------------------------------------
 	void setupParams()
 	{
-		bEnableAudio.set("Enable Audio", true);
+		bEnableAudio.set("ENABLE", true);
 
 		bGui.set("SOUND DEVICES", true);
 
@@ -246,13 +298,12 @@ private:
 		params_Control.setName("CONTROL");
 		params_Control.add(bEnableAudio);
 		params_Control.add(apiIndex_Windows);
-		params_Control.add(waveformsTypes);
 
 		params_Gui.setName("Gui");
 		params_Gui.add(bGui_Main);
 		params_Gui.add(bGui_In);
 		params_Gui.add(bGui_Out);
-		params_Gui.add(bGui_Waveform);
+		params_Gui.add(bGui_PlotsPanel);
 		params_Gui.add(bGui_Internal);
 		params_Gui.add(textBoxWidget.bGui);
 		params_Gui.add(guiManager.bMinimize);
@@ -311,32 +362,43 @@ private:
 		//--
 
 		// Waveform
-		params_Waveform.setName("WAVEFORM");
-		params_Waveform.add(bGui_WaveIn);
-		params_Waveform.add(bGui_WaveOut);
-		params_Waveform.add(W_Height);
-		params_Waveform.add(W_Spread);
-		params_Waveform.add(W_bAbs);
-		params_Waveform.add(W_bLine);
-		params_Waveform.add(W_bHLine);
-		params_Waveform.add(W_bLabel);
-		params_Waveform.add(W_LineWidth);
-		params_Waveform.add(W_bRectangle);
-		params_Waveform.add(W_WidthGap);
-		params_Waveform.add(W_bReset);
+
+		W_bLine.setSerializable(false);
+		W_bBars.setSerializable(false);
+		W_bCircle.setSerializable(false);
+
+		params_PlotsWaveform.setName("PLOTS WAVEFORM");
+		params_PlotsWaveform.add(bGui_PlotIn);
+		params_PlotsWaveform.add(bGui_PlotOut);
+		params_PlotsWaveform.add(W_Gain);
+		params_PlotsWaveform.add(W_Spread);
+		params_PlotsWaveform.add(W_bAbs);
+		params_PlotsWaveform.add(W_bLine);
+		params_PlotsWaveform.add(W_bBars);
+		params_PlotsWaveform.add(W_bCircle);
+		params_PlotsWaveform.add(W_bHLine);
+		params_PlotsWaveform.add(W_bLabel);
+		params_PlotsWaveform.add(W_LineWidthScope);
+		params_PlotsWaveform.add(W_LineWidthLines);
+		params_PlotsWaveform.add(W_Rounded);
+		params_PlotsWaveform.add(W_bMirror);
+		params_PlotsWaveform.add(W_Width);
+		params_PlotsWaveform.add(W_bReset);
+		params_PlotsWaveform.add(plotType);//that handles the seon file reload
 
 		//----
 
+		// for the settings file
 		params.setName("ofxSoundDevicesManager");
 		params.add(params_Control);
 		params.add(params_In);
 		params.add(params_Out);
-		params.add(params_Waveform);
+		params.add(params_PlotsWaveform);
 
 		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
-		ofAddListener(params_Waveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Waveform);
+		ofAddListener(params_PlotsWaveform.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_PlotsWaveform);
 	}
 
 	//--
@@ -371,12 +433,12 @@ private:
 	// API
 	int _apiIndex_oF;
 	// all oF possible apis!
-	// NOT the index of the available apis on this system.!
+	// NOT the indexIn of the available apis on this system.!
 	// WASAPI, ASIO, DS
 	// e.g: on this windows system could be: WASAPI, ASIO, DS -> will be 0 to 2
 	ofParameter<int> apiIndex_Windows{ "API", 0, 0, 2 };
 	// shared by both input and output
-	// this index will be related to all available apis ONLY on this system!
+	// this indexIn will be related to all available apis ONLY on this system!
 	// also in your same system, devices will change when disabling on windows sound preferences/devices
 
 	//TODO:
@@ -406,6 +468,7 @@ public:
 	ofParameter<bool> bGui_Main;
 	ofParameter<bool> bGui_Plots;
 
+	ofFbo fbo;
 
 	//-
 
@@ -435,7 +498,7 @@ private:
 	ofParameter<int> deviceOut_Api;
 	ofParameter<string> deviceOut_ApiName;
 
-	//-
+	//--
 
 	ofParameterGroup params;
 	ofParameterGroup params_Control;
@@ -446,21 +509,26 @@ private:
 
 	//--
 
-	ofParameterGroup params_Waveform;
+	ofParameterGroup params_PlotsWaveform;
 
-	ofParameter<bool> bGui_Waveform{ "Waveforms", false };
-	ofParameter<bool> bGui_WaveIn{ "Wave In", true };
-	ofParameter<bool> bGui_WaveOut{ "Wave Out", false };
+	ofParameter<bool> bGui_PlotsPanel{ "SOUND PLOTS", false };
+	ofParameter<bool> bGui_PlotIn{ "Plot In", true };
+	ofParameter<bool> bGui_PlotOut{ "Plot Out", false };
 
 	ofParameter<bool> W_bAbs{ "Abs", true };
 	ofParameter<float> W_Spread{ "Spread", 0, 0, 1 };
-	ofParameter<int> W_Height{ "Height", 500, 10, 1000 };
-	ofParameter<bool> W_bRectangle{ "Rectangle", false };
-	ofParameter<float> W_WidthGap{ "Gap", 1, 0, 1 };
+	ofParameter<float> W_Gain{ "Gain", 0, -1, 1 };
+	ofParameter<bool> W_bBars{ "Bars", false };
+	ofParameter<bool> W_bCircle{ "Circle", false };
+	ofParameter<float> W_Width{ "Width", 0.5, 0, 1 };
 	ofParameter<bool> W_bLine{ "Line", true };
 	ofParameter<bool> W_bHLine{ "H Line", true };
+	ofParameter<bool> W_bMirror{ "Mirror", false };
+	ofParameter<float> W_Rounded{ "Rounded", 0, 0, 1 };
+	ofParameter<int> W_LineWidthScope{ "L Scope", 3, 1, 10 };
+	ofParameter<int> W_LineWidthLines{ "L Lines", 3, 1, 10 };
 	ofParameter<bool> W_bLabel{ "Label", true };
-	ofParameter<int> W_LineWidth{ "Width", 3, 1, 100 };
+
 	ofParameter<bool> W_bReset{ "Reset", false };
 
 	ofParameter<bool> bGui_Internal{ "Internal", false };
@@ -477,9 +545,13 @@ private:
 
 	ofxSurfingBoxHelpText textBoxWidget;
 
+	ofxSurfingBoxInteractive boxPlotIn;
+	ofxSurfingBoxInteractive boxPlotOut;
+
 	string helpInfo = "";
 	string devices_ApiName;
 
+	string pathGlobal = "ofxSoundDevicesManager/";
 	string pathSettings = "ofxSoundDevicesManager.xml";
 
 	bool bApiConnected = false;
@@ -494,7 +566,9 @@ public:
 	void setVisible(bool b)
 	{
 		bGui = b;
+		if (!bGui_Main) bGui_Main = true;
 	}
+
 	//--------------------------------------------------------------
 	void setVisibleToggle()
 	{
@@ -507,6 +581,14 @@ private:
 	//--------------------------------------------------------------
 	void update(ofEventArgs& args)
 	{
+		if (boxPlotIn.isChangedShape())
+		{
+			ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << "Box Input plot changed!";
+			initFbo(boxPlotIn.getWidth(), boxPlotIn.getHeight());
+		}
+
+		//--
+
 		if (bUpdateHelp)
 		{
 			bUpdateHelp = false;
@@ -520,7 +602,7 @@ private:
 	//--------------------------------------------------------------
 	void connectToSoundAPI(int _apiIndex)
 	{
-		ofLogNotice(__FUNCTION__);
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
 
 		//TODO:
 		//if (!bEnableAudio) return;
@@ -539,7 +621,7 @@ private:
 		//TODO:
 		if (_apiIndex_oF != 7 && _apiIndex_oF != 8 && _apiIndex_oF != 9) // WASAPI, ASIO, DS
 		{
-			ofLogError(__FUNCTION__) << "Skip API index bc out of MS Windows range: " << _apiIndex_oF << endl;
+			ofLogError("ofxSoundDevicesManager") << (__FUNCTION__) << "Skip API index bc out of MS Windows range: " << _apiIndex_oF << endl;
 
 			return;
 		}
@@ -680,7 +762,7 @@ private:
 		}
 		else
 		{
-			ofLogError(__FUNCTION__) << "Error: Out of range deviceIn_Port: " << deviceIn_Port << endl;
+			ofLogError("ofxSoundDevicesManager") << (__FUNCTION__) << "Error: Out of range deviceIn_Port: " << deviceIn_Port << endl;
 			bApiConnected = false;
 		}
 
@@ -723,7 +805,8 @@ private:
 			bApiConnected = true;
 		}
 		else {
-			ofLogError(__FUNCTION__) << "Error: Out of range deviceOut_Port: " << deviceOut_Port << endl;
+			ofLogError("ofxSoundDevicesManager") << (__FUNCTION__) <<
+				"Error: Out of range deviceOut_Port: " << deviceOut_Port << endl;
 			bApiConnected = false;
 		}
 
@@ -764,31 +847,46 @@ private:
 
 		guiManager.begin();
 		{
+			//guiManager.drawWindowsSpecialsOrganizer();
+			guiManager.drawWindowsSpecialsOrganizer();
+
+			//--
+
 			// Main
+
 			if (guiManager.beginWindowSpecial(bGui_Main))
 			{
-				//guiManager.AddLabelBig(bGui_Main.getName());
-				//guiManager.AddGroup(params_Control);
+
+				guiManager.Add(guiManager.bGui_WindowsAlignHelpers, OFX_IM_TOGGLE_ROUNDED);
+				guiManager.Add(guiManager.getWindowsAlignHelpersGuiToggle(), OFX_IM_TOGGLE_ROUNDED);
 
 				guiManager.Add(guiManager.bMinimize, OFX_IM_TOGGLE_ROUNDED);
 				guiManager.AddSpacing();
 
 				guiManager.Add(bEnableAudio, OFX_IM_TOGGLE);
+				guiManager.AddSpacing();
+
 				if (!guiManager.bMinimize) {
 					guiManager.AddCombo(apiIndex_Windows, ApiNames);
 				}
-				guiManager.AddSpacing();
+				guiManager.AddSpacingSeparated();
 
 				guiManager.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				guiManager.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				guiManager.AddSpacingSeparated();
 
-				if (!guiManager.bMinimize) {
-					guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED);
-				}
-				guiManager.AddSpacing();
-
-				guiManager.Add(bGui_Waveform, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				guiManager.Add(bGui_PlotsPanel, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				guiManager.Indent();
 				guiManager.Add(bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+				guiManager.Unindent();
+
+				if (!guiManager.bMinimize)
+				{
+					guiManager.AddSpacingSeparated();
+					guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED);
+					guiManager.AddSpacingSeparated();
+				}
+
 				if (!guiManager.bMinimize)
 				{
 					guiManager.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
@@ -797,7 +895,10 @@ private:
 				guiManager.endWindowSpecial();
 			}
 
+			//--
+
 			// In
+
 			if (guiManager.beginWindowSpecial(bGui_In))
 			{
 				guiManager.Add(deviceIn_Enable, OFX_IM_TOGGLE);
@@ -807,7 +908,10 @@ private:
 				guiManager.endWindowSpecial();
 			}
 
+			//--
+
 			// Out
+
 			if (guiManager.beginWindowSpecial(bGui_Out))
 			{
 				guiManager.Add(deviceOut_Enable, OFX_IM_TOGGLE);
@@ -819,34 +923,105 @@ private:
 
 			//--
 
-			// Waveform
-			if (guiManager.beginWindowSpecial(bGui_Waveform))
-			{
-				//guiManager.AddLabelBig(bGui_Waveform.getName());
-				//guiManager.AddGroup(params_Waveform);
+			// Plots
 
-				guiManager.Add(bGui_WaveIn, OFX_IM_TOGGLE_ROUNDED);
-				guiManager.Add(bGui_WaveOut, OFX_IM_TOGGLE_ROUNDED);
+			if (guiManager.beginWindowSpecial(bGui_PlotsPanel))
+			{
+				guiManager.Add(bGui_PlotIn, OFX_IM_TOGGLE_ROUNDED);
+				if (bGui_PlotIn)
+					if (!guiManager.bMinimize) {
+						guiManager.Indent();
+						guiManager.Add(boxPlotIn.bEdit, OFX_IM_TOGGLE_ROUNDED_MINI);
+						guiManager.Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
+						guiManager.Unindent();
+					}
+				guiManager.AddSpacingSeparated();
+				guiManager.Add(bGui_PlotOut, OFX_IM_TOGGLE_ROUNDED);
+				if (bGui_PlotOut)
+					if (!guiManager.bMinimize) {
+						guiManager.Indent();
+						guiManager.Add(boxPlotOut.bEdit, OFX_IM_TOGGLE_ROUNDED_MINI);
+						guiManager.Add(boxPlotOut.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
+						guiManager.Unindent();
+					}
 				guiManager.AddSpacingSeparated();
 
-				guiManager.AddCombo(waveformsTypes, waveformsTypesNames);
-				if (!guiManager.bMinimize) {
-					guiManager.Add(W_Height, OFX_IM_SLIDER);
-					if (waveformsTypes != 0)
-					{
-						guiManager.Add(W_Spread, OFX_IM_STEPPER);
-						guiManager.Add(W_WidthGap, OFX_IM_STEPPER);
-						guiManager.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
-					}
-					if (waveformsTypes != 2)
-					{
-						guiManager.Add(W_LineWidth, OFX_IM_STEPPER);
-					}
-					//if (waveformsTypes != 0)
-					guiManager.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
-					guiManager.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
-					guiManager.Add(W_bReset, OFX_IM_BUTTON_SMALL);
+				guiManager.Add(W_Gain, OFX_IM_SLIDER);
+				guiManager.AddSpacingSeparated();
+
+				guiManager.AddLabelBig("Plot Style");
+
+				// type
+
+				if (guiManager.AddButton("<", OFX_IM_BUTTON_SMALL, 2, true)) {
+					if (plotType == plotType.getMin()) plotType = plotType.getMax();
+					else plotType = plotType - 1;
 				}
+				if (guiManager.AddButton(">", OFX_IM_BUTTON_SMALL, 2)) {
+					if (plotType == plotType.getMax()) plotType = plotType.getMin();
+					else plotType = plotType + 1;
+				}
+
+				guiManager.AddCombo(plotType, plotTypeNames);
+				//guiManager.AddSpacing();
+
+				guiManager.AddSpacingSeparated();
+
+				if (!guiManager.bMinimize)
+					if (guiManager.beginTree("EDIT"))
+					{
+						if (!guiManager.bMinimize) {
+
+							guiManager.Add(W_bLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+							guiManager.Add(W_bBars, OFX_IM_TOGGLE_ROUNDED_MINI);
+							guiManager.Add(W_bCircle, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+							guiManager.AddSpacingSeparated();
+						}
+
+						if (!guiManager.bMinimize) {
+
+							if (plotType == 1)//lines
+							{
+								guiManager.Add(W_Spread);
+							}
+
+							if (plotType == 2 || plotType == 3)//bars, circles
+							{
+								guiManager.Add(W_Spread);
+								guiManager.Add(W_Width);
+								guiManager.Add(W_Rounded);
+							}
+
+							guiManager.AddSpacing();
+
+							if (plotType == 0)//scope
+							{
+								guiManager.Add(W_LineWidthScope, OFX_IM_STEPPER);
+							}
+
+							if (plotType == 1)//lines
+							{
+								guiManager.Add(W_LineWidthLines, OFX_IM_STEPPER);
+							}
+
+							guiManager.AddSpacing();
+
+							guiManager.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+							if (plotType != 0)//scope
+								guiManager.Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+							guiManager.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+							guiManager.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+							guiManager.AddSpacingSeparated();
+
+							guiManager.Add(W_bReset, OFX_IM_BUTTON_SMALL);
+						}
+
+						guiManager.endTree();
+					}
 
 				guiManager.endWindowSpecial();
 			}
@@ -859,7 +1034,9 @@ public:
 	//--------------------------------------------------------------
 	void drawGui()
 	{
-		if(bGui_Plots) drawWaveforms();
+		if (bUseFbo) fbo.draw(300, 300, 320, 240);
+
+		if (bGui_Plots) drawPlots();
 
 		if (bGui)
 		{
@@ -917,7 +1094,7 @@ private:
 	//--------------------------------------------------------------
 	void buildHelpInfo()
 	{
-		ofLogNotice(__FUNCTION__);
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
 
 		//TODO:
 		// getDeviceList is slow. should store each api devices names out of here to speed up.
@@ -1028,12 +1205,26 @@ private:
 		textBoxWidget.setText(helpInfo);
 	}
 
+public:
+
+	//--------------------------------------------------------------
+	void setPath(string p) {
+		pathGlobal = p;
+
+		textBoxWidget.setPath(pathGlobal);
+
+		boxPlotIn.setPathGlobal(pathGlobal);
+		boxPlotOut.setPathGlobal(pathGlobal);
+	}
+
 private:
 
 	//--------------------------------------------------------------
 	void startup()
 	{
-		ofLogNotice(__FUNCTION__);
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
+
+		doReset();
 
 		// force
 		guiManager.bKeys = false;
@@ -1041,13 +1232,13 @@ private:
 
 		// Startup
 		// Load Settings
-		loadGroup(params, pathSettings);
+		loadGroup(params, pathGlobal + pathSettings);
 	}
 
 	//--------------------------------------------------------------
 	void setupGui()
 	{
-		ofLogNotice(__FUNCTION__);
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
 
 		guiManager.setWindowsMode(IM_GUI_MODE_WINDOWS_SPECIAL_ORGANIZER);
 		guiManager.setup();
@@ -1055,7 +1246,7 @@ private:
 		guiManager.addWindowSpecial(bGui_Main);
 		guiManager.addWindowSpecial(bGui_In);
 		guiManager.addWindowSpecial(bGui_Out);
-		guiManager.addWindowSpecial(bGui_Waveform);
+		guiManager.addWindowSpecial(bGui_PlotsPanel);
 
 		guiManager.startup();
 	}
@@ -1083,7 +1274,7 @@ private:
 	//--------------------------------------------------------------
 	void loadGroup(ofParameterGroup& g, string path)
 	{
-		ofLogNotice(__FUNCTION__) << "loadGroup: " << g.getName() << " to " << path;
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << "loadGroup: " << g.getName() << " to " << path;
 		ofLogVerbose(__FUNCTION__) << "parameters: " << g.toString();
 		ofXml settings;
 		settings.load(path);
@@ -1093,7 +1284,7 @@ private:
 	//--------------------------------------------------------------
 	void saveGroup(ofParameterGroup& g, string path)
 	{
-		ofLogNotice(__FUNCTION__) << "saveGroup: " << g.getName() << " to " << path;
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << "saveGroup: " << g.getName() << " to " << path;
 		ofLogVerbose(__FUNCTION__) << "parameters: " << g.toString();
 		ofXml settings;
 		ofSerialize(settings, g);
@@ -1108,91 +1299,264 @@ private:
 
 #define SIZE_BUFFER 4096
 
-	float waveformInput[SIZE_BUFFER]; // make this bigger, just in case
-	int waveInputIndex = 0;
-	float waveformOutput[SIZE_BUFFER]; // make this bigger, just in case
-	int waveOutputIndex = 0;
+	float plotIn[SIZE_BUFFER]; // make this bigger, just in case
+	float plotOut[SIZE_BUFFER]; // make this bigger, just in case
 
-	float smoothedVolume_Input = 0; // rms signal to use on VU
-	float smoothedVolume_Out = 0; // rms signal to use on VU
+	int indexIn = 0;
+	int indexOut = 0;
 
+	//float smoothedVolume_Input = 0; // rms signal to use on VU
+	//float smoothedVolume_Out = 0; // rms signal to use on VU
 
-	ofParameter<int> waveformsTypes{ "Waveform", 0, 0, 2 };
-	vector<string>waveformsTypesNames = { "Scope", "Lines", "Bars" };
+	ofParameter<int> plotType{ "Type", 0, 0, 3 };
+	vector<string>plotTypeNames = { "Scope", "Lines", "Bars" , "Circles" };
+
+private:
+
+	ofTrueTypeFont myFont;
+	std::string path_TTF;
+	std::string name_TTF;
+	int size_TTF;
+
+	// Legacy
+	//void drawWaveforms() { drawPlots(); }
 
 	//--------------------------------------------------------------
-	void drawWaveforms()
+	void drawPlots()
 	{
+		if (!bGui_PlotIn && !bGui_PlotOut) return;
+
+		ofColor cPlot = ofColor(0, 225);
+		ofColor cPlotBg = ofColor(64, 128);
+		ofColor cText = ofColor(255, 225);
+
+		float g = ofMap(W_Gain, W_Gain.getMin(), W_Gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
+
+		//--
+
 		ofPushStyle();
-		ofPushMatrix();
 		{
-			ofFill();
-			ofSetColor(0, 225);
+			//--
 
-			int _width = ofGetWidth();
-			float _max = 200;
-			int _margin = 50;
+			// In
 
-			// input
-			ofTranslate(0, ofGetHeight() / 4.f);
-
-			if (bGui_WaveIn)
+			if (bGui_PlotIn)
 			{
-				// bars style
-				if (waveformsTypes == 1 || waveformsTypes == 2)
-				{
-					int __spread = W_Spread * bufferSize;
-					__spread = ofClamp(__spread / 20, 1, bufferSize);
+				boxPlotIn.draw();
 
-					float numBars = (bufferSize / __spread);
-					float wBars = _width / numBars;
+				int __x = boxPlotIn.getX();
+				int __w = boxPlotIn.getWidth();
+				int __h = boxPlotIn.getHeight();
+				int __y = boxPlotIn.getY() + __h / 2;
 
-					float _pw = (wBars * W_WidthGap);
-					_pw = MAX(1, _pw);
+				ofSetColor(cPlotBg);
+				ofFill();
+				ofDrawRectangle(boxPlotIn.getRectangle());
 
-					ofSetLineWidth(W_LineWidth);
+				ofPushMatrix();
+				ofTranslate(__x, __y);
 
-					//TODO: this could be redone
-					for (int i = 0; i < bufferSize; i++)
+				//--
+
+				if (bUseFbo)
+					if (bUpdateFbo)
 					{
-						if (i > SIZE_BUFFER) continue;
+						//bUpdateFbo = false;
+						fbo.begin();
+						ofClear(0, 0, 0, 0);
+					}
 
-						if (i % __spread == 0)//spread spaces
+				//--
+
+				ofSetColor(cPlot);
+
+				// 0. Scope
+
+				if (plotType == 0)
+				{
+					ofNoFill();
+					ofSetLineWidth(W_LineWidthScope);
+
+					float a = __h * g;//amp gain
+
+					for (int i = 0; i < SIZE_BUFFER; ++i)
+					{
+						float x1 = ofMap(i, 0, SIZE_BUFFER - 1, 0, __w);
+						float x2 = ofMap(i + 1, 0, SIZE_BUFFER - 1, 0, __w);
+
+						float y1 = plotIn[i] * a;
+						float y2 = plotIn[i + 1] * a;
+
+						//clamp
+						float px = 2;
+						x1 = ofClamp(x1, px, __w - px);
+						x2 = ofClamp(x2, px, __w - px);
+						y1 = ofClamp(y1, -__h / 2, __h / 2);
+						y2 = ofClamp(y2, -__h / 2, __h / 2);
+
+						ofDrawLine(x1, y1, x1, y2);
+					}
+				}
+
+				//--
+
+				// 123 Lines / Bars / Circles types 
+
+				//if (plotType == 1 || plotType == 2 || plotType == 3)
+				else
+				{
+					ofNoFill();
+					ofSetLineWidth(W_LineWidthLines);
+
+					float a = __h * g;//amp gain
+
+					//amount of desired lines or rectangles
+					int amount = (int)ofMap(W_Spread, 0, 1, 200, 6, true);
+
+					int stepi = SIZE_BUFFER / amount;
+					float stepw = __w / (float)amount;//width of each
+
+					int ii = -1;
+
+					for (int i = 0; i < SIZE_BUFFER; i++)
+					{
+						// will discard some samples
+						if (i % stepi == 0)
 						{
-							float p = (i / (float)(bufferSize));//normalized position in array
-							float x = p * _width;
+							ii++;
+						}
+						else continue;//skip it
 
-							float _ph;
-							if (W_bAbs) _ph = abs(waveformInput[i] * W_Height);//make positive
-							else _ph = waveformInput[i] * W_Height;
+						// The raw point to draw
+						int x = ii * stepw;
+						int y = plotIn[ii] * a;
 
-							if (W_bLine) ofDrawLine(x, 0, x, -_ph);//line
-							if (W_bRectangle) ofDrawRectangle(x, 0, _pw, -_ph);//rectangle
+						//----
+
+						if (W_bAbs) y = abs(y);
+
+						// fix clamp y and translate for mirror mode
+						if (W_bMirror && !W_bCircle)
+						{
+							if (y < 0) y = (int)ofClamp(y, 0, -__h);
+							else y = (int)ofClamp(y, 0, __h);
+
+							ofPushMatrix();
+							ofTranslate(0, y / 2);
+						}
+
+						//--
+
+						// clamp x
+
+						int px = 2;//pad
+
+						//TODO:
+						//bool bskip = false;//discard object that could be out of the box
+						//if (x<px || x>(__w - 2 * px)) bskip = true;
+
+						//x = (int)ofClamp(x, px, __w - 2 * px);
+
+						//--
+
+						// clamp y
+
+						y = (int)ofClamp(y, -__h / 2, __h / 2);
+
+						//--
+
+						// A. Line
+						if (W_bLine)
+						{
+							//x = (int)ofClamp(x, px, __w - px);
+							if (x > 0 && x < __w) // do or skip if it's outside 
+							{
+								ofNoFill();
+								ofDrawLine(x, 0, x, -y);
+							}
+						}
+
+						// B. Bars
+						if (W_bBars)
+						{
+							ofFill();
+							int wr = ofMap(W_Width, 0, 1, 4, stepw, true);
+							int xr = x - wr / 2;
+							x = (int)ofClamp(xr, px, __w - px);
+							//if (xr > wr && x < (__w - wr)) // do or skip if it's outside 
+							{
+								if (W_Rounded != 0)ofDrawRectRounded(xr, 0, wr, -y, wr * W_Rounded);
+								else ofDrawRectangle(xr, 0, wr, -y);
+							}
+						}
+
+						// C. Circle 
+						if (W_bCircle)
+						{
+							float r = ofMap(W_Width, 0, 1, MAX(2, y * 0.05), y * 1, true);
+							if (x > r && x < (__w - r)) // do or skip if it's outside
+							{
+								ofFill();
+								ofDrawCircle(x, 0, r);
+							}
+						}
+
+						if (W_bMirror && !W_bCircle)
+						{
+							ofPopMatrix();
 						}
 					}
-
-				}
-				else if (waveformsTypes == 0)
-				{
-					float _max = W_Height;
-					ofSetLineWidth(W_LineWidth);
-					ofDrawLine(0, 0, 1, waveformInput[1] * _max); //first line
-					for (int i = 1; i < (ofGetWidth() - 1); ++i)
-					{
-						if (i > SIZE_BUFFER) continue;
-						ofDrawLine(i, waveformInput[i] * _max, i + 1, waveformInput[i + 1] * _max);
-					}
 				}
 
-				// horizontal line
+				//--
+
+				// Horizontal line
+
 				if (W_bHLine)
 				{
 					ofSetLineWidth(1);
-					ofDrawLine(0, 0, ofGetWidth(), 0);
+					ofNoFill();
+					ofDrawLine(0, 0, __w, 0);
 				}
 
+				//--
+
 				// label
-				if (W_bLabel) ofDrawBitmapStringHighlight("INPUT ", ofGetWidth() - _margin, 5);
+				if (W_bLabel)
+				{
+					string s = "INPUT";
+
+					float hh = boxPlotIn.getRectangle().getHeight();
+
+					int w = ofxSurfingHelpers::getWidthBBtextBoxedMini(myFont, s);
+					int h = ofxSurfingHelpers::getHeightBBtextBoxedMini(myFont, s);
+
+					//center right
+					//int xx = __w - w - 10;
+					//int yy = h / 2;
+
+					//bottom right
+					int pad = 12;
+					int xx = __w - w - 0 - pad;
+					int yy = hh / 2 - pad;
+
+					//int xx = p.x - w;
+					//int yy = p.y - h;
+					ofxSurfingHelpers::drawTextBoxedMini(myFont, s, xx, yy);
+				}
+
+				//--
+
+				if (bUseFbo)
+					if (bUpdateFbo)
+					{
+						fbo.end();
+						bUpdateFbo = true;
+					}
+
+				//--
+
+				ofPopMatrix();
 			}
 
 			//----
@@ -1200,26 +1564,56 @@ private:
 			// Out
 
 			//TODO: WIP:
-			if (bGui_WaveOut)
+
+			if (bGui_PlotOut)
 			{
-				// output
-				ofTranslate(0, 2 * ofGetHeight() / 4);
-				ofSetLineWidth(W_LineWidth);
+				boxPlotOut.draw();
 
-				ofDrawLine(0, 0, 1, waveformOutput[1] * _max); // first line
+				int __x = boxPlotOut.getX();
+				int __w = boxPlotOut.getWidth();
+				int __h = boxPlotOut.getHeight();
+				int __y = boxPlotOut.getY() + __h / 2;
 
-				for (int i = 1; i < (ofGetWidth() - 1); ++i) {
-					ofDrawLine(i, waveformOutput[i] * _max, i + 1, waveformOutput[i + 1] * _max);
+				ofPushMatrix();
+				ofTranslate(__x, __y);
+
+				ofSetLineWidth(W_LineWidthScope);
+				ofNoFill();
+
+				ofDrawLine(0, 0, 1, plotOut[1] * __h * g); // first line
+
+				for (int i = 1; i < (__w - 1); ++i)
+				{
+					ofDrawLine(
+						i, plotOut[i] * __h * g,
+						i + 1, plotOut[i + 1] * __h * g);
 				}
 
-				// horizontal line
-				ofSetLineWidth(1);
-				ofDrawLine(0, 0, ofGetWidth(), 0);
+				//--
 
-				ofDrawBitmapStringHighlight("OUTPUT", ofGetWidth() - _margin, +5);
+				// horizontal line
+				if (W_bHLine)
+				{
+					ofSetLineWidth(1);
+					ofNoFill();
+
+					ofDrawLine(0, 0, __w, 0);
+				}
+
+				//--
+
+				// label
+				if (W_bLabel)
+				{
+					string s = "OUT";
+					int w = ofxSurfingHelpers::getWidthBBtextBoxedMini(myFont, s);
+					int h = ofxSurfingHelpers::getHeightBBtextBoxedMini(myFont, s);
+					ofxSurfingHelpers::drawTextBoxedMini(myFont, s, __w - w, h / 2);
+				}
+
+				ofPopMatrix();
 			}
 		}
-		ofPopMatrix();
 		ofPopStyle();
 	}
 
@@ -1232,53 +1626,62 @@ public:
 
 		if (deviceIn_Enable)
 		{
-			// vu
-			float rms = 0.0;
-			int numCounted1 = 0;
+			float _rms = 0.0;
+			int _count = 0;
 
 			for (size_t i = 0; i < input.getNumFrames(); i++)
 			{
-				waveformInput[waveInputIndex] = input[i * nChannels]
-					* getVolumeInput();
+				plotIn[indexIn] = input[i * nChannels] * getVolumeInput();
 
-				if (waveInputIndex < (ofGetWidth() - 1)) {
-					++waveInputIndex;
+				if (indexIn < (SIZE_BUFFER - 1))
+				{
+					++indexIn;
 				}
-				else {
-					waveInputIndex = 0;
+				else
+				{
+					indexIn = 0;
 				}
 
 				//-
 
-				// vu
 				// code from here: https://github.com/edap/examplesOfxMaxim
 				// rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+
 				float left = input[0];
 				float right = input[1];
-				rms += left * left;
-				rms += right * right;
-				numCounted1 += 2;
-				//numCounted1 += 1;//1 channel
+
+				_rms += left * left;
+				_rms += right * right;
+
+				//--
+
+				_count += 2; // 2 channels
+				//_count += 1; // 1 channel
 			}
 
 			//--
 
-			// vu
-			rms /= (float)numCounted1;
-			rms = sqrt(rms);
+			_rms /= (float)_count;
+			_rms = sqrt(_rms);
 
-			smoothedVolume_Input = rms * deviceIn_Volume;
+			//smoothedVolume_Input = _rms * deviceIn_Volume;
 		}
-		else // erase plot
+
+		// not enabled: 
+		// erase plot
+		else
 		{
 			for (size_t i = 0; i < input.getNumFrames(); ++i)
 			{
-				waveformInput[waveInputIndex] = 0;
-				if (waveInputIndex < (ofGetWidth() - 1)) {
-					++waveInputIndex;
+				plotIn[indexIn] = 0;
+
+				if (indexIn < (SIZE_BUFFER - 1))
+				{
+					++indexIn;
 				}
-				else {
-					waveInputIndex = 0;
+				else
+				{
+					indexIn = 0;
 				}
 			}
 		}
@@ -1288,7 +1691,7 @@ public:
 	void audioOut(ofSoundBuffer& output) {
 		std::size_t outChannels = output.getNumChannels();
 
-		if (deviceOut_Enable)
+		if (deviceOut_Enable) // fill plot
 		{
 			float rms = 0.0;
 			int numCounted = 0;
@@ -1296,18 +1699,20 @@ public:
 			rms /= (float)numCounted;
 			rms = sqrt(rms);
 
-			smoothedVolume_Out = rms * deviceOut_Volume;
+			//smoothedVolume_Out = rms * deviceOut_Volume;
 		}
 		else // erase plot
 		{
 			for (size_t i = 0; i < output.getNumFrames(); ++i)
 			{
-				waveformOutput[waveOutputIndex] = 0;
-				if (waveOutputIndex < (ofGetWidth() - 1)) {
-					++waveOutputIndex;
+				plotOut[indexOut] = 0;
+				if (indexOut < (ofGetWidth() - 1))
+				{
+					++indexOut;
 				}
-				else {
-					waveOutputIndex = 0;
+				else
+				{
+					indexOut = 0;
 				}
 			}
 		}
@@ -1321,7 +1726,7 @@ private:
 		if (bDISABLE_CALBACKS) return;
 
 		string name = e.getName();
-		ofLogNotice(__FUNCTION__) << name << " " << e;
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << name << " " << e;
 
 		if (0) {}
 
@@ -1368,38 +1773,15 @@ private:
 				break;
 
 			default:
-				ofLogError(__FUNCTION__) << "Error: Out of range  _apiIndex_oF: " << _apiIndex_oF << endl;
+				ofLogError("ofxSoundDevicesManager") << (__FUNCTION__) << "Error: Out of range  _apiIndex_oF: " << _apiIndex_oF << endl;
 				bUpdateHelp = true;
 				return;//skip
 				break;
 			}
 
-			ofLogNotice(__FUNCTION__) << "API: " << _apiIndex_oF << ":" << devices_ApiName;
+			ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << "API: " << _apiIndex_oF << ":" << devices_ApiName;
 			connectToSoundAPI(_apiIndex_oF);
 			bUpdateHelp = true;
-
-			return;
-		}
-
-		//--
-
-		// waveform
-
-		else if (name == waveformsTypes.getName())
-		{
-			switch (waveformsTypes)
-			{
-			case 0:
-				break;
-
-			case 1:
-				W_bLine = true;
-				break;
-
-			case 2:
-				W_bRectangle = true;
-				break;
-			}
 
 			return;
 		}
@@ -1413,7 +1795,7 @@ private:
 		if (bDISABLE_CALBACKS) return;
 
 		string name = e.getName();
-		ofLogNotice(__FUNCTION__) << name << " " << e;
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << name << " " << e;
 
 		if (0) {}
 
@@ -1458,7 +1840,7 @@ private:
 		if (bDISABLE_CALBACKS) return;
 
 		string name = e.getName();
-		ofLogNotice(__FUNCTION__) << name << " " << e;
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << name << " " << e;
 
 		if (0) {}
 
@@ -1499,7 +1881,28 @@ private:
 	}
 
 	//--------------------------------------------------------------
-	void Changed_params_Waveform(ofAbstractParameter& e)
+	void doReset()
+	{
+		W_Spread = 0;
+		W_Width = 0.5;
+		W_Gain = 0;
+		W_bHLine = false;
+		W_bLine = true;
+		W_bBars = false;
+		W_bCircle = false;
+		W_bAbs = true;
+		W_bMirror = true;
+		W_Rounded = 0.5;
+		W_bLabel = true;
+
+		plotType = 3;
+
+		W_LineWidthScope = 2;
+		W_LineWidthLines = 3;
+	}
+
+	//--------------------------------------------------------------
+	void Changed_params_PlotsWaveform(ofAbstractParameter& e)
 	{
 		if (bDISABLE_CALBACKS) return;
 
@@ -1510,29 +1913,73 @@ private:
 		else if (name == W_bReset.getName() && W_bReset)
 		{
 			W_bReset = false;
-
-			waveformsTypes = 1;
-
-			W_WidthGap = 1;
-			W_Spread = 0;
-			W_Height = 500;
-			W_bRectangle = false;
-			W_bLine = true;
-			W_bAbs = true;
-			W_LineWidth = 3;
+			doReset();
 		}
 
+		//--
+
+		// Plot waveform
+		else if (name == plotType.getName())
+		{
+			switch (plotType)
+			{
+			case 0://scope
+				W_bLine = false;
+				W_bBars = false;
+				W_bCircle = false;
+				break;
+
+			case 1://lines
+				W_bLine = true;
+				W_bBars = false;
+				W_bCircle = false;
+				break;
+
+			case 2://bar
+				W_bLine = false;
+				W_bBars = true;
+				W_bCircle = false;
+				break;
+
+			case 3://circle
+				W_bLine = false;
+				W_bBars = false;
+				W_bCircle = true;
+				break;
+			}
+
+			return;
+		}
+
+
+		/*
 		else if (name == W_bLine.getName())
 		{
-			if (W_bLine) W_bRectangle = false;
-			else W_bRectangle = true;
+			if (W_bLine)
+			{
+				W_bBars = false;
+				W_bCircle = false;
+			}
 		}
 
-		else if (name == W_bRectangle.getName())
+		else if (name == W_bBars.getName())
 		{
-			if (W_bRectangle) W_bLine = false;
-			else W_bLine = true;
+			if (W_bBars)
+			{
+				W_bLine = false;
+				W_bCircle = false;
+			}
 		}
+
+		else if (name == W_bCircle.getName())
+		{
+			if (W_bCircle)
+			{
+				W_bLine = false;
+				W_bBars = false;
+			}
+		}
+		*/
 	}
 
 };
