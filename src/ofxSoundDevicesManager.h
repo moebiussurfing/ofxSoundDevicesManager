@@ -49,7 +49,7 @@
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
 
-#define AMP_GAIN_MAX_POWER 30 /// for plots drawing
+#define AMP_GAIN_MAX_POWER 15 /// for plots drawing
 
 #ifdef USE_ofBaseApp_Pointer
 //--------------------------------------------------------------
@@ -184,11 +184,11 @@ public:
 		//--
 
 		// Text box
-		textBoxWidget.bGui.setName("Devices Info");
-		textBoxWidget.setTitle("DEVICES INFO");
-		textBoxWidget.setFontSize(8);
-		textBoxWidget.setFontTitleSize(11);
-		textBoxWidget.setup();
+		boxHelpInfo.bGui.setName("Devices Info");
+		boxHelpInfo.setTitle("DEVICES INFO");
+		boxHelpInfo.setFontSize(8);
+		boxHelpInfo.setFontTitleSize(11);
+		boxHelpInfo.setup();
 
 		// Plot boxes
 
@@ -305,7 +305,7 @@ private:
 		params_Gui.add(bGui_Out);
 		params_Gui.add(bGui_PlotsPanel);
 		params_Gui.add(bGui_Internal);
-		params_Gui.add(textBoxWidget.bGui);
+		params_Gui.add(boxHelpInfo.bGui);
 		params_Gui.add(guiManager.bMinimize);
 
 		params_Control.add(params_Gui);
@@ -371,8 +371,10 @@ private:
 		params_PlotsWaveform.add(bGui_PlotIn);
 		params_PlotsWaveform.add(bGui_PlotOut);
 		params_PlotsWaveform.add(W_Gain);
+		params_PlotsWaveform.add(W_Alpha);
 		params_PlotsWaveform.add(W_Spread);
 		params_PlotsWaveform.add(W_bAbs);
+		//params_PlotsWaveform.add(W_bBottom);
 		params_PlotsWaveform.add(W_bLine);
 		params_PlotsWaveform.add(W_bBars);
 		params_PlotsWaveform.add(W_bCircle);
@@ -516,7 +518,9 @@ private:
 	ofParameter<bool> bGui_PlotOut{ "Plot Out", false };
 
 	ofParameter<bool> W_bAbs{ "Abs", true };
+	ofParameter<bool> W_bBottom{ "Bottom", false };
 	ofParameter<float> W_Spread{ "Spread", 0, 0, 1 };
+	ofParameter<float> W_Alpha{ "Alpha", 0.5, 0, 1 };
 	ofParameter<float> W_Gain{ "Gain", 0, -1, 1 };
 	ofParameter<bool> W_bBars{ "Bars", false };
 	ofParameter<bool> W_bCircle{ "Circle", false };
@@ -543,7 +547,7 @@ private:
 
 	ofxSurfing_ImGui_Manager guiManager;
 
-	ofxSurfingBoxHelpText textBoxWidget;
+	ofxSurfingBoxHelpText boxHelpInfo;
 
 	ofxSurfingBoxInteractive boxPlotIn;
 	ofxSurfingBoxInteractive boxPlotOut;
@@ -848,7 +852,7 @@ private:
 		guiManager.begin();
 		{
 			//guiManager.drawWindowsSpecialsOrganizer();
-			guiManager.drawWindowsSpecialsOrganizer();
+			//guiManager.drawWindowsSpecialsOrganizer();
 
 			//--
 
@@ -856,9 +860,7 @@ private:
 
 			if (guiManager.beginWindowSpecial(bGui_Main))
 			{
-
-				guiManager.Add(guiManager.bGui_WindowsAlignHelpers, OFX_IM_TOGGLE_ROUNDED);
-				guiManager.Add(guiManager.getWindowsAlignHelpersGuiToggle(), OFX_IM_TOGGLE_ROUNDED);
+				//guiManager.Add(guiManager.getWindowsSpecialsGuiToggleAllGlobal(), OFX_IM_TOGGLE_ROUNDED);
 
 				guiManager.Add(guiManager.bMinimize, OFX_IM_TOGGLE_ROUNDED);
 				guiManager.AddSpacing();
@@ -883,7 +885,7 @@ private:
 				if (!guiManager.bMinimize)
 				{
 					guiManager.AddSpacingSeparated();
-					guiManager.Add(textBoxWidget.bGui, OFX_IM_TOGGLE_ROUNDED);
+					guiManager.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED);
 					guiManager.AddSpacingSeparated();
 				}
 
@@ -946,7 +948,7 @@ private:
 					}
 				guiManager.AddSpacingSeparated();
 
-				guiManager.Add(W_Gain, OFX_IM_SLIDER);
+				guiManager.Add(W_Gain, OFX_IM_HSLIDER);
 				guiManager.AddSpacingSeparated();
 
 				guiManager.AddLabelBig("Plot Style");
@@ -965,17 +967,17 @@ private:
 				guiManager.AddCombo(plotType, plotTypeNames);
 				//guiManager.AddSpacing();
 
-				guiManager.AddSpacingSeparated();
 
-				if (!guiManager.bMinimize)
+				if (!guiManager.bMinimize) {
+					guiManager.AddSpacingSeparated();
 					if (guiManager.beginTree("EDIT"))
 					{
 						if (!guiManager.bMinimize) {
 
+							guiManager.AddSpacing();
 							guiManager.Add(W_bLine, OFX_IM_TOGGLE_ROUNDED_MINI);
 							guiManager.Add(W_bBars, OFX_IM_TOGGLE_ROUNDED_MINI);
 							guiManager.Add(W_bCircle, OFX_IM_TOGGLE_ROUNDED_MINI);
-
 							guiManager.AddSpacingSeparated();
 						}
 
@@ -994,13 +996,16 @@ private:
 							}
 
 							guiManager.AddSpacing();
+							guiManager.Add(W_Alpha);
+
+							guiManager.AddSpacing();
 
 							if (plotType == 0)//scope
 							{
 								guiManager.Add(W_LineWidthScope, OFX_IM_STEPPER);
 							}
 
-							if (plotType == 1)//lines
+							if (plotType == 1||W_bLine)//lines
 							{
 								guiManager.Add(W_LineWidthLines, OFX_IM_STEPPER);
 							}
@@ -1008,6 +1013,7 @@ private:
 							guiManager.AddSpacing();
 
 							guiManager.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
+							//guiManager.Add(W_bBottom, OFX_IM_TOGGLE_ROUNDED_MINI);
 
 							if (plotType != 0)//scope
 								guiManager.Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
@@ -1022,6 +1028,7 @@ private:
 
 						guiManager.endTree();
 					}
+				}
 
 				guiManager.endWindowSpecial();
 			}
@@ -1044,7 +1051,7 @@ public:
 
 			if (bGui_Internal) gui.draw();
 
-			textBoxWidget.draw();
+			boxHelpInfo.draw();
 		}
 	}
 
@@ -1094,6 +1101,8 @@ private:
 	//--------------------------------------------------------------
 	void buildHelpInfo()
 	{
+		if (!boxHelpInfo.bGui) return;//avoid refresh devices if hidden
+
 		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
 
 		//TODO:
@@ -1202,7 +1211,7 @@ private:
 
 		//--
 
-		textBoxWidget.setText(helpInfo);
+		boxHelpInfo.setText(helpInfo);
 	}
 
 public:
@@ -1211,7 +1220,7 @@ public:
 	void setPath(string p) {
 		pathGlobal = p;
 
-		textBoxWidget.setPath(pathGlobal);
+		boxHelpInfo.setPath(pathGlobal);
 
 		boxPlotIn.setPathGlobal(pathGlobal);
 		boxPlotOut.setPathGlobal(pathGlobal);
@@ -1249,6 +1258,8 @@ private:
 		guiManager.addWindowSpecial(bGui_PlotsPanel);
 
 		guiManager.startup();
+
+		guiManager.setWindowsSpecialsOrientation(true);
 	}
 
 	//--------------------------------------------------------------
@@ -1295,18 +1306,21 @@ private:
 
 private:
 
+	//TODO:
+	float smoothedVolume_Input = 0; // rms signal to use on VU
+	float smoothedVolume_Out = 0; // rms signal to use on VU
+
 	bool bUpdateHelp = false;
 
+//#define SIZE_BUFFER 10000
 #define SIZE_BUFFER 4096
+//#define SIZE_BUFFER 1024
 
 	float plotIn[SIZE_BUFFER]; // make this bigger, just in case
 	float plotOut[SIZE_BUFFER]; // make this bigger, just in case
 
 	int indexIn = 0;
 	int indexOut = 0;
-
-	//float smoothedVolume_Input = 0; // rms signal to use on VU
-	//float smoothedVolume_Out = 0; // rms signal to use on VU
 
 	ofParameter<int> plotType{ "Type", 0, 0, 3 };
 	vector<string>plotTypeNames = { "Scope", "Lines", "Bars" , "Circles" };
@@ -1349,15 +1363,26 @@ private:
 				int __h = boxPlotIn.getHeight();
 				int __y = boxPlotIn.getY() + __h / 2;
 
+				// Bg plot
 				ofSetColor(cPlotBg);
 				ofFill();
 				ofDrawRectangle(boxPlotIn.getRectangle());
+		
+				//--
+
+				//ofSetColor(cPlot);
+				
+				// color
+				int _a = ofMap(W_Alpha, 0, 1, 100, 255);
+				ofColor _c = ofColor(cPlot, _a);
+				ofSetColor(_c);
 
 				ofPushMatrix();
 				ofTranslate(__x, __y);
 
 				//--
 
+				//TODO:WIP
 				if (bUseFbo)
 					if (bUpdateFbo)
 					{
@@ -1366,9 +1391,8 @@ private:
 						ofClear(0, 0, 0, 0);
 					}
 
-				//--
 
-				ofSetColor(cPlot);
+				//--
 
 				// 0. Scope
 
@@ -1376,6 +1400,11 @@ private:
 				{
 					ofNoFill();
 					ofSetLineWidth(W_LineWidthScope);
+					
+					//// color
+					//int _a = ofMap(W_Alpha, 0, 1, 100, 255);
+					//ofColor _c = ofColor(cPlot, _a);
+					//ofSetColor(_c);
 
 					float a = __h * g;//amp gain
 
@@ -1410,38 +1439,60 @@ private:
 
 					float a = __h * g;//amp gain
 
-					//amount of desired lines or rectangles
+					// amount of desired lines or rectangles
 					int amount = (int)ofMap(W_Spread, 0, 1, 200, 6, true);
 
-					int stepi = SIZE_BUFFER / amount;
+					int stepi = SIZE_BUFFER / amount;//it step
 					float stepw = __w / (float)amount;//width of each
 
 					int ii = -1;
 
 					for (int i = 0; i < SIZE_BUFFER; i++)
 					{
+						/*
+						if (i > amount) continue;//skip
+						ii = i;
+						*/
+
+						
 						// will discard some samples
 						if (i % stepi == 0)
 						{
 							ii++;
 						}
 						else continue;//skip it
+						
+
+						//--
+
+						ofPushMatrix();
 
 						// The raw point to draw
 						int x = ii * stepw;
 						int y = plotIn[ii] * a;
 
+						float __hf = __h / 2;
+
 						//----
+
+						// fix clamp 
+						//if (W_bMirror)
+						{
+							if (y < 0) y = (int)ofClamp(y, -__hf, 0);
+							else y = (int)ofClamp(y, 0, __hf);
+						}
 
 						if (W_bAbs) y = abs(y);
 
-						// fix clamp y and translate for mirror mode
+						//if (W_bBottom) 
+						//{
+						//	ofTranslate(0, __hf);
+						//}
+
+
+						// translate for mirror mode. center to x axis
 						if (W_bMirror && !W_bCircle)
 						{
-							if (y < 0) y = (int)ofClamp(y, 0, -__h);
-							else y = (int)ofClamp(y, 0, __h);
-
-							ofPushMatrix();
 							ofTranslate(0, y / 2);
 						}
 
@@ -1459,19 +1510,24 @@ private:
 
 						//--
 
-						// clamp y
-
-						y = (int)ofClamp(y, -__h / 2, __h / 2);
+						//// clamp y
+						//y = (int)ofClamp(y, -__hf, __hf);
 
 						//--
+
+						//// color
+						//int _a = ofMap(abs(y), 0, __hf, MIN(70, W_Alpha * 100), MIN(70, W_Alpha * 255));
+						//ofColor _c = ofColor(cPlot, _a);
+						//ofSetColor(_c);
 
 						// A. Line
 						if (W_bLine)
 						{
 							//x = (int)ofClamp(x, px, __w - px);
-							if (x > 0 && x < __w) // do or skip if it's outside 
+							if (x > px && x < __w - px) // do or skip if it's outside 
 							{
 								ofNoFill();
+
 								ofDrawLine(x, 0, x, -y);
 							}
 						}
@@ -1480,10 +1536,11 @@ private:
 						if (W_bBars)
 						{
 							ofFill();
+
 							int wr = ofMap(W_Width, 0, 1, 4, stepw, true);
 							int xr = x - wr / 2;
-							x = (int)ofClamp(xr, px, __w - px);
-							//if (xr > wr && x < (__w - wr)) // do or skip if it's outside 
+							//xr = (int)ofClamp(xr, px, __w - wr - px);
+							if (xr > wr && x < (__w - wr)) // do or skip if it's outside 
 							{
 								if (W_Rounded != 0)ofDrawRectRounded(xr, 0, wr, -y, wr * W_Rounded);
 								else ofDrawRectangle(xr, 0, wr, -y);
@@ -1493,18 +1550,21 @@ private:
 						// C. Circle 
 						if (W_bCircle)
 						{
-							float r = ofMap(W_Width, 0, 1, MAX(2, y * 0.05), y * 1, true);
+							float r = ofMap(W_Width, 0, 1, y * 0.05, y * 1.0, false);
+							//float r = ofMap(W_Width, 0, 1, MAX(2, y * 0.05), y * 0.7, false);
 							if (x > r && x < (__w - r)) // do or skip if it's outside
 							{
 								ofFill();
+
 								ofDrawCircle(x, 0, r);
 							}
 						}
 
-						if (W_bMirror && !W_bCircle)
-						{
-							ofPopMatrix();
-						}
+						//if (W_bMirror && !W_bCircle)
+						//{
+						//}
+
+						ofPopMatrix();
 					}
 				}
 
@@ -1631,7 +1691,8 @@ public:
 
 			for (size_t i = 0; i < input.getNumFrames(); i++)
 			{
-				plotIn[indexIn] = input[i * nChannels] * getVolumeInput();
+				////plotIn[indexIn] = input[i * nChannels] * getVolumeInput();
+				plotIn[indexIn] = input[i * nChannels];
 
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
@@ -1664,7 +1725,7 @@ public:
 			_rms /= (float)_count;
 			_rms = sqrt(_rms);
 
-			//smoothedVolume_Input = _rms * deviceIn_Volume;
+			smoothedVolume_Input = _rms * deviceIn_Volume;
 		}
 
 		// not enabled: 
@@ -1886,7 +1947,7 @@ private:
 		W_Spread = 0;
 		W_Width = 0.5;
 		W_Gain = 0;
-		W_bHLine = false;
+		W_bHLine = true;
 		W_bLine = true;
 		W_bBars = false;
 		W_bCircle = false;
