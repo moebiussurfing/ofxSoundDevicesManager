@@ -61,9 +61,10 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self. look othe
 - **Windows10** / **VS2017** / **OF 0.11+**
 
 ### TODO/IDEAS
-* Make it https://github.com/roymacdonald/ofxSoundObjects compatible.  
+* Make it https://github.com/roymacdonald/ofxSoundObjects compatible.
+* Or merge from https://github.com/roymacdonald/ofxSoundDeviceManager. 
 * Make it macOS compatible.
-* Improve setting using port name instead of port numbers.
+* Improve setting using Port Name instead of Port Numbers.
 
 ### NOTES
 * Would crash when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app or by hardcoding devices. 
