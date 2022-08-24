@@ -4,9 +4,9 @@
 **openFrameworks** add-on to easily handle selected system sound devices and plot signal waveform.  
 
 **WORK IN PROGRESS**
-- ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs.
-- USING MS DIRECTSHOW. ASIO OR WASAPI NO TESTED BUT COULD WORK.
-- CURRENTLY USING ONLY INPUT. INTENDED TO BE USED ON AN AUDIO ANALYZER.
+- ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
+- USING MS DIRECTSHOW. ASIO OR WASAPI NO TESTED BUT SHOULD WORK.
+- CURRENTLY USING ONLY INPUT. INTENDED TO BE USED ON AN AUDIO ANALYZER YET.
 
 ## Screenshot
 
@@ -50,14 +50,14 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self. look othe
 */
 ```
 
-### DEPENDENCIES
-- ofxGui / Optional
-- ofxSurfingImGui
-- ofxImGui / Fork
-- ofxSurfingBox
-- ofxSurfingHelpers
+### Dependencies
+* [ofxSurfingHelpers](https://github.com/moebiussurfing/ofxSurfingHelpers)
+* [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
+* [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
+* [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
+* ofxGui (_Core_) / Optional
 
-### Tested systems
+### Tested Systems
 - **Windows10** / **VS2017** / **OF 0.11+**
 
 ### TODO/IDEAS
