@@ -2,15 +2,10 @@
 
 #include "ofMain.h"
 
-#define USE_ofxWindowApp	
-
 //--
 
-#ifdef USE_ofxWindowApp
-#include "ofxWindowApp.h"
-#endif
-
 #include "ofxSoundDevicesManager.h"
+#include "ofxWindowApp.h"
 
 class ofApp : public ofBaseApp
 {
@@ -20,21 +15,11 @@ class ofApp : public ofBaseApp
 		void draw();
 		void keyPressed(int key);
 		
-		//--
-
 		ofxSoundDevicesManager audioDevices;
-
+		void audioIn(ofSoundBuffer& input) override;
 		int sampleRate;
 		int bufferSize;
 		int numBuffers;
-
-		void audioIn(ofSoundBuffer& input) override;
-		void audioOut(ofSoundBuffer& output) override;
 		
-		//--
-
-#ifdef USE_ofxWindowApp
-		ofxWindowApp windowApp;
-#endif
-
+		ofxWindowApp w;
 };

@@ -1,6 +1,5 @@
 #include "ofApp.h"
 
-
 //--------------------------------------------------------------
 void ofApp::setup()
 {
@@ -8,7 +7,6 @@ void ofApp::setup()
 	bufferSize = 512;
 	numBuffers = 4;
 
-	audioDevices.setPath("ofApp/");
 	audioDevices.setup(sampleRate, bufferSize, numBuffers);
 }
 
@@ -24,15 +22,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 }
 
 //--------------------------------------------------------------
-void ofApp::audioOut(ofSoundBuffer& output) {
-	audioDevices.audioOut(output);
-}
-
-//--------------------------------------------------------------
 void ofApp::keyPressed(int key)
 {
-	if (key == 'g')
-	{
-		audioDevices.setVisibleToggle();
-	}
+	if (key == 'g') audioDevices.setVisibleToggle();
 }
