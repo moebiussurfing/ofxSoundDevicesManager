@@ -4,6 +4,10 @@
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
+#include "SurfPresets.h"
+#include "imgui_stdlib.h"
+
+//--
 
 #define SOUND_DEVICES_DISABLE_OUTPUT
 
@@ -18,7 +22,7 @@ public:
 
 	WaveformPlot()
 	{
-		// font text
+		// Font label text
 		size_TTF = 11;
 		name_TTF = "JetBrainsMonoNL-ExtraBold.ttf";
 		string pathRoot = "assets/fonts/";
@@ -38,6 +42,8 @@ private:
 
 	ofxSurfingGui ui;
 
+	SurfPresets surfPresets;
+
 private:
 
 	string pathGlobal = "ofxSoundDevicesManager/";
@@ -53,7 +59,7 @@ private:
 	//--
 
 	//TODO: WIP
-//private:
+	//private:
 	//ofFbo fbo;
 	////TODO: WIP
 	//bool bUseFbo = false;
@@ -71,6 +77,8 @@ private:
 	//	}
 	//}
 
+	//--
+
 private:
 
 	ofTrueTypeFont myFont;
@@ -83,6 +91,7 @@ private:
 public:
 
 	ofParameterGroup params_PlotsWaveform;
+	ofParameterGroup params{ "WaveformPlot" };
 
 	ofParameter<bool> bGui_PlotIn{ "Plot In", true };
 	ofParameter<bool> bGui_PlotOut{ "Plot Out", false };
@@ -90,7 +99,8 @@ public:
 public:
 
 	ofParameter<bool> bGui_Plots;
-	ofParameter<bool> bGui_PlotsPanel{ "SOUND PLOTS", false };
+	ofParameter<bool> bGui_PlotsPanel{ "SOUND PLOTS", true };
+	ofParameter<bool> bGui_Settings{ "SETTINGS", false };
 
 	// data arrays
 #define SIZE_BUFFER 4096
@@ -106,15 +116,16 @@ private:
 
 private:
 
-	ofParameter<bool> W_bAbs{ "Abs", true };
-	ofParameter<bool> W_bBottom{ "Bottom", false };
-	ofParameter<float> W_Spread{ "Spread", 0, 0, 1 };
-	ofParameter<float> W_Alpha{ "Alpha", 0.5, 0, 1 };
 	ofParameter<float> W_Gain{ "Gain", 0, -1, 1 };
+	ofParameter<bool> W_bScope{ "Scope", true };
+	ofParameter<bool> W_bLine{ "Line", true };
 	ofParameter<bool> W_bBars{ "Bars", false };
 	ofParameter<bool> W_bCircle{ "Circle", false };
+	ofParameter<float> W_Spread{ "Spread", 0, 0, 1 };
 	ofParameter<float> W_Width{ "Width", 0.5, 0, 1 };
-	ofParameter<bool> W_bLine{ "Line", true };
+	ofParameter<bool> W_bAbs{ "Abs", true };
+	ofParameter<bool> W_bBottom{ "Bottom", false };
+	ofParameter<float> W_Alpha{ "Alpha", 0.5, 0, 1 };
 	ofParameter<bool> W_bHLine{ "H Line", true };
 	ofParameter<bool> W_bTransparent{ "Transparent", true };
 	ofParameter<bool> W_bClamp{ "Clamp", true };
@@ -123,35 +134,34 @@ private:
 	ofParameter<int> W_LineWidthScope{ "L Scope", 3, 1, 10 };
 	ofParameter<int> W_LineWidthLines{ "L Lines", 3, 1, 10 };
 	ofParameter<bool> W_bLabel{ "Label", true };
-	ofParameter<bool> W_bReset{ "Reset", false };
+	ofParameter<void> W_vReset{ "Reset" };
+	//ofParameter<bool> W_bReset{ "Reset", false };
 
 public:
 
-	void setPath(string p) 
+	void setPath(string p)
 	{
 		pathGlobal = p;
 
 		boxPlotIn.setPathGlobal(pathGlobal);
-		
-		//#ifndef SOUND_DEVICES_DISABLE_OUTPUT
-		//		boxPlotOut.setPathGlobal(pathGlobal);
-		//#endif
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 		boxPlotOut.setPathGlobal(pathGlobal);
 #endif
-
-		//ui.setPa
 	}
 
-	void startup() {
+	void startup()
+	{
 		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
 		bDISABLE_CALBACKS = false;
 
 		doReset();
+
+		surfPresets.Load();
 	}
 
-	void update() {
+	void update()
+	{
 		if (boxPlotIn.isChangedShape())
 		{
 			//TODO:
@@ -160,14 +170,13 @@ public:
 		}
 	}
 
-	void setup() 
+	void setup()
 	{
 		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
 
 		// Plot boxes
 
 		ofColor cBg = ofColor(0, 255);
-		//ofColor cPlotBg = ofColor(ofColor::yellow, 200);
 
 		boxPlotIn.setUseBorder(true);
 		boxPlotIn.setBorderColor(cBg);
@@ -186,25 +195,22 @@ public:
 
 		// Waveform
 
-		W_bLine.setSerializable(false);
-		W_bBars.setSerializable(false);
-		W_bCircle.setSerializable(false);
-
 		bGui_Plots.set("Plots", true);
 
 		params_PlotsWaveform.setName("PLOTS WAVEFORM");
-		params_PlotsWaveform.add(bGui_PlotIn);
-		params_PlotsWaveform.add(bGui_PlotOut);
+
+		params_PlotsWaveform.add(W_bScope);
+		params_PlotsWaveform.add(W_bLine);
+		params_PlotsWaveform.add(W_bBars);
+		params_PlotsWaveform.add(W_bCircle);
+
 		params_PlotsWaveform.add(W_Gain);
 		params_PlotsWaveform.add(W_Alpha);
 		params_PlotsWaveform.add(W_Spread);
 		params_PlotsWaveform.add(W_bAbs);
-		//params_PlotsWaveform.add(W_bBottom);
-		params_PlotsWaveform.add(W_bLine);
-		params_PlotsWaveform.add(W_bBars);
-		params_PlotsWaveform.add(W_bCircle);
 		params_PlotsWaveform.add(W_bHLine);
 		params_PlotsWaveform.add(W_bTransparent);
+		params_PlotsWaveform.add(boxPlotIn.bUseBorder);
 		params_PlotsWaveform.add(W_bClamp);
 		params_PlotsWaveform.add(W_bLabel);
 		params_PlotsWaveform.add(W_LineWidthScope);
@@ -212,12 +218,45 @@ public:
 		params_PlotsWaveform.add(W_Rounded);
 		params_PlotsWaveform.add(W_bMirror);
 		params_PlotsWaveform.add(W_Width);
-		params_PlotsWaveform.add(W_bReset);
-		params_PlotsWaveform.add(plotType);
+		//params_PlotsWaveform.add(W_bBottom);
+
+		//params_PlotsWaveform.add(plotType);
+
+		plotType.setSerializable(false);
 
 		ofAddListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
-	
+
+		//--
+
+		surfPresets.setPath(pathGlobal);
+		surfPresets.AddGroup(params_PlotsWaveform);
+
+		W_vReset.makeReferenceTo(surfPresets.vReset);
+
+		//--
+
+		// Gui
 		ui.setName("WaveformPlot");
+		ui.setWindowsMode(IM_GUI_MODE_WINDOWS_SPECIAL_ORGANIZER);
+		ui.setup();
+
+		ui.addWindowSpecial(bGui_PlotsPanel);
+		ui.addWindowSpecial(bGui_Settings);
+		
+		ui.startup();
+
+		//--
+
+		//TODO:
+		params.add(bGui_PlotsPanel);
+		params.add(bGui_Settings);
+		params.add(bGui_PlotIn);
+		params.add(bGui_PlotOut);
+		params.add(W_vReset);
+
+		ofAddListener(params.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
+
+		//--
 
 		//TODO:
 		//initFbo();
@@ -229,10 +268,12 @@ public:
 		{
 			// Plots
 
-			if (ui.BeginWindow(bGui_PlotsPanel))
-			//if (ui.BeginWindowSpecial(bGui_PlotsPanel))
+			if (ui.BeginWindowSpecial(bGui_PlotsPanel))
 			{
-				ui.Add(bGui_PlotIn, OFX_IM_TOGGLE_ROUNDED);
+				ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
+
+				if (!ui.bMinimize) ui.Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				ui.Add(bGui_PlotIn, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				if (bGui_PlotIn)
 					if (!ui.bMinimize) {
 						ui.Indent();
@@ -255,13 +296,56 @@ public:
 
 				ui.AddSpacingSeparated();
 
-				ui.Add(W_Gain, OFX_IM_HSLIDER_MINI_NO_NUMBER);
+				ui.AddLabelHuge("Plot Style", true);
+				ui.AddSpacing();
+
+				//--
+
+				// Presets
+				//TODO:
+				static std::string _namePreset = "";
+				static std::string s = "name";
+				static bool bInputText = false;
+
+				ui.AddLabelBig("Presets", true, true);
+
+				ui.Add(surfPresets.vLoad, OFX_IM_BUTTON_SMALL, 2, true);
+
+				if (ui.Add(surfPresets.vSave, OFX_IM_BUTTON_SMALL, 2)) {
+					bInputText = false;
+					_namePreset = s;
+				};
+
+				if (ui.Add(surfPresets.vNew, OFX_IM_BUTTON_SMALL, 2, true)) {
+					if (!bInputText) bInputText = true;
+					_namePreset = "";
+				};
+
+				ui.Add(surfPresets.vReset, OFX_IM_BUTTON_SMALL, 2);
+
+				ui.AddSpacing();
+
+				if (bInputText)
+				{
+					int _w = ui.getWidgetsWidth() * 0.9f;
+					ImGui::PushItemWidth(_w);
+					{
+						bool b = ImGui::InputText("##NAME", &s);
+						if (b) ofLogNotice("WaveformPlot") << "InputText:" << s.c_str();
+					}
+					ImGui::PopItemWidth();
+				}
+
+				// preset name
+				if (_namePreset != "") ui.AddLabelHuge(_namePreset.c_str());
+
+				//--
+
 				ui.AddSpacingSeparated();
 
-				ui.AddLabelBig("Plot Style");
+				ui.AddLabelBig("Predefined", true);
 
-				// type
-
+				// Predefined Styles type
 				if (ui.AddButton("<", OFX_IM_BUTTON_SMALL, 2, true)) {
 					if (plotType == plotType.getMin()) plotType = plotType.getMax();
 					else plotType = plotType - 1;
@@ -274,78 +358,57 @@ public:
 				ui.AddCombo(plotType, plotTypeNames);
 				//ui.AddSpacing();
 
-				if (!ui.bMinimize) {
-					ui.AddSpacingSeparated();
-					if (ui.BeginTree("EDIT"))
+				ui.EndWindowSpecial();
+			}
+
+			//--
+
+			// Settings
+
+			if (!ui.bMinimize)
+			{
+				if (ui.BeginWindowSpecial(bGui_Settings))
+				{
+					//if (ui.BeginTree("EDIT"))
 					{
-						if (!ui.bMinimize) {
+						ui.Add(W_Gain, OFX_IM_HSLIDER_MINI);
+						ui.AddSpacingSeparated(); 
+						ui.AddSpacing();
+						ui.Add(W_bScope, OFX_IM_TOGGLE_SMALL);
+						ui.Add(W_bLine, OFX_IM_TOGGLE_SMALL);
+						ui.Add(W_bBars, OFX_IM_TOGGLE_SMALL);
+						ui.Add(W_bCircle, OFX_IM_TOGGLE_SMALL);
+						ui.AddSpacingSeparated();
+						ui.Add(W_Spread);
+						ui.Add(W_Width);
+						ui.AddSpacing();
+						ui.Add(W_Alpha);
+						ui.Add(W_Rounded);
+						if (W_bScope) ui.Add(W_LineWidthScope, OFX_IM_STEPPER);
+						if (W_bLine) ui.Add(W_LineWidthLines, OFX_IM_STEPPER);
+						ui.AddSpacing();
+						ui.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.AddSpacing();
+						ui.Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.AddSpacing();
+						ui.Add(W_bClamp, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.AddSpacing();
+						ui.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
 
-							ui.AddSpacing();
-							ui.Add(W_bLine, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bBars, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bCircle, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.AddSpacingSeparated();
-						}
-
-						if (!ui.bMinimize) {
-
-							if (plotType == 1)//lines
-							{
-								ui.Add(W_Spread);
-							}
-
-							if (plotType == 2 || plotType == 3)//bars, circles
-							{
-								ui.Add(W_Spread);
-								ui.Add(W_Width);
-								ui.Add(W_Rounded);
-							}
-
-							ui.AddSpacing();
-							ui.Add(W_Alpha);
-
-							ui.AddSpacing();
-
-							if (plotType == 0)//scope
-							{
-								ui.Add(W_LineWidthScope, OFX_IM_STEPPER);
-							}
-
-							if (plotType == 1 || W_bLine)//lines
-							{
-								ui.Add(W_LineWidthLines, OFX_IM_STEPPER);
-							}
-
-							ui.AddSpacing();
-
-							ui.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
-							//ui.Add(W_bBottom, OFX_IM_TOGGLE_ROUNDED_MINI);
-
-							if (plotType != 0)//scope
-								ui.Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
-
-							ui.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bClamp, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
-
-							ui.AddSpacingSeparated();
-
-							ui.Add(W_bReset, OFX_IM_BUTTON_SMALL);
-						}
-
-						ui.EndTree();
+						//ui.EndTree();
 					}
-				}
 
-				ui.EndWindow();
-				//ui.EndWindowSpecial();
+					ui.EndWindowSpecial();
+				}
 			}
 		}
 		ui.End();
 	}
 
-	void draw() 
+	void draw()
 	{
 		if (!bGui_Plots) return;
 
@@ -356,8 +419,6 @@ public:
 		if (bGui_Plots) drawPlots();
 	};
 
-	// Legacy
-	//void drawWaveforms() { drawPlots(); }
 
 	//--------------------------------------------------------------
 	void drawPlots()
@@ -401,7 +462,7 @@ public:
 				//ofSetColor(cPlot);
 
 				// color
-				int _a = ofMap(W_Alpha, 0, 1, 100, 255);
+				int _a = ofMap(W_Alpha, 0, 1, 0, 255);
 				ofColor _c = ofColor(cPlot, _a);
 				ofSetColor(_c);
 
@@ -424,7 +485,8 @@ public:
 
 				// 0. Scope
 
-				if (plotType == 0)
+				//if (plotType == 0)
+				if (W_bScope)
 				{
 					ofNoFill();
 					ofSetLineWidth(W_LineWidthScope);
@@ -460,7 +522,7 @@ public:
 				// 123 Lines / Bars / Circles types 
 
 				//if (plotType == 1 || plotType == 2 || plotType == 3)
-				else
+				//else
 				{
 					ofNoFill();
 					ofSetLineWidth(W_LineWidthLines);
@@ -507,8 +569,9 @@ public:
 						//if (W_bMirror)
 						if (W_bClamp)
 						{
-							if (y < 0) y = (int)ofClamp(y, -__hf, 0);
-							else y = (int)ofClamp(y, 0, __hf);
+							float __g = 2.f;
+							if (y < 0) y = (int)ofClamp(y, -__hf * __g, 0);
+							else y = (int)ofClamp(y, 0, __hf * __g);
 						}
 
 						if (W_bAbs) y = abs(y);
@@ -610,7 +673,8 @@ public:
 
 				//--
 
-				// label
+				// Label
+
 				if (W_bLabel)
 				{
 					string s = "INPUT";
@@ -737,11 +801,16 @@ public:
 
 		if (0) {}
 
-		else if (name == W_bReset.getName() && W_bReset)
+		else if (name == W_vReset.getName())
 		{
-			W_bReset = false;
 			doReset();
 		}
+
+		//else if (name == W_Reset.getName() && W_bReset)
+		//{
+		//	W_bReset = false;
+		//	doReset();
+		//}
 
 		//--
 
@@ -808,4 +877,4 @@ public:
 		}
 		*/
 	}
-};
+			};

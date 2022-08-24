@@ -37,21 +37,26 @@
 
 #include "ofMain.h"
 
-
-#define SOUND_DEVICES_DISABLE_OUTPUT //TODO: Must be duplicated to WaveformPlot.h
-
 //-----------------------
 
-//TODO: WIP		
+// OPTIONAL
+
+#define USE_WAVEFORM_PLOTS
+
+#define SOUND_DEVICES_DISABLE_OUTPUT 
+//TODO: Must be duplicated to WaveformPlot.h. Must edit on both places!
+
+
+//TODO: WIP:
 #define USE_ofBaseApp_Pointer
 //enabled: add-on class uses a passed by reference ofBaseApp pointer. 
 //disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/out callbacks..
 
-//#define USE_WAVEFORM_PLOTS
 
-//#define USE_OFXGUI_INTERNAL 
+//#define USE_OFXGUI_INTERNAL // ofxGui internal debug or split from ImGui..
 
 //-----------------------
+
 
 #ifdef USE_OFXGUI_INTERNAL 
 #include "ofxGui.h"
@@ -88,8 +93,6 @@ public:
 	//--------------------------------------------------------------
 	ofxSoundDevicesManager()
 	{
-		//--
-
 		// Default audio settings
 
 		// Internal default
@@ -873,6 +876,7 @@ private:
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
+
 #ifdef USE_WAVEFORM_PLOTS
 					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
 #endif
@@ -885,6 +889,7 @@ private:
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
+
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
 					ui.Add(waveformPlot.bGui_PlotsPanel, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
@@ -894,7 +899,10 @@ private:
 #endif
 					ui.AddSpacingSeparated();
 					ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED);
-					//ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+#ifdef USE_OFXGUI_INTERNAL 
+					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
+#endif
 				}
 
 				ui.EndWindowSpecial();
