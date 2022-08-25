@@ -18,7 +18,9 @@
 - **Enable/Bypass** & available **Gain Sliders**.
 - Display **list devices** from all sound APIs: **DS/ASIO/WASAPI**. 
 - **WIP** Class for waveform plotting using different styles.
-- Plot preview **waveforms** and **VU meters**.
+- Plot preview **waveforms** and **VU meters**. 
+- Scalable and draggable layout.
+- Styles editor (WIP).
 
 ## Usage
  
