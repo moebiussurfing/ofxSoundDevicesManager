@@ -222,7 +222,7 @@ public:
 		ApiNames.push_back("MS_ASIO"); // 1
 		ApiNames.push_back("MS_DS"); // 2
 
-		//-
+		//--
 
 		// Internal Gui
 
