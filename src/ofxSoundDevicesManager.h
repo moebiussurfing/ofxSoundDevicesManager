@@ -887,15 +887,17 @@ private:
 				{
 					ui.AddCombo(apiIndex_Windows, ApiNames);
 					ui.AddSpacingSeparated();
+
 					ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
+					//-
 
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
-					//ui.Add(waveformPlot.bGui_PlotsPanel, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+					//ui.Add(waveformPlot.bGui_PlotsPanel, OFX_IM_TOGGLE_ROUNDED);
 					ui.Indent();
 					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
 					ui.Unindent();
@@ -960,7 +962,9 @@ public:
 		}
 
 #ifdef USE_WAVEFORM_PLOTS
-		waveformPlot.draw();
+		//if(bGui && bGui_Main) waveformPlot.draw();
+		if (bGui) waveformPlot.drawImGui();
+		waveformPlot.drawPlots();
 #endif
 	}
 
@@ -1199,8 +1203,8 @@ private:
 
 		ui.startup();
 
-		//// vertical
-		//ui.setWindowsSpecialsOrientation(true);
+		// stack windows vertically
+		ui.setWindowsSpecialsOrientation(true);
 	}
 
 	////--------------------------------------------------------------

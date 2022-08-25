@@ -13,7 +13,7 @@
 
 //--
 
-#define AMP_GAIN_MAX_POWER 15 /// for plots drawing
+#define AMP_GAIN_MAX_POWER 10 /// for plots drawing
 
 class WaveformPlot
 {
@@ -48,7 +48,7 @@ private:
 public:
 
 	/*
-	* 
+	*
 	void makeWaveformMesh(ofSoundBuffer buffer)
 	{
 		if (buffer.size() > 0) {
@@ -88,7 +88,7 @@ public:
 			}
 		}
 	};
-	
+
 	*/
 
 	//--
@@ -146,7 +146,7 @@ public:
 	ofParameterGroup params_PlotsWaveform;
 	ofParameterGroup params{ "WaveformPlot" };
 
-	ofParameter<bool> bGui{ "SOUND PLOTS", true };;
+	ofParameter<bool> bGui{ "WAVEFORM", true };;
 	ofParameter<bool> bGui_PlotIn{ "Plot In", true };
 	ofParameter<bool> bGui_PlotOut{ "Plot Out", false };
 
@@ -184,6 +184,7 @@ private:
 	ofParameter<bool> W_bHLine{ "H Line", true };
 	ofParameter<bool> W_bTransparent{ "Transparent", true };
 	ofParameter<bool> W_bClamp{ "Clamp", true };
+	ofParameter<bool> W_bClampItems{ "ClampItems", true };
 	ofParameter<bool> W_bMirror{ "Mirror", false };
 	ofParameter<float> W_Rounded{ "Rounded", 0, 0, 1 };
 	ofParameter<int> W_LineWidthScope{ "L Scope", 3, 1, 10 };
@@ -250,7 +251,7 @@ public:
 
 		// Waveform
 
-		bGui_Plots.set("Plots", true);
+		bGui_Plots.set("Plot Signals", true);
 
 		params_PlotsWaveform.setName("PLOTS WAVEFORM");
 		params_PlotsWaveform.add(W_bScope);
@@ -265,14 +266,15 @@ public:
 		params_PlotsWaveform.add(W_bTransparent);
 		params_PlotsWaveform.add(boxPlotIn.bUseBorder);
 		params_PlotsWaveform.add(W_bClamp);
-		params_PlotsWaveform.add(W_bLabel);
+		params_PlotsWaveform.add(W_bClampItems);
 		params_PlotsWaveform.add(W_LineWidthScope);
 		params_PlotsWaveform.add(W_LineWidthLines);
 		params_PlotsWaveform.add(W_Rounded);
 		params_PlotsWaveform.add(W_bMirror);
 		params_PlotsWaveform.add(W_WidthRad);
 		params_PlotsWaveform.add(W_WidthMin);
-		//params_PlotsWaveform.add(W_bBottom);
+		params_PlotsWaveform.add(W_bBottom);
+		params_PlotsWaveform.add(W_bLabel);
 
 		//params_PlotsWaveform.add(plotType);
 
@@ -303,6 +305,7 @@ public:
 		//--
 
 		//TODO:
+		params.add(bGui);
 		params.add(bGui_PlotsPanel);
 		params.add(bGui_Settings);
 		params.add(bGui_PlotIn);
@@ -310,6 +313,9 @@ public:
 		params.add(W_vReset);
 
 		ofAddListener(params.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
+
+		//TODO:
+		boxPlotIn.bGui.makeReferenceTo(bGui_PlotIn);
 
 		//--
 
@@ -328,8 +334,10 @@ public:
 			if (ui.BeginWindowSpecial(bGui_PlotsPanel))
 			{
 				ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
+				ui.AddSpacingSeparated();
+				/*if (!ui.bMinimize)*/ ui.Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				ui.AddSpacingSeparated();
 
-				if (!ui.bMinimize) ui.Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				ui.Add(bGui_PlotIn, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				if (bGui_PlotIn)
 					if (!ui.bMinimize) {
@@ -425,7 +433,7 @@ public:
 
 			// Settings
 
-			if (!ui.bMinimize)
+			//if (!ui.bMinimize)
 			{
 				if (ui.BeginWindowSpecial(bGui_Settings))
 				{
@@ -439,26 +447,31 @@ public:
 					ui.AddSpacingSeparated();
 					ui.Add(W_Spread);
 					if (W_bCircle || W_bBars) ui.Add(W_WidthRad);
-					if(W_bCircle) ui.Add(W_WidthMin);
+					if (W_bCircle || W_bBars || W_bLine) ui.Add(W_WidthMin);
 					ui.AddSpacing();
 					ui.Add(W_Alpha);
-					ui.Add(W_Rounded);
+					if (W_bBars) ui.Add(W_Rounded);
 					if (W_bScope) ui.Add(W_LineWidthScope, OFX_IM_STEPPER);
 					if (W_bLine) ui.Add(W_LineWidthLines, OFX_IM_STEPPER);
-					ui.AddSpacing();
-					if (ui.BeginTree("EXTRA"))
-					{
-						ui.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+					if (!ui.bMinimize) {
 						ui.AddSpacing();
-						ui.Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.AddSpacing();
-						ui.Add(W_bClamp, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.AddSpacing();
-						ui.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.EndTree();
+						if (ui.BeginTree("EXTRA"))
+						{
+							ui.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.AddSpacing();
+							ui.Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.AddSpacing();
+							ui.Add(W_bClamp, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.Add(W_bClampItems, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.Add(W_bBottom, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.AddSpacing();
+							ui.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.EndTree();
+						}
 					}
 
 					ui.EndWindowSpecial();
@@ -468,21 +481,29 @@ public:
 		ui.End();
 	}
 
-	void draw()
-	{
-		if (!bGui_Plots) return;
+	//void draw()
+	//{
+	//	//if (!bGui) return;
+	//	//if (!bGui_Plots) return;
 
-		drawImGui();
+	//	drawImGui();
 
-		//--
+	//	//--
 
-		if (bGui_Plots) drawPlots();
-	};
+	//	if (bGui_Plots) drawPlots();
+	//};
 
 
 	//--------------------------------------------------------------
 	void drawPlots()
 	{
+		if (!bGui_Plots) return;
+
+		//TODO: multiple modes make weird height..
+		// must not overwrite y.
+		// use absolute vars
+
+
 		//if (bUseFbo) fbo.draw(300, 300, 320, 240);
 
 		if (!bGui_PlotIn && !bGui_PlotOut) return;
@@ -546,7 +567,6 @@ public:
 
 				// 0. Scope
 
-				//if (plotType == 0)
 				if (W_bScope)
 				{
 					ofNoFill();
@@ -584,10 +604,7 @@ public:
 
 				//--
 
-				// 123 Lines / Bars / Circles types 
-
-				//if (plotType == 1 || plotType == 2 || plotType == 3)
-				//else
+				// Lines / Bars / Circles types 
 				{
 					ofNoFill();
 					ofSetLineWidth(W_LineWidthLines);
@@ -598,7 +615,7 @@ public:
 					int amount = (int)ofMap(W_Spread, 0, 1, 200, 6, true);
 
 					int stepi = SIZE_BUFFER / amount;//it step
-					float stepw = __w / (float)amount;//width of each
+					float stepw = (__w / (float)amount);//width of each
 
 					int ii = -1;
 
@@ -640,15 +657,15 @@ public:
 
 						if (W_bAbs) y = abs(y);
 
-						//if (W_bBottom) 
-						//{
-						//	ofTranslate(0, __hf);
-						//}
+						if (W_bBottom)
+						{
+							ofTranslate(0, __hf);
+						}
 
 						// translate for mirror mode. center to x axis
 						if (W_bMirror && !W_bCircle)
 						{
-							ofTranslate(0, y / 2);
+							ofTranslate(0, y / 2.f);
 						}
 
 						//--
@@ -679,11 +696,16 @@ public:
 						if (W_bLine)
 						{
 							//x = (int)ofClamp(x, px, __w - px);
-							if (x > px && x < __w - px) // do or skip if it's outside 
+							// do or skip if it's outside 
+							if (!W_bClampItems || (x > px && x < __w - px))
 							{
 								ofNoFill();
 
-								ofDrawLine(x, 0, x, -y);
+								int h = y;
+								float hMin = 10;
+								h = MAX(h, W_WidthMin * hMin);
+
+								ofDrawLine(x, 0, x, -h);
 							}
 						}
 
@@ -692,24 +714,33 @@ public:
 						{
 							ofFill();
 
-							int wr = ofMap(W_WidthRad, 0, 1.f, 4, stepw, true);
+							int gap = 1;
+							int wr = ofMap(W_WidthRad, 0, 1.f, 1, stepw - gap, true);
 							int xr = x - wr / 2;
+
+							int h = y;
+							float hMin = 10;
+							h = MAX(h, W_WidthMin * hMin);
+
 							//xr = (int)ofClamp(xr, px, __w - wr - px);
-							if (xr > wr && x < (__w - wr)) // do or skip if it's outside 
+							// do or skip if it's outside 
+							if (!W_bClampItems || (x > px && x < __w - px))
 							{
-								if (W_Rounded != 0) ofDrawRectRounded(xr, 0, wr, -y, wr * W_Rounded);
-								else ofDrawRectangle(xr, 0, wr, -y);
+								float round = ofMap(W_Rounded, 0, 1, 0, (wr / 2));
+								if (W_Rounded != 0) ofDrawRectRounded(xr, 0, wr, -h, round);
+								else ofDrawRectangle(xr, 0, wr, -h);
 							}
 						}
 
 						// C. Circle 
 						if (W_bCircle)
 						{
-							float r = ofMap(W_WidthRad / 2, 0, 1, 4, y * 1.f, true);
+							float r = ofMap(W_WidthRad / 2.f, 0, 1, 4, y * 1.f, true);
+							float rMin = 5;
+							r = MAX(r, W_WidthMin * rMin);
 
-							r = MAX(r, W_WidthMin * 50);
-
-							if (x > r && x < (__w - r)) // do or skip if it's outside
+							// do or skip if it's outside
+							if (!W_bClampItems || (x > r && x < (__w - r)) )
 							{
 								ofFill();
 
@@ -834,7 +865,7 @@ public:
 #endif
 		}
 		ofPopStyle();
-			}
+	}
 
 	//--------------------------------------------------------------
 	void doReset()
@@ -849,6 +880,7 @@ public:
 		W_bAbs = true;
 		W_bMirror = true;
 		W_Rounded = 0.5;
+		W_bBottom = false;
 		W_bLabel = true;
 
 		//plotType = 3;
@@ -870,6 +902,17 @@ public:
 		{
 			doReset();
 		}
+
+
+		else if (name == bGui.getName())
+		{
+			//workflow
+			if (!bGui_PlotsPanel && !bGui_Settings)
+				bGui_PlotsPanel.setWithoutEventNotifications(true);
+
+			return;
+		}
+
 
 		//else if (name == W_Reset.getName() && W_bReset)
 		//{
@@ -945,4 +988,4 @@ public:
 		}
 		*/
 	}
-		};
+};
