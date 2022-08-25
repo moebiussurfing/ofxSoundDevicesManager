@@ -40,6 +40,59 @@ public:
 
 private:
 
+	//--
+
+	//TODO: mesh
+	ofVboMesh meshWaveform;
+
+public:
+
+	/*
+	* 
+	void makeWaveformMesh(ofSoundBuffer buffer)
+	{
+		if (buffer.size() > 0) {
+
+			if (meshWaveform.getNumVertices() != buffer.getNumFrames())
+			{
+				meshWaveform.clear();
+				meshWaveform.setMode(OF_PRIMITIVE_LINE_STRIP);
+				meshWaveform.setUsage(GL_DYNAMIC_DRAW);
+
+				float h = 1.0f;
+
+				float xInc = 1.0f / (float)(buffer.getNumFrames());
+				glm::vec3 v;
+				v.x = 0;
+				for (int i = 0; i < buffer.getNumFrames(); i++) {
+					{
+						v.y = ofMap(0, -1, 1, h, h);
+						meshWaveform.addVertex(v);
+					}
+					v.x += xInc;
+				}
+			}
+		}
+	};
+
+	void updateWaveformMesh(ofSoundBuffer buffer) {
+		auto chans = buffer.getNumChannels();
+		if (chans > 0 && buffer.size() > 0) {
+			float h = 1.0f / float(chans);
+
+			h *= 500;
+
+			auto& wv = meshWaveform.getVertices();
+			for (size_t i = 0; i < wv.size(); i++) {
+				wv[i].y = ofMap(buffer[i * chans], -1, 1, h, h);
+			}
+		}
+	};
+	
+	*/
+
+	//--
+
 	ofxSurfingGui ui;
 
 	SurfPresets surfPresets;
@@ -93,6 +146,7 @@ public:
 	ofParameterGroup params_PlotsWaveform;
 	ofParameterGroup params{ "WaveformPlot" };
 
+	ofParameter<bool> bGui{ "SOUND PLOTS", true };;
 	ofParameter<bool> bGui_PlotIn{ "Plot In", true };
 	ofParameter<bool> bGui_PlotOut{ "Plot Out", false };
 
@@ -109,8 +163,8 @@ public:
 
 private:
 
-	ofParameter<int> plotType{ "Type", 0, 0, 3 };
-	vector<string>plotTypeNames = { "Scope", "Lines", "Bars" , "Circles" };
+	//ofParameter<int> plotType{ "Type", 0, 0, 3 };
+	//vector<string>plotTypeNames = { "Scope", "Lines", "Bars" , "Circles" };
 
 	//--
 
@@ -122,7 +176,8 @@ private:
 	ofParameter<bool> W_bBars{ "Bars", false };
 	ofParameter<bool> W_bCircle{ "Circle", false };
 	ofParameter<float> W_Spread{ "Spread", 0, 0, 1 };
-	ofParameter<float> W_Width{ "Width", 0.5, 0, 1 };
+	ofParameter<float> W_WidthRad{ "W/Rad", 0.5f, 0, 1 };
+	ofParameter<float> W_WidthMin{ "Min", 0.1f, 0, 1 };
 	ofParameter<bool> W_bAbs{ "Abs", true };
 	ofParameter<bool> W_bBottom{ "Bottom", false };
 	ofParameter<float> W_Alpha{ "Alpha", 0.5, 0, 1 };
@@ -198,12 +253,10 @@ public:
 		bGui_Plots.set("Plots", true);
 
 		params_PlotsWaveform.setName("PLOTS WAVEFORM");
-
 		params_PlotsWaveform.add(W_bScope);
 		params_PlotsWaveform.add(W_bLine);
 		params_PlotsWaveform.add(W_bBars);
 		params_PlotsWaveform.add(W_bCircle);
-
 		params_PlotsWaveform.add(W_Gain);
 		params_PlotsWaveform.add(W_Alpha);
 		params_PlotsWaveform.add(W_Spread);
@@ -217,17 +270,19 @@ public:
 		params_PlotsWaveform.add(W_LineWidthLines);
 		params_PlotsWaveform.add(W_Rounded);
 		params_PlotsWaveform.add(W_bMirror);
-		params_PlotsWaveform.add(W_Width);
+		params_PlotsWaveform.add(W_WidthRad);
+		params_PlotsWaveform.add(W_WidthMin);
 		//params_PlotsWaveform.add(W_bBottom);
 
 		//params_PlotsWaveform.add(plotType);
 
-		plotType.setSerializable(false);
+		//plotType.setSerializable(false);
 
 		ofAddListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
 
 		//--
 
+		//TODO: Presets
 		surfPresets.setPath(pathGlobal);
 		surfPresets.AddGroup(params_PlotsWaveform);
 
@@ -242,7 +297,7 @@ public:
 
 		ui.addWindowSpecial(bGui_PlotsPanel);
 		ui.addWindowSpecial(bGui_Settings);
-		
+
 		ui.startup();
 
 		//--
@@ -264,6 +319,8 @@ public:
 
 	void drawImGui()
 	{
+		if (!bGui) return;
+
 		ui.Begin();
 		{
 			// Plots
@@ -323,6 +380,8 @@ public:
 
 				ui.Add(surfPresets.vReset, OFX_IM_BUTTON_SMALL, 2);
 
+				//--
+
 				ui.AddSpacing();
 
 				if (bInputText)
@@ -340,7 +399,7 @@ public:
 				if (_namePreset != "") ui.AddLabelHuge(_namePreset.c_str());
 
 				//--
-
+				/*
 				ui.AddSpacingSeparated();
 
 				ui.AddLabelBig("Predefined", true);
@@ -357,6 +416,7 @@ public:
 
 				ui.AddCombo(plotType, plotTypeNames);
 				//ui.AddSpacing();
+				*/
 
 				ui.EndWindowSpecial();
 			}
@@ -369,24 +429,25 @@ public:
 			{
 				if (ui.BeginWindowSpecial(bGui_Settings))
 				{
-					//if (ui.BeginTree("EDIT"))
+					ui.Add(W_Gain, OFX_IM_HSLIDER_MINI);
+					ui.AddSpacingSeparated();
+					ui.AddSpacing();
+					ui.Add(W_bScope, OFX_IM_TOGGLE_SMALL);
+					ui.Add(W_bLine, OFX_IM_TOGGLE_SMALL);
+					ui.Add(W_bBars, OFX_IM_TOGGLE_SMALL);
+					ui.Add(W_bCircle, OFX_IM_TOGGLE_SMALL);
+					ui.AddSpacingSeparated();
+					ui.Add(W_Spread);
+					if (W_bCircle || W_bBars) ui.Add(W_WidthRad);
+					if(W_bCircle) ui.Add(W_WidthMin);
+					ui.AddSpacing();
+					ui.Add(W_Alpha);
+					ui.Add(W_Rounded);
+					if (W_bScope) ui.Add(W_LineWidthScope, OFX_IM_STEPPER);
+					if (W_bLine) ui.Add(W_LineWidthLines, OFX_IM_STEPPER);
+					ui.AddSpacing();
+					if (ui.BeginTree("EXTRA"))
 					{
-						ui.Add(W_Gain, OFX_IM_HSLIDER_MINI);
-						ui.AddSpacingSeparated(); 
-						ui.AddSpacing();
-						ui.Add(W_bScope, OFX_IM_TOGGLE_SMALL);
-						ui.Add(W_bLine, OFX_IM_TOGGLE_SMALL);
-						ui.Add(W_bBars, OFX_IM_TOGGLE_SMALL);
-						ui.Add(W_bCircle, OFX_IM_TOGGLE_SMALL);
-						ui.AddSpacingSeparated();
-						ui.Add(W_Spread);
-						ui.Add(W_Width);
-						ui.AddSpacing();
-						ui.Add(W_Alpha);
-						ui.Add(W_Rounded);
-						if (W_bScope) ui.Add(W_LineWidthScope, OFX_IM_STEPPER);
-						if (W_bLine) ui.Add(W_LineWidthLines, OFX_IM_STEPPER);
-						ui.AddSpacing();
 						ui.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
 						ui.AddSpacing();
 						ui.Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
@@ -397,8 +458,7 @@ public:
 						ui.Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
 						ui.AddSpacing();
 						ui.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
-
-						//ui.EndTree();
+						ui.EndTree();
 					}
 
 					ui.EndWindowSpecial();
@@ -451,7 +511,8 @@ public:
 				int __y = boxPlotIn.getY() + __h / 2;
 
 				// Bg plot
-				if (!W_bTransparent) {
+				if (!W_bTransparent)
+				{
 					ofSetColor(cPlotBg);
 					ofFill();
 					ofDrawRectangle(boxPlotIn.getRectangle());
@@ -515,6 +576,10 @@ public:
 
 						ofDrawLine(x1, y1, x1, y2);
 					}
+
+
+					//TODO:
+					meshWaveform.draw();
 				}
 
 				//--
@@ -543,7 +608,6 @@ public:
 						if (i > amount) continue;//skip
 						ii = i;
 						*/
-
 
 						// will discard some samples
 						if (i % stepi == 0)
@@ -581,7 +645,6 @@ public:
 						//	ofTranslate(0, __hf);
 						//}
 
-
 						// translate for mirror mode. center to x axis
 						if (W_bMirror && !W_bCircle)
 						{
@@ -590,7 +653,7 @@ public:
 
 						//--
 
-						// clamp x
+						// Clamp x
 
 						int px = 2;//pad
 
@@ -629,12 +692,12 @@ public:
 						{
 							ofFill();
 
-							int wr = ofMap(W_Width, 0, 1, 4, stepw, true);
+							int wr = ofMap(W_WidthRad, 0, 1.f, 4, stepw, true);
 							int xr = x - wr / 2;
 							//xr = (int)ofClamp(xr, px, __w - wr - px);
 							if (xr > wr && x < (__w - wr)) // do or skip if it's outside 
 							{
-								if (W_Rounded != 0)ofDrawRectRounded(xr, 0, wr, -y, wr * W_Rounded);
+								if (W_Rounded != 0) ofDrawRectRounded(xr, 0, wr, -y, wr * W_Rounded);
 								else ofDrawRectangle(xr, 0, wr, -y);
 							}
 						}
@@ -642,8 +705,10 @@ public:
 						// C. Circle 
 						if (W_bCircle)
 						{
-							float r = ofMap(W_Width, 0, 1, y * 0.05, y * 1.0, false);
-							//float r = ofMap(W_Width, 0, 1, MAX(2, y * 0.05), y * 0.7, false);
+							float r = ofMap(W_WidthRad / 2, 0, 1, 4, y * 1.f, true);
+
+							r = MAX(r, W_WidthMin * 50);
+
 							if (x > r && x < (__w - r)) // do or skip if it's outside
 							{
 								ofFill();
@@ -769,13 +834,13 @@ public:
 #endif
 		}
 		ofPopStyle();
-	}
+			}
 
 	//--------------------------------------------------------------
 	void doReset()
 	{
 		W_Spread = 0;
-		W_Width = 0.5;
+		W_WidthRad = 0.5;
 		W_Gain = 0;
 		W_bHLine = true;
 		W_bLine = true;
@@ -786,7 +851,7 @@ public:
 		W_Rounded = 0.5;
 		W_bLabel = true;
 
-		plotType = 3;
+		//plotType = 3;
 
 		W_LineWidthScope = 2;
 		W_LineWidthLines = 3;
@@ -814,6 +879,8 @@ public:
 
 		//--
 
+		// predefined styles
+		/*
 		// Plot waveform
 		else if (name == plotType.getName())
 		{
@@ -846,6 +913,7 @@ public:
 
 			return;
 		}
+		*/
 
 
 		/*
@@ -877,4 +945,4 @@ public:
 		}
 		*/
 	}
-			};
+		};

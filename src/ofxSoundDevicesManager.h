@@ -377,12 +377,14 @@ private:
 		params_Settings.setName("ofxSoundDevicesManager");
 		params_Settings.add(params_Control);
 		params_Settings.add(params_In);
+		params_Settings.add(waveformPlot.bGui);
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 		params_Settings.add(params_Out);
 #endif
 
 		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
+
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
@@ -892,7 +894,8 @@ private:
 
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
-					ui.Add(waveformPlot.bGui_PlotsPanel, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					//ui.Add(waveformPlot.bGui_PlotsPanel, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 					ui.Indent();
 					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
 					ui.Unindent();
@@ -1264,11 +1267,16 @@ public:
 			float _rms = 0.0;
 			int _count = 0;
 
+			////TODO:
+			//waveformPlot.makeWaveformMesh(input);
+			//waveformPlot.updateWaveformMesh(input);
+
 			for (size_t i = 0; i < input.getNumFrames(); i++)
 			{
 #ifdef USE_WAVEFORM_PLOTS
 				////plotIn[indexIn] = input[i * nChannels] * getVolumeInput();
 				waveformPlot.plotIn[indexIn] = input[i * nChannels];
+
 
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
