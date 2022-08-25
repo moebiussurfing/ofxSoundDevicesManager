@@ -13,12 +13,14 @@
 ![](/example/Capture.PNG)  
 
 ## Features
-- **Select** Input and Output **devices** using a **GUI**.
+- **Select** Input and Output (WIP) **devices** using an ImGui based **GUI**.
 - Auto **Store/Recall settings** on startup/exit.
-- **Enable/Bypass** & available **Gain Sliders**.
+- **Enable/Bypass** & available **Gain Sliders** (WIP).
 - Display **list devices** from all sound APIs: **DS/ASIO/WASAPI**. 
+- Plot preview **waveforms** and **VU meters** (WIP). 
+- Scalable and draggable layout.
 - **WIP** Class for waveform plotting using different styles.
-- Plot preview **waveforms** and **VU meters**.
+- Styles editor (WIP).
 
 ## Usage
  
@@ -58,13 +60,14 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self. look othe
 * ofxGui (_Core_) / Optional
 
 ### Tested Systems
-- **Windows10** / **VS2017** / **OF 0.11+**
+- **Windows 10** / **VS 2022** / **OF 0.11+**
 
-### TODO/IDEAS
+### TODO / IDEAS
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible.
 * Or merge from https://github.com/roymacdonald/ofxSoundDeviceManager. 
 * Make it macOS compatible.
 * Improve setting using Port Name instead of Port Numbers.
+* Improve plotting speed using ofMesh.
 
 ### NOTES
 * Would crash when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app or by hardcoding devices. 
