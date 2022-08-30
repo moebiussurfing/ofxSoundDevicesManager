@@ -1,13 +1,23 @@
 #pragma once
 
+/*
+
+	fft plot example https://github.com/moebiussurfing/examplesOfxMaxim
+
+*/
+
+
 #include "ofMain.h"
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
+
 #include "SurfPresets.h"
 #include "imgui_stdlib.h"
 
 //--
+
+#define SIZE_BUFFER 4096
 
 #define SOUND_DEVICES_DISABLE_OUTPUT
 
@@ -157,7 +167,6 @@ public:
 	ofParameter<bool> bGui_Settings{ "SETTINGS", false };
 
 	// data arrays
-#define SIZE_BUFFER 4096
 	float plotIn[SIZE_BUFFER]; // make this bigger, just in case
 	float plotOut[SIZE_BUFFER]; // make this bigger, just in case
 
@@ -306,6 +315,7 @@ public:
 
 		//TODO:
 		params.add(bGui);
+		params.add(bGui_Plots);
 		params.add(bGui_PlotsPanel);
 		params.add(bGui_Settings);
 		params.add(bGui_PlotIn);
@@ -407,6 +417,68 @@ public:
 				if (_namePreset != "") ui.AddLabelHuge(_namePreset.c_str());
 
 				//--
+				
+				//TODO:
+				// Files
+
+				/*
+				guiManager.Add(bFiles, OFX_IM_TOGGLE_BUTTON_ROUNDED_SMALL);
+				if (bFiles)
+				{
+					guiManager.Indent();
+					{
+						// Paths
+						{
+							bool bOpen = false;
+							ImGuiTreeNodeFlags _flagt = (bOpen ? ImGuiTreeNodeFlags_DefaultOpen : ImGuiTreeNodeFlags_None);
+							//_flagt |= ImGuiTreeNodeFlags_Framed;
+
+							if (ImGui::TreeNodeEx("Path", _flagt))
+							{
+								ImGui::TextWrapped(path_Presets.data()); // -> show path
+								ImGui::TreePop();
+							}
+						}
+
+						// Files
+						// Buttons Selector for each file
+						if (ofxImGuiSurfing::filesPicker(path_Presets, nameSelected, index, { "json" }))
+						{
+							// Buttons Matrix
+
+							//TODO: 
+							// Index back not working
+							// this is a workaround
+							// could fail on macOS/Linux -> requires fix paths slashes
+
+							for (int i = 0; i < dir.size(); i++)
+							{
+								std::string si = ofToString(i);
+								if (i < 10) si = "0" + si;
+								std::string ss = name_Root + "_" + si;
+								fileName = ss;
+
+								auto s0 = ofSplitString(nameSelected, "\\", true);
+								std::string s1 = s0[s0.size() - 1]; // filename
+								auto s = ofSplitString(s1, ".json");
+
+								std::string _nameSelected = s[0];
+
+								if (_nameSelected == fileName)
+								{
+									index = i;
+								}
+							}
+
+							ofLogNotice(__FUNCTION__) << "Picked file " << nameSelected << " > " << index;
+						}
+					}
+					guiManager.Unindent();
+				}
+				*/
+				
+				//--
+				
 				/*
 				ui.AddSpacingSeparated();
 
@@ -909,6 +981,15 @@ public:
 			//workflow
 			if (!bGui_PlotsPanel && !bGui_Settings)
 				bGui_PlotsPanel.setWithoutEventNotifications(true);
+
+			return;
+		}
+
+		else if (name == bGui_Plots.getName() && bGui_Plots)
+		{
+			//workflow
+			if (!bGui_PlotIn && !bGui_PlotOut)
+				bGui_PlotIn.setWithoutEventNotifications(true);
 
 			return;
 		}
