@@ -78,7 +78,6 @@ class ofxSoundDevicesManager
 //--------------------------------------------------------------
 class ofxSoundDevicesManager : public ofBaseApp
 #endif
-
 {
 
 public:
@@ -91,7 +90,7 @@ public:
 #endif
 
 	//--------------------------------------------------------------
-	ofxSoundDevicesManager()
+	ofxSoundDevicesManager::ofxSoundDevicesManager()
 	{
 		// Default audio settings
 
@@ -119,15 +118,15 @@ public:
 		//--
 
 		ofAddListener(ofEvents().update, this, &ofxSoundDevicesManager::update);
-	}
+	};
 
 	//--------------------------------------------------------------
-	~ofxSoundDevicesManager()
+	ofxSoundDevicesManager::~ofxSoundDevicesManager()
 	{
 		exit();
 
 		ofRemoveListener(ofEvents().update, this, &ofxSoundDevicesManager::update);
-	}
+	};
 
 	//--------------------------------------------------------------
 	void exit()
@@ -283,7 +282,7 @@ private:
 		bEnableAudio.set("ENABLE", true);
 
 		bGui.set("SOUND DEVICES", true);
-		bGui_Main.set("DEVICES", true);
+		bGui_Main.set("SOUND DEVICES", true);
 
 		//--
 
@@ -297,7 +296,7 @@ private:
 #endif
 #ifdef USE_WAVEFORM_PLOTS
 		params_Gui.add(waveformPlot.bGui_Plots);
-		params_Gui.add(waveformPlot.bGui_PlotsPanel);
+		params_Gui.add(waveformPlot.bGui_Main);
 #endif
 		params_Gui.add(bGui_Internal);
 		params_Gui.add(boxHelpInfo.bGui);
@@ -307,7 +306,7 @@ private:
 		// Control
 		params_Control.setName("CONTROL");
 		params_Control.add(bEnableAudio);
-		params_Control.add(apiIndex_Windows); 
+		params_Control.add(apiIndex_Windows);
 		params_Control.add(params_Gui);
 
 		params_Control.add(ui.bMinimize);//to refresh help info
@@ -864,59 +863,73 @@ private:
 
 			// Main
 
-			if (ui.BeginWindowSpecial(bGui_Main))
+			if (bGui_Main)
 			{
-				ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
-				ui.AddSpacing();
+				//IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
 
-				ui.Add(bEnableAudio, OFX_IM_TOGGLE);
-				ui.AddSpacing();
-
-				if (ui.bMinimize) 
+				if (ui.BeginWindowSpecial(bGui_Main))
 				{
-					ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
+					ui.AddSpacing();
+
+					ui.Add(bEnableAudio, OFX_IM_TOGGLE);
+					ui.AddSpacing();
+
+					if (ui.bMinimize)
+					{
+						ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
-					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+						ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
 
 #ifdef USE_WAVEFORM_PLOTS
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+						//ui.Indent();
+						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Add(waveformPlot.bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MINI);
+						//ui.Unindent();
+						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 #endif
-				}
-				else 
-				{
-					ui.AddCombo(apiIndex_Windows, ApiNames);
-					ui.AddSpacingSeparated();
+					}
+					else
+					{
+						ui.AddCombo(apiIndex_Windows, ApiNames);
+						ui.AddSpacingSeparated();
 
-					ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+						ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
-					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+						ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
-					//-
+						//-
 
 #ifdef USE_WAVEFORM_PLOTS
-					ui.AddSpacingSeparated();
-					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
-					//ui.Add(waveformPlot.bGui_PlotsPanel, OFX_IM_TOGGLE_ROUNDED);
-					ui.Indent();
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
-					ui.Unindent();
+						ui.AddSpacingSeparated();
+						ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+						//ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED);
+						ui.Indent();
+						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+						ui.Unindent();
 #endif
-					ui.AddSpacingSeparated();
-					ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED);
+						ui.AddSpacingSeparated();
+						ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED);
 
 #ifdef USE_OFXGUI_INTERNAL 
-					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
-				ui.EndWindowSpecial();
+					ui.EndWindowSpecial();
+				}
 			}
 
 			//--
 
 			// In
 
+			//if(bGui_In) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
+			
 			if (ui.BeginWindowSpecial(bGui_In))
 			{
 				ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
@@ -931,6 +944,7 @@ private:
 			// Out
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
+			if (bGui_Out) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
 			if (ui.BeginWindowSpecial(bGui_Out))
 			{
 				ui.Add(deviceOut_Enable, OFX_IM_TOGGLE);
@@ -941,6 +955,10 @@ private:
 			}
 #endif
 			//--
+
+#ifdef USE_WAVEFORM_PLOTS
+			waveformPlot.drawImGui();
+#endif
 		}
 		ui.End();
 	}
@@ -962,8 +980,24 @@ public:
 		}
 
 #ifdef USE_WAVEFORM_PLOTS
-		//if(bGui && bGui_Main) waveformPlot.draw();
-		if (bGui) waveformPlot.drawImGui();
+		////if(bGui && bGui_Main) waveformPlot.draw();
+		//if (bGui)
+		//{
+		//	/*
+		//	// TODO: not working..
+		//	// bc special window has internal set pos
+		//	ImGui::SetNextWindowPos(ImVec2(0, 0));
+		//	if (waveformPlot.bGui)
+		//		if (waveformPlot.bGui_Main || waveformPlot.bGui_Settings)
+		//		{
+		//			if (bGui_Main) ui.setNextWindowAfterWindowNamed(bGui_Main);
+		//		}
+		//	*/
+
+		//	//waveformPlot.drawImGui();
+		//}
+
+		// Plot
 		waveformPlot.drawPlots();
 #endif
 	}
@@ -1198,13 +1232,22 @@ private:
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 		ui.addWindowSpecial(bGui_Out);
 #endif
+#ifdef USE_WAVEFORM_PLOTS
+		ui.addWindowSpecial(waveformPlot.bGui_Main);
+		ui.addWindowSpecial(waveformPlot.bGui_Settings);
+#endif
+
 		// Plot
-		//ui.addWindowSpecial(waveformPlot.bGui_PlotsPanel);
+		//ui.addWindowSpecial(waveformPlot.bGui_Main);
 
 		ui.startup();
 
-		// stack windows vertically
-		ui.setWindowsSpecialsOrientation(true);
+		// stack windows vertically/horizontally
+		ui.setWindowsSpecialsOrientation(false);
+
+#ifdef USE_WAVEFORM_PLOTS
+		waveformPlot.setUiPtr(&ui);
+#endif
 	}
 
 	////--------------------------------------------------------------

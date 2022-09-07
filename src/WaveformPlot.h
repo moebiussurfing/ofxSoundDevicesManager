@@ -103,7 +103,10 @@ public:
 
 	//--
 
-	ofxSurfingGui ui;
+	ofxSurfingGui* ui;
+	void setUiPtr(ofxSurfingGui* _ui) {
+		ui = _ui;
+	}
 
 	SurfPresets surfPresets;
 
@@ -154,6 +157,7 @@ private:
 public:
 
 	ofParameterGroup params_PlotsWaveform;
+	ofParameterGroup params_PlotsEsthetics;
 	ofParameterGroup params{ "WaveformPlot" };
 
 	ofParameter<bool> bGui{ "WAVEFORM", true };;
@@ -163,8 +167,11 @@ public:
 public:
 
 	ofParameter<bool> bGui_Plots;
-	ofParameter<bool> bGui_PlotsPanel{ "SOUND PLOTS", true };
-	ofParameter<bool> bGui_Settings{ "SETTINGS", false };
+	ofParameter<bool> bGui_Main{ "WAVEFORM", true };
+	//ofParameter<bool> bGui_Main{ "SOUND PLOTS", true };
+	ofParameter<bool> bGui_Settings{ "PLOT SETTINGS", false };
+
+	ofParameter<float> gain{ "Gain", 0, -1, 1 };
 
 	// data arrays
 	float plotIn[SIZE_BUFFER]; // make this bigger, just in case
@@ -179,7 +186,6 @@ private:
 
 private:
 
-	ofParameter<float> W_Gain{ "Gain", 0, -1, 1 };
 	ofParameter<bool> W_bScope{ "Scope", true };
 	ofParameter<bool> W_bLine{ "Line", true };
 	ofParameter<bool> W_bBars{ "Bars", false };
@@ -202,6 +208,10 @@ private:
 	ofParameter<void> W_vReset{ "Reset" };
 	//ofParameter<bool> W_bReset{ "Reset", false };
 
+	ofParameter<ofColor> cPlot{ "c Plot", ofColor(0, 225), ofColor(0), ofColor(0) };
+	ofParameter<ofColor> cPlotBg{ "c Bg", ofColor(64, 128), ofColor(0), ofColor(0) };
+	ofParameter<ofColor> cText{ "c Text", ofColor(255, 225), ofColor(0), ofColor(0) };
+
 public:
 
 	void setPath(string p)
@@ -222,7 +232,8 @@ public:
 
 		doReset();
 
-		surfPresets.Load();
+		surfPresets.startup();
+		surfPresets.doLoad();
 	}
 
 	void update()
@@ -262,28 +273,35 @@ public:
 
 		bGui_Plots.set("Plot Signals", true);
 
+		// for presets
 		params_PlotsWaveform.setName("PLOTS WAVEFORM");
+		params_PlotsWaveform.add(gain);
 		params_PlotsWaveform.add(W_bScope);
 		params_PlotsWaveform.add(W_bLine);
 		params_PlotsWaveform.add(W_bBars);
 		params_PlotsWaveform.add(W_bCircle);
-		params_PlotsWaveform.add(W_Gain);
-		params_PlotsWaveform.add(W_Alpha);
 		params_PlotsWaveform.add(W_Spread);
 		params_PlotsWaveform.add(W_bAbs);
 		params_PlotsWaveform.add(W_bHLine);
-		params_PlotsWaveform.add(W_bTransparent);
 		params_PlotsWaveform.add(boxPlotIn.bUseBorder);
 		params_PlotsWaveform.add(W_bClamp);
 		params_PlotsWaveform.add(W_bClampItems);
-		params_PlotsWaveform.add(W_LineWidthScope);
-		params_PlotsWaveform.add(W_LineWidthLines);
 		params_PlotsWaveform.add(W_Rounded);
 		params_PlotsWaveform.add(W_bMirror);
 		params_PlotsWaveform.add(W_WidthRad);
 		params_PlotsWaveform.add(W_WidthMin);
 		params_PlotsWaveform.add(W_bBottom);
 		params_PlotsWaveform.add(W_bLabel);
+
+		params_PlotsEsthetics.setName("ESTHETICS");
+		params_PlotsEsthetics.add(W_bTransparent);
+		params_PlotsEsthetics.add(W_Alpha);
+		params_PlotsEsthetics.add(W_LineWidthScope);
+		params_PlotsEsthetics.add(W_LineWidthLines);
+		params_PlotsEsthetics.add(cPlot);
+		params_PlotsEsthetics.add(cPlotBg);
+		params_PlotsEsthetics.add(cText);
+		params_PlotsWaveform.add(params_PlotsEsthetics);
 
 		//params_PlotsWaveform.add(plotType);
 
@@ -302,21 +320,23 @@ public:
 		//--
 
 		// Gui
+		/*
 		ui.setName("WaveformPlot");
 		ui.setWindowsMode(IM_GUI_MODE_WINDOWS_SPECIAL_ORGANIZER);
 		ui.setup();
 
-		ui.addWindowSpecial(bGui_PlotsPanel);
+		ui.addWindowSpecial(bGui_Main);
 		ui.addWindowSpecial(bGui_Settings);
 
 		ui.startup();
+		*/
 
 		//--
 
 		//TODO:
 		params.add(bGui);
 		params.add(bGui_Plots);
-		params.add(bGui_PlotsPanel);
+		params.add(bGui_Main);
 		params.add(bGui_Settings);
 		params.add(bGui_PlotIn);
 		params.add(bGui_PlotOut);
@@ -337,87 +357,116 @@ public:
 	{
 		if (!bGui) return;
 
-		ui.Begin();
+		//ui->Begin();
 		{
-			// Plots
+			//--
 
-			if (ui.BeginWindowSpecial(bGui_PlotsPanel))
+			// 1. Plots
+
+			//if(bGui_Main)IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
+
+			if (ui->BeginWindowSpecial(bGui_Main))
 			{
-				ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
-				ui.AddSpacingSeparated();
-				/*if (!ui.bMinimize)*/ ui.Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-				ui.AddSpacingSeparated();
+				ui->Add(ui->bMinimize, OFX_IM_TOGGLE_ROUNDED);
+				ui->AddSpacingSeparated();
+				ui->Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				ui->AddSpacingSeparated();
 
-				ui.Add(bGui_PlotIn, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				ui->Add(bGui_PlotIn, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				if (bGui_PlotIn)
-					if (!ui.bMinimize) {
-						ui.Indent();
-						ui.Add(boxPlotIn.bEdit, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.Unindent();
+					if (!ui->bMinimize) {
+						ui->Indent();
+						ui->Add(boxPlotIn.bEdit, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui->Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui->Unindent();
 					}
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
-				ui.AddSpacingSeparated();
-				ui.Add(bGui_PlotOut, OFX_IM_TOGGLE_ROUNDED);
+				ui->AddSpacingSeparated();
+				ui->Add(bGui_PlotOut, OFX_IM_TOGGLE_ROUNDED);
 				if (bGui_PlotOut)
-					if (!ui.bMinimize) {
-						ui.Indent();
-						ui.Add(boxPlotOut.bEdit, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.Add(boxPlotOut.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.Unindent();
+					if (!ui->bMinimize) {
+						ui->Indent();
+						ui->Add(boxPlotOut.bEdit, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui->Add(boxPlotOut.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui->Unindent();
 					}
 #endif
 
-				ui.AddSpacingSeparated();
+				ui->AddSpacingSeparated();
 
-				ui.AddLabelHuge("Plot Style", true);
-				ui.AddSpacing();
-
-				//--
-
-				// Presets
-				//TODO:
-				static std::string _namePreset = "";
-				static std::string s = "name";
-				static bool bInputText = false;
-
-				ui.AddLabelBig("Presets", true, true);
-
-				ui.Add(surfPresets.vLoad, OFX_IM_BUTTON_SMALL, 2, true);
-
-				if (ui.Add(surfPresets.vSave, OFX_IM_BUTTON_SMALL, 2)) {
-					bInputText = false;
-					_namePreset = s;
-				};
-
-				if (ui.Add(surfPresets.vNew, OFX_IM_BUTTON_SMALL, 2, true)) {
-					if (!bInputText) bInputText = true;
-					_namePreset = "";
-				};
-
-				ui.Add(surfPresets.vReset, OFX_IM_BUTTON_SMALL, 2);
+				ui->AddLabelHuge("Style", true);
+				ui->AddSpacing();
 
 				//--
 
-				ui.AddSpacing();
-
-				if (bInputText)
+				// 2. Presets
 				{
-					int _w = ui.getWidgetsWidth() * 0.9f;
-					ImGui::PushItemWidth(_w);
-					{
-						bool b = ImGui::InputText("##NAME", &s);
-						if (b) ofLogNotice("WaveformPlot") << "InputText:" << s.c_str();
+					//TODO:
+					static string _namePreset = "";
+					//static bool bTyping = false;
+					static bool bInputText = false;
+					//string s = "presetName";
+					string s = surfPresets.filename;
+
+
+					ui->AddLabelBig("Presets", true, true);
+					if (!ui->bMinimize) {
+						ui->Add(surfPresets.vLoad, OFX_IM_BUTTON_SMALL, 2, true);
+
+						if (ui->Add(surfPresets.vSave, OFX_IM_BUTTON_SMALL, 2))
+						{
+							bInputText = false;
+							_namePreset = s;
+						};
+
+						if (ui->Add(surfPresets.vNew, OFX_IM_BUTTON_SMALL, 2, true))
+						{
+							if (!bInputText) bInputText = true;
+							_namePreset = "";
+							surfPresets.setFilename(_namePreset);
+						};
+						ui->Add(surfPresets.vReset, OFX_IM_BUTTON_SMALL, 2);
+
+						ui->Add(surfPresets.vScan, OFX_IM_BUTTON_SMALL, 2, true);
+						ui->Add(surfPresets.vDelete, OFX_IM_BUTTON_SMALL, 2);
+
+						//--
+
+						ui->AddSpacing();
+
+						if (bInputText)
+						{
+							int _w = ui->getWidgetsWidth() * 0.9f;
+							ImGui::PushItemWidth(_w);
+							{
+								bool b = ImGui::InputText("##NAME", &s);
+								if (b) {
+									ofLogNotice("WaveformPlot") << "InputText:" << s.c_str();
+									surfPresets.setFilename(s);
+								}
+							}
+
+							ImGui::PopItemWidth();
+						}
 					}
-					ImGui::PopItemWidth();
+
+					//--
+
+					// combo
+					ui->AddComboButtonDual(surfPresets.index, surfPresets.filenames);
+
+					/*
+					if (!ui->bMinimize)
+					{
+						// preset name
+						if (_namePreset != "") ui->AddLabel(_namePreset.c_str());
+					}
+					*/
 				}
 
-				// preset name
-				if (_namePreset != "") ui.AddLabelHuge(_namePreset.c_str());
-
 				//--
-				
+
 				//TODO:
 				// Files
 
@@ -446,7 +495,7 @@ public:
 						{
 							// Buttons Matrix
 
-							//TODO: 
+							//TODO:
 							// Index back not working
 							// this is a workaround
 							// could fail on macOS/Linux -> requires fix paths slashes
@@ -476,92 +525,112 @@ public:
 					guiManager.Unindent();
 				}
 				*/
-				
-				//--
-				
-				/*
-				ui.AddSpacingSeparated();
 
-				ui.AddLabelBig("Predefined", true);
+				//--
+
+				/*
+				ui->AddSpacingSeparated();
+
+				ui->AddLabelBig("Predefined", true);
 
 				// Predefined Styles type
-				if (ui.AddButton("<", OFX_IM_BUTTON_SMALL, 2, true)) {
+				if (ui->AddButton("<", OFX_IM_BUTTON_SMALL, 2, true)) {
 					if (plotType == plotType.getMin()) plotType = plotType.getMax();
 					else plotType = plotType - 1;
 				}
-				if (ui.AddButton(">", OFX_IM_BUTTON_SMALL, 2)) {
+				if (ui->AddButton(">", OFX_IM_BUTTON_SMALL, 2)) {
 					if (plotType == plotType.getMax()) plotType = plotType.getMin();
 					else plotType = plotType + 1;
 				}
 
-				ui.AddCombo(plotType, plotTypeNames);
-				//ui.AddSpacing();
+				ui->AddCombo(plotType, plotTypeNames);
+				//ui->AddSpacing();
 				*/
 
-				ui.EndWindowSpecial();
+				ui->EndWindowSpecial();
 			}
 
 			//--
 
 			// Settings
 
-			//if (!ui.bMinimize)
+			//if (!ui->bMinimize)
 			{
-				if (ui.BeginWindowSpecial(bGui_Settings))
-				{
-					ui.Add(W_Gain, OFX_IM_HSLIDER_MINI);
-					ui.AddSpacingSeparated();
-					ui.AddSpacing();
-					ui.Add(W_bScope, OFX_IM_TOGGLE_SMALL);
-					ui.Add(W_bLine, OFX_IM_TOGGLE_SMALL);
-					ui.Add(W_bBars, OFX_IM_TOGGLE_SMALL);
-					ui.Add(W_bCircle, OFX_IM_TOGGLE_SMALL);
-					ui.AddSpacingSeparated();
-					ui.Add(W_Spread);
-					if (W_bCircle || W_bBars) ui.Add(W_WidthRad);
-					if (W_bCircle || W_bBars || W_bLine) ui.Add(W_WidthMin);
-					ui.AddSpacing();
-					ui.Add(W_Alpha);
-					if (W_bBars) ui.Add(W_Rounded);
-					if (W_bScope) ui.Add(W_LineWidthScope, OFX_IM_STEPPER);
-					if (W_bLine) ui.Add(W_LineWidthLines, OFX_IM_STEPPER);
 
-					if (!ui.bMinimize) {
-						ui.AddSpacing();
-						if (ui.BeginTree("EXTRA"))
+				//if(bGui_Settings) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_MEDIUM;
+
+				if (ui->BeginWindowSpecial(bGui_Settings))
+				{
+					//if (!bGui_Main)
+					{
+						ui->Add(ui->bMinimize, OFX_IM_TOGGLE_ROUNDED);
+						ui->AddSpacingSeparated();
+					}
+
+					ui->Add(bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui->AddSpacingSeparated();
+
+					ui->Add(gain, OFX_IM_HSLIDER_MINI);
+					ui->AddSpacingSeparated();
+					ui->AddSpacing();
+					ui->Add(W_bScope, OFX_IM_TOGGLE_SMALL);
+					ui->Add(W_bLine, OFX_IM_TOGGLE_SMALL);
+					ui->Add(W_bBars, OFX_IM_TOGGLE_SMALL);
+					ui->Add(W_bCircle, OFX_IM_TOGGLE_SMALL);
+					ui->AddSpacingSeparated();
+
+					ui->Add(W_Spread);
+					if (W_bCircle || W_bBars) ui->Add(W_WidthRad);
+					if (W_bCircle || W_bBars || W_bLine) ui->Add(W_WidthMin);
+					ui->AddSpacing();
+					if (W_bBars) ui->Add(W_Rounded);
+
+					if (!ui->bMinimize) {
+						ui->AddSpacing();
+						if (ui->BeginTree("EXTRA"))
 						{
-							ui.Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.AddSpacing();
-							ui.Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.AddSpacing();
-							ui.Add(W_bClamp, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bClampItems, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Add(W_bBottom, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.AddSpacing();
-							ui.Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.EndTree();
+							ui->Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui->Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui->Add(W_bBottom, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui->AddSpacing();
+							ui->Add(W_bClamp, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui->Add(W_bClampItems, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui->AddSpacing();
+							ui->Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui->AddSpacingSeparated();
+
+							if (ui->BeginTree("ESTHETIC"))
+							{
+								ui->Add(W_Alpha);
+								ui->Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
+								ui->Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
+								if (W_bScope) ui->Add(W_LineWidthScope, OFX_IM_STEPPER);
+								if (W_bLine) ui->Add(W_LineWidthLines, OFX_IM_STEPPER);
+								ui->Add(cPlot, OFX_IM_COLOR_INPUT);
+								ui->Add(cPlotBg, OFX_IM_COLOR_INPUT);
+								ui->Add(cText, OFX_IM_COLOR_INPUT);
+								ui->AddSpacing();
+								ui->Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
+								ui->EndTree();
+							}
+
+							ui->EndTree();
 						}
 					}
 
-					ui.EndWindowSpecial();
+					ui->EndWindowSpecial();
 				}
 			}
 		}
-		ui.End();
+		//ui->End();
 	}
 
 	//void draw()
 	//{
 	//	//if (!bGui) return;
 	//	//if (!bGui_Plots) return;
-
 	//	drawImGui();
-
 	//	//--
-
 	//	if (bGui_Plots) drawPlots();
 	//};
 
@@ -575,16 +644,15 @@ public:
 		// must not overwrite y.
 		// use absolute vars
 
-
 		//if (bUseFbo) fbo.draw(300, 300, 320, 240);
 
 		if (!bGui_PlotIn && !bGui_PlotOut) return;
 
-		ofColor cPlot = ofColor(0, 225);
-		ofColor cPlotBg = ofColor(64, 128);
-		ofColor cText = ofColor(255, 225);
+		//ofColor cPlot = ofColor(0, 225);
+		//ofColor cPlotBg = ofColor(64, 128);
+		//ofColor cText = ofColor(255, 225);
 
-		float g = ofMap(W_Gain, W_Gain.getMin(), W_Gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
+		float g = ofMap(gain, gain.getMin(), gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
 
 		//--
 
@@ -616,7 +684,7 @@ public:
 				//ofSetColor(cPlot);
 
 				// color
-				int _a = ofMap(W_Alpha, 0, 1, 0, 255);
+				int _a = ofMap(W_Alpha, 0, 1, 0, cPlot.get().a);
 				ofColor _c = ofColor(cPlot, _a);
 				ofSetColor(_c);
 
@@ -714,6 +782,10 @@ public:
 						int x = ii * stepw;
 						int y = plotIn[ii] * a;
 
+						// apply min size
+						float hMin = 10;
+						y = MAX(y, W_WidthMin * hMin);
+
 						float __hf = __h / 2;
 
 						//----
@@ -774,8 +846,9 @@ public:
 								ofNoFill();
 
 								int h = y;
-								float hMin = 10;
-								h = MAX(h, W_WidthMin * hMin);
+
+								//float hMin = 10;
+								//h = MAX(h, W_WidthMin * hMin);
 
 								ofDrawLine(x, 0, x, -h);
 							}
@@ -791,8 +864,9 @@ public:
 							int xr = x - wr / 2;
 
 							int h = y;
-							float hMin = 10;
-							h = MAX(h, W_WidthMin * hMin);
+
+							//float hMin = 10;
+							//h = MAX(h, W_WidthMin * hMin);
 
 							//xr = (int)ofClamp(xr, px, __w - wr - px);
 							// do or skip if it's outside 
@@ -812,7 +886,7 @@ public:
 							r = MAX(r, W_WidthMin * rMin);
 
 							// do or skip if it's outside
-							if (!W_bClampItems || (x > r && x < (__w - r)) )
+							if (!W_bClampItems || (x > r && x < (__w - r)))
 							{
 								ofFill();
 
@@ -863,7 +937,7 @@ public:
 
 					//int xx = p.x - w;
 					//int yy = p.y - h;
-					ofxSurfingHelpers::drawTextBoxedMini(myFont, s, xx, yy);
+					ofxSurfingHelpers::drawTextBoxedMini(myFont, s, xx, yy, cText);
 				}
 
 				//--
@@ -933,19 +1007,20 @@ public:
 				}
 
 				ofPopMatrix();
-			}
-#endif
 		}
-		ofPopStyle();
+#endif
 	}
+		ofPopStyle();
+}
 
 	//--------------------------------------------------------------
 	void doReset()
 	{
-		W_Spread = 0;
+		W_Spread = 0.5;
 		W_WidthRad = 0.5;
-		W_Gain = 0;
-		W_bHLine = true;
+		gain = 0;
+		W_bScope = false;
+		W_bHLine = false;
 		W_bLine = true;
 		W_bBars = false;
 		W_bCircle = false;
@@ -959,6 +1034,10 @@ public:
 
 		W_LineWidthScope = 2;
 		W_LineWidthLines = 3;
+
+		cPlot = ofColor(0, 225);
+		cPlotBg = ofColor(64, 128);
+		cText = ofColor(255, 225);
 	}
 
 	//--------------------------------------------------------------
@@ -975,12 +1054,11 @@ public:
 			doReset();
 		}
 
-
 		else if (name == bGui.getName())
 		{
 			//workflow
-			if (!bGui_PlotsPanel && !bGui_Settings)
-				bGui_PlotsPanel.setWithoutEventNotifications(true);
+			if (!bGui_Main && !bGui_Settings)
+				bGui_Main.setWithoutEventNotifications(true);
 
 			return;
 		}
@@ -1039,6 +1117,7 @@ public:
 		}
 		*/
 
+		//--
 
 		/*
 		else if (name == W_bLine.getName())
