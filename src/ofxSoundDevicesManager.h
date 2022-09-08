@@ -909,8 +909,8 @@ private:
 
 #ifdef USE_WAVEFORM_PLOTS
 						ui.AddSpacingSeparated();
-						ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
-						//ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED);
+						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED);
 						ui.Indent();
 						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
 						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);

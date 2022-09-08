@@ -1061,6 +1061,7 @@ public:
 			doReset();
 		}
 
+		/*
 		else if (name == bGui.getName())
 		{
 			//workflow
@@ -1068,6 +1069,7 @@ public:
 
 			return;
 		}
+		*/
 
 		/*
 		else if (name == bGui.getName())
