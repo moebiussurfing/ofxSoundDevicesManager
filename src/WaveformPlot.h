@@ -12,7 +12,7 @@
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
 
-#include "SurfPresets.h"
+#include "surfPresets.h"
 #include "imgui_stdlib.h"
 
 //--
@@ -41,6 +41,10 @@ public:
 		path_TTF = pathRoot + "telegrama_render.otf";
 		if (!bLoaded) bLoaded = myFont.load(path_TTF, size_TTF, true, true);
 		else if (!bLoaded) bLoaded = myFont.load(OF_TTF_MONO, size_TTF, true, true);
+
+#ifdef USE_WAVEFORM_PLOTS
+		index.makeReferenceTo(surfPresets.index);
+#endif
 	};
 
 	~WaveformPlot()
@@ -113,8 +117,8 @@ public:
 
 private:
 
-	string pathGlobal = "ofxSoundDevicesManager/";
-	string pathSettings = "ofxSoundDevicesManager";
+	string pathGlobal = "Waveform/";
+	//string pathSettings = "Waveform_Settings";
 
 	bool bDISABLE_CALBACKS = false;//to avoid callback crashes or to enable only after setup()
 
@@ -165,7 +169,7 @@ public:
 	ofParameter<int> index{ "Index", 0, 0, 0 };
 #endif
 
-	ofParameter<bool> bGui{ "WAVEFORM", true };;
+	ofParameter<bool> bGui{ "WAVEFORM PLOT", true };;
 	ofParameter<bool> bGui_PlotIn{ "Plot In", true };
 	ofParameter<bool> bGui_PlotOut{ "Plot Out", false };
 
@@ -237,7 +241,7 @@ public:
 		doReset();
 
 		surfPresets.startup();
-		surfPresets.doLoad();
+		//surfPresets.doLoad();
 	}
 
 	void update()
@@ -333,10 +337,6 @@ public:
 
 		//--
 
-
-#ifdef USE_WAVEFORM_PLOTS
-		index.makeReferenceTo(surfPresets.index);
-#endif
 		//TODO:
 		params.add(bGui);
 		params.add(bGui_Plots);
@@ -402,157 +402,11 @@ public:
 				ui->AddLabelHuge("Style", true);
 				//ui->AddSpacing();
 
-				////--
-
-				//// 2. Presets
-				
-				surfPresets.drawImGui(false);
-				
-				//{
-				//	//TODO:
-				//	static string _namePreset = "";
-				//	//static bool bTyping = false;
-				//	static bool bInputText = false;
-				//	//string s = "presetName";
-				//	string s = surfPresets.filename;
-
-
-				//	ui->AddLabelBig("Presets", true, true);
-				//	if (!ui->bMinimize) {
-				//		ui->Add(surfPresets.vLoad, OFX_IM_BUTTON_SMALL, 2, true);
-
-				//		if (ui->Add(surfPresets.vSave, OFX_IM_BUTTON_SMALL, 2))
-				//		{
-				//			bInputText = false;
-				//			_namePreset = s;
-				//		};
-
-				//		if (ui->Add(surfPresets.vNew, OFX_IM_BUTTON_SMALL, 2, true))
-				//		{
-				//			if (!bInputText) bInputText = true;
-				//			_namePreset = "";
-				//			surfPresets.setFilename(_namePreset);
-				//		};
-				//		ui->Add(surfPresets.vReset, OFX_IM_BUTTON_SMALL, 2);
-
-				//		ui->Add(surfPresets.vScan, OFX_IM_BUTTON_SMALL, 2, true);
-				//		ui->Add(surfPresets.vDelete, OFX_IM_BUTTON_SMALL, 2);
-
-				//		//--
-
-				//		ui->AddSpacing();
-
-				//		if (bInputText)
-				//		{
-				//			int _w = ui->getWidgetsWidth() * 0.9f;
-				//			ImGui::PushItemWidth(_w);
-				//			{
-				//				bool b = ImGui::InputText("##NAME", &s);
-				//				if (b) {
-				//					ofLogNotice("WaveformPlot") << "InputText:" << s.c_str();
-				//					surfPresets.setFilename(s);
-				//				}
-				//			}
-
-				//			ImGui::PopItemWidth();
-				//		}
-				//	}
-
-				//	//--
-
-				//	// Combo
-				//	ui->AddComboButtonDual(surfPresets.index, surfPresets.filenames);
-
-				//	/*
-				//	if (!ui->bMinimize)
-				//	{
-				//		// preset name
-				//		if (_namePreset != "") ui->AddLabel(_namePreset.c_str());
-				//	}
-				//	*/
-				//}
-
-				////--
-
-				//TODO:
-				// Files
-
-				/*
-				guiManager.Add(bFiles, OFX_IM_TOGGLE_BUTTON_ROUNDED_SMALL);
-				if (bFiles)
-				{
-					guiManager.Indent();
-					{
-						// Paths
-						{
-							bool bOpen = false;
-							ImGuiTreeNodeFlags _flagt = (bOpen ? ImGuiTreeNodeFlags_DefaultOpen : ImGuiTreeNodeFlags_None);
-							//_flagt |= ImGuiTreeNodeFlags_Framed;
-
-							if (ImGui::TreeNodeEx("Path", _flagt))
-							{
-								ImGui::TextWrapped(path_Presets.data()); // -> show path
-								ImGui::TreePop();
-							}
-						}
-
-						// Files
-						// Buttons Selector for each file
-						if (ofxImGuiSurfing::filesPicker(path_Presets, nameSelected, index, { "json" }))
-						{
-							// Buttons Matrix
-
-							//TODO:
-							// Index back not working
-							// this is a workaround
-							// could fail on macOS/Linux -> requires fix paths slashes
-
-							for (int i = 0; i < dir.size(); i++)
-							{
-								std::string si = ofToString(i);
-								if (i < 10) si = "0" + si;
-								std::string ss = name_Root + "_" + si;
-								fileName = ss;
-
-								auto s0 = ofSplitString(nameSelected, "\\", true);
-								std::string s1 = s0[s0.size() - 1]; // filename
-								auto s = ofSplitString(s1, ".json");
-
-								std::string _nameSelected = s[0];
-
-								if (_nameSelected == fileName)
-								{
-									index = i;
-								}
-							}
-
-							ofLogNotice(__FUNCTION__) << "Picked file " << nameSelected << " > " << index;
-						}
-					}
-					guiManager.Unindent();
-				}
-				*/
-
 				//--
 
-				/*
-				ui->AddSpacingSeparated();
-
-				ui->AddLabelBig("Predefined", true);
-
-				// Predefined Styles type
-				if (ui->AddButton("<", OFX_IM_BUTTON_SMALL, 2, true)) {
-					if (plotType == plotType.getMin()) plotType = plotType.getMax();
-					else plotType = plotType - 1;
-				}
-				if (ui->AddButton(">", OFX_IM_BUTTON_SMALL, 2)) {
-					if (plotType == plotType.getMax()) plotType = plotType.getMin();
-					else plotType = plotType + 1;
-				}
-
-				ui->AddCombo(plotType, plotTypeNames);
-				//ui->AddSpacing();
-				*/
+				// 2. Presets
+				
+				surfPresets.drawImGui(false);
 
 				ui->EndWindowSpecial();
 			}

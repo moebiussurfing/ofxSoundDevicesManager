@@ -291,9 +291,11 @@ private:
 		params_Gui.add(bGui);
 		params_Gui.add(bGui_Main);
 		params_Gui.add(bGui_In);
+
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 		params_Gui.add(bGui_Out);
 #endif
+
 #ifdef USE_WAVEFORM_PLOTS
 		params_Gui.add(waveformPlot.bGui_Plots);
 		params_Gui.add(waveformPlot.bGui_Main);
@@ -378,8 +380,8 @@ private:
 		params_Settings.add(params_In);
 
 #ifdef USE_WAVEFORM_PLOTS
-		params_Settings.add(waveformPlot.index);
 		params_Settings.add(waveformPlot.bGui);
+		params_Settings.add(waveformPlot.index);
 #endif
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
@@ -392,6 +394,7 @@ private:
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 #endif
+
 	}
 
 	//--
@@ -860,9 +863,6 @@ private:
 
 		ui.Begin();
 		{
-			//ui.drawWindowsSpecialsOrganizer();
-			//ui.drawWindowsSpecialsOrganizer();
-
 			//--
 
 			// Main
@@ -1220,6 +1220,12 @@ private:
 		// workaround
 		//setVisible(true);
 		bGui_Main = true;
+
+		//--
+
+#ifdef USE_WAVEFORM_PLOTS
+		waveformPlot.index = waveformPlot.index;
+#endif
 	}
 
 	//--------------------------------------------------------------
