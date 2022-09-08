@@ -12,7 +12,7 @@
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
 
-#include "surfPresets.h"
+#include "surfingPresets.h"
 #include "imgui_stdlib.h"
 
 //--
@@ -43,7 +43,7 @@ public:
 		else if (!bLoaded) bLoaded = myFont.load(OF_TTF_MONO, size_TTF, true, true);
 
 #ifdef USE_WAVEFORM_PLOTS
-		index.makeReferenceTo(surfPresets.index);
+		index.makeReferenceTo(surfingPresets.index);
 #endif
 	};
 
@@ -110,10 +110,10 @@ public:
 	ofxSurfingGui* ui;
 	void setUiPtr(ofxSurfingGui* _ui) {
 		ui = _ui;
-		surfPresets.setUiPtr(_ui);
+		surfingPresets.setUiPtr(_ui);
 	}
 
-	SurfPresets surfPresets;
+	SurfingPresets surfingPresets;
 
 private:
 
@@ -240,8 +240,8 @@ public:
 
 		doReset();
 
-		surfPresets.startup();
-		//surfPresets.doLoad();
+		surfingPresets.startup();
+		//surfingPresets.doLoad();
 	}
 
 	void update()
@@ -316,10 +316,10 @@ public:
 		//--
 
 		//TODO: Presets
-		surfPresets.setPath(pathGlobal);
-		surfPresets.AddGroup(params_PlotsWaveform);
+		surfingPresets.setPath(pathGlobal);
+		surfingPresets.AddGroup(params_PlotsWaveform);
 
-		W_vReset.makeReferenceTo(surfPresets.vReset);
+		W_vReset.makeReferenceTo(surfingPresets.vReset);
 
 		//--
 
@@ -406,7 +406,7 @@ public:
 
 				// 2. Presets
 				
-				surfPresets.drawImGui(false);
+				surfingPresets.drawImGui(false);
 
 				ui->EndWindowSpecial();
 			}
