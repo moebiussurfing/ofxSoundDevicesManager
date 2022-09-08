@@ -106,6 +106,7 @@ public:
 	ofxSurfingGui* ui;
 	void setUiPtr(ofxSurfingGui* _ui) {
 		ui = _ui;
+		surfPresets.setUiPtr(_ui);
 	}
 
 	SurfPresets surfPresets;
@@ -160,6 +161,10 @@ public:
 	ofParameterGroup params_PlotsEsthetics;
 	ofParameterGroup params{ "WaveformPlot" };
 
+#ifdef USE_WAVEFORM_PLOTS
+	ofParameter<int> index{ "Index", 0, 0, 0 };
+#endif
+
 	ofParameter<bool> bGui{ "WAVEFORM", true };;
 	ofParameter<bool> bGui_PlotIn{ "Plot In", true };
 	ofParameter<bool> bGui_PlotOut{ "Plot Out", false };
@@ -168,8 +173,8 @@ public:
 
 	ofParameter<bool> bGui_Plots;
 	ofParameter<bool> bGui_Main{ "WAVEFORM", true };
-	//ofParameter<bool> bGui_Main{ "SOUND PLOTS", true };
 	ofParameter<bool> bGui_Settings{ "PLOT SETTINGS", false };
+	//ofParameter<bool> bGui_Main{ "SOUND PLOTS", true };
 
 	ofParameter<float> gain{ "Gain", 0, -1, 1 };
 
@@ -206,7 +211,6 @@ private:
 	ofParameter<int> W_LineWidthLines{ "L Lines", 3, 1, 10 };
 	ofParameter<bool> W_bLabel{ "Label", true };
 	ofParameter<void> W_vReset{ "Reset" };
-	//ofParameter<bool> W_bReset{ "Reset", false };
 
 	ofParameter<ofColor> cPlot{ "c Plot", ofColor(0, 225), ofColor(0), ofColor(0) };
 	ofParameter<ofColor> cPlotBg{ "c Bg", ofColor(64, 128), ofColor(0), ofColor(0) };
@@ -303,10 +307,6 @@ public:
 		params_PlotsEsthetics.add(cText);
 		params_PlotsWaveform.add(params_PlotsEsthetics);
 
-		//params_PlotsWaveform.add(plotType);
-
-		//plotType.setSerializable(false);
-
 		ofAddListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
 
 		//--
@@ -333,6 +333,10 @@ public:
 
 		//--
 
+
+#ifdef USE_WAVEFORM_PLOTS
+		index.makeReferenceTo(surfPresets.index);
+#endif
 		//TODO:
 		params.add(bGui);
 		params.add(bGui_Plots);
@@ -396,76 +400,79 @@ public:
 				ui->AddSpacingSeparated();
 
 				ui->AddLabelHuge("Style", true);
-				ui->AddSpacing();
+				//ui->AddSpacing();
 
-				//--
+				////--
 
-				// 2. Presets
-				{
-					//TODO:
-					static string _namePreset = "";
-					//static bool bTyping = false;
-					static bool bInputText = false;
-					//string s = "presetName";
-					string s = surfPresets.filename;
+				//// 2. Presets
+				
+				surfPresets.drawImGui(false);
+				
+				//{
+				//	//TODO:
+				//	static string _namePreset = "";
+				//	//static bool bTyping = false;
+				//	static bool bInputText = false;
+				//	//string s = "presetName";
+				//	string s = surfPresets.filename;
 
 
-					ui->AddLabelBig("Presets", true, true);
-					if (!ui->bMinimize) {
-						ui->Add(surfPresets.vLoad, OFX_IM_BUTTON_SMALL, 2, true);
+				//	ui->AddLabelBig("Presets", true, true);
+				//	if (!ui->bMinimize) {
+				//		ui->Add(surfPresets.vLoad, OFX_IM_BUTTON_SMALL, 2, true);
 
-						if (ui->Add(surfPresets.vSave, OFX_IM_BUTTON_SMALL, 2))
-						{
-							bInputText = false;
-							_namePreset = s;
-						};
+				//		if (ui->Add(surfPresets.vSave, OFX_IM_BUTTON_SMALL, 2))
+				//		{
+				//			bInputText = false;
+				//			_namePreset = s;
+				//		};
 
-						if (ui->Add(surfPresets.vNew, OFX_IM_BUTTON_SMALL, 2, true))
-						{
-							if (!bInputText) bInputText = true;
-							_namePreset = "";
-							surfPresets.setFilename(_namePreset);
-						};
-						ui->Add(surfPresets.vReset, OFX_IM_BUTTON_SMALL, 2);
+				//		if (ui->Add(surfPresets.vNew, OFX_IM_BUTTON_SMALL, 2, true))
+				//		{
+				//			if (!bInputText) bInputText = true;
+				//			_namePreset = "";
+				//			surfPresets.setFilename(_namePreset);
+				//		};
+				//		ui->Add(surfPresets.vReset, OFX_IM_BUTTON_SMALL, 2);
 
-						ui->Add(surfPresets.vScan, OFX_IM_BUTTON_SMALL, 2, true);
-						ui->Add(surfPresets.vDelete, OFX_IM_BUTTON_SMALL, 2);
+				//		ui->Add(surfPresets.vScan, OFX_IM_BUTTON_SMALL, 2, true);
+				//		ui->Add(surfPresets.vDelete, OFX_IM_BUTTON_SMALL, 2);
 
-						//--
+				//		//--
 
-						ui->AddSpacing();
+				//		ui->AddSpacing();
 
-						if (bInputText)
-						{
-							int _w = ui->getWidgetsWidth() * 0.9f;
-							ImGui::PushItemWidth(_w);
-							{
-								bool b = ImGui::InputText("##NAME", &s);
-								if (b) {
-									ofLogNotice("WaveformPlot") << "InputText:" << s.c_str();
-									surfPresets.setFilename(s);
-								}
-							}
+				//		if (bInputText)
+				//		{
+				//			int _w = ui->getWidgetsWidth() * 0.9f;
+				//			ImGui::PushItemWidth(_w);
+				//			{
+				//				bool b = ImGui::InputText("##NAME", &s);
+				//				if (b) {
+				//					ofLogNotice("WaveformPlot") << "InputText:" << s.c_str();
+				//					surfPresets.setFilename(s);
+				//				}
+				//			}
 
-							ImGui::PopItemWidth();
-						}
-					}
+				//			ImGui::PopItemWidth();
+				//		}
+				//	}
 
-					//--
+				//	//--
 
-					// combo
-					ui->AddComboButtonDual(surfPresets.index, surfPresets.filenames);
+				//	// Combo
+				//	ui->AddComboButtonDual(surfPresets.index, surfPresets.filenames);
 
-					/*
-					if (!ui->bMinimize)
-					{
-						// preset name
-						if (_namePreset != "") ui->AddLabel(_namePreset.c_str());
-					}
-					*/
-				}
+				//	/*
+				//	if (!ui->bMinimize)
+				//	{
+				//		// preset name
+				//		if (_namePreset != "") ui->AddLabel(_namePreset.c_str());
+				//	}
+				//	*/
+				//}
 
-				//--
+				////--
 
 				//TODO:
 				// Files
@@ -603,14 +610,14 @@ public:
 							{
 								ui->Add(W_Alpha);
 								ui->Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
-								ui->Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
 								if (W_bScope) ui->Add(W_LineWidthScope, OFX_IM_STEPPER);
 								if (W_bLine) ui->Add(W_LineWidthLines, OFX_IM_STEPPER);
 								ui->Add(cPlot, OFX_IM_COLOR_INPUT);
-								ui->Add(cPlotBg, OFX_IM_COLOR_INPUT);
-								ui->Add(cText, OFX_IM_COLOR_INPUT);
+								ui->Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
+								if(!W_bTransparent) ui->Add(cPlotBg, OFX_IM_COLOR_INPUT);
 								ui->AddSpacing();
 								ui->Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
+								if (W_bLabel) ui->Add(cText, OFX_IM_COLOR_INPUT);
 								ui->EndTree();
 							}
 
@@ -1057,11 +1064,21 @@ public:
 		else if (name == bGui.getName())
 		{
 			//workflow
+			if (bGui) bGui_Main.set(true);
+
+			return;
+		}
+
+		/*
+		else if (name == bGui.getName())
+		{
+			//workflow
 			if (!bGui_Main && !bGui_Settings)
 				bGui_Main.setWithoutEventNotifications(true);
 
 			return;
 		}
+		*/
 
 		else if (name == bGui_Plots.getName() && bGui_Plots)
 		{

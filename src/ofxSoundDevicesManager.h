@@ -376,7 +376,11 @@ private:
 		params_Settings.setName("ofxSoundDevicesManager");
 		params_Settings.add(params_Control);
 		params_Settings.add(params_In);
+
+#ifdef USE_WAVEFORM_PLOTS
+		params_Settings.add(waveformPlot.index);
 		params_Settings.add(waveformPlot.bGui);
+#endif
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 		params_Settings.add(params_Out);
@@ -883,12 +887,12 @@ private:
 #endif
 
 #ifdef USE_WAVEFORM_PLOTS
+						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
 						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 						//ui.Indent();
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MINI);
 						ui.Add(waveformPlot.bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MINI);
 						//ui.Unindent();
-						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MINI);
 						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 #endif
 					}
@@ -1187,7 +1191,7 @@ public:
 		boxHelpInfo.setPath(pathGlobal + "/" + "HelpBox");
 
 #ifdef USE_WAVEFORM_PLOTS
-		waveformPlot.setPath(p);
+		waveformPlot.setPath(pathGlobal + "/" + "Waveform");
 #endif
 	}
 

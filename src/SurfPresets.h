@@ -1,7 +1,10 @@
 #pragma once
 
 #include "ofMain.h"
+
 #include "ofxSurfingHelpers.h"
+#include "ofxSurfingImGui.h"
+#include "imgui_stdlib.h"
 
 /*
 
@@ -47,6 +50,92 @@ public:
 
 		doSave();
 	};
+
+public:
+
+	ofxSurfingGui* ui;
+	void setUiPtr(ofxSurfingGui* _ui) {
+		ui = _ui;
+	}
+
+
+
+	//--
+
+	// 2. Presets
+	void drawImGui(bool bWindowed)
+	{
+		//TODO:
+		// make windowed
+
+		if (bWindowed) {}
+		{
+			//TODO:
+			static string _namePreset = "";
+			//static bool bTyping = false;
+			static bool bInputText = false;
+			//string s = "presetName";
+			string s = filename;
+
+
+			ui->AddLabelBig("Presets", true, true);
+			if (!ui->bMinimize) {
+				ui->Add(vLoad, OFX_IM_BUTTON_SMALL, 2, true);
+
+				if (ui->Add(vSave, OFX_IM_BUTTON_SMALL, 2))
+				{
+					bInputText = false;
+					_namePreset = s;
+				};
+
+				if (ui->Add(vNew, OFX_IM_BUTTON_SMALL, 2, true))
+				{
+					if (!bInputText) bInputText = true;
+					_namePreset = "";
+					setFilename(_namePreset);
+				};
+				ui->Add(vReset, OFX_IM_BUTTON_SMALL, 2);
+
+				ui->Add(vScan, OFX_IM_BUTTON_SMALL, 2, true);
+				ui->Add(vDelete, OFX_IM_BUTTON_SMALL, 2);
+
+				//--
+
+				ui->AddSpacing();
+
+				if (bInputText)
+				{
+					int _w = ui->getWidgetsWidth() * 0.9f;
+					ImGui::PushItemWidth(_w);
+					{
+						bool b = ImGui::InputText("##NAME", &s);
+						if (b) {
+							ofLogNotice("WaveformPlot") << "InputText:" << s.c_str();
+							setFilename(s);
+						}
+					}
+
+					ImGui::PopItemWidth();
+				}
+			}
+
+			//--
+
+			// Combo
+			ui->AddComboButtonDual(index, filenames);
+
+			/*
+			if (!ui->bMinimize)
+			{
+				// preset name
+				if (_namePreset != "") ui->AddLabel(_namePreset.c_str());
+			}
+			*/
+		}
+		if (bWindowed) {}
+	}
+
+	//--
 
 public:
 
@@ -172,7 +261,7 @@ private:
 		else if (name == vDelete.getName())
 		{
 			filename = filenames[index];
-			ofFile::removeFile(pathPresets + "/" + filename + ".json"); 
+			ofFile::removeFile(pathPresets + "/" + filename + ".json");
 			doRefreshFiles();
 		}
 	};
