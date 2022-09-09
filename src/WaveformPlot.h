@@ -640,8 +640,8 @@ public:
 						ofPushMatrix();
 
 						// The raw point to draw
-						int x = ii * stepw;
-						int y = plotIn[ii] * a;
+						float x = ii * stepw;
+						float y = plotIn[ii] * a;
 
 						// apply min size
 						float hMin = 10;
@@ -721,10 +721,10 @@ public:
 							ofFill();
 
 							int gap = 1;
-							int wr = ofMap(W_WidthRad, 0, 1.f, 1, stepw - gap, true);
-							int xr = x - wr / 2;
+							float wr = ofMap(W_WidthRad, 0, 1.f, 1, stepw - gap, true);
+							float xr = x - (wr / 2.f);
 
-							int h = y;
+							float h = y;
 
 							//float hMin = 10;
 							//h = MAX(h, W_WidthMin * hMin);

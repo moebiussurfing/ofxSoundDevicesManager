@@ -887,11 +887,11 @@ private:
 #endif
 
 #ifdef USE_WAVEFORM_PLOTS
-						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 						//ui.Indent();
-						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MINI);
-						ui.Add(waveformPlot.bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+						ui.Add(waveformPlot.bGui_Settings, OFX_IM_TOGGLE_ROUNDED);
 						//ui.Unindent();
 						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 #endif
@@ -912,7 +912,7 @@ private:
 						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED);
 						ui.Indent();
-						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 						ui.Unindent();
 #endif
