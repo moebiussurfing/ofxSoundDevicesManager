@@ -1,25 +1,31 @@
 #pragma once
 
 /*
-
 	fft plot example https://github.com/moebiussurfing/examplesOfxMaxim
-
+	ImGui plot https://github.com/epezent/implot_demos
 */
 
+//#define USE_ROUNDED_WAVEFORM
+
+//--
 
 #include "ofMain.h"
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
-
 #include "surfingPresets.h"
 #include "imgui_stdlib.h"
+
+#ifdef USE_ROUNDED_WAVEFORM
+#include "RoundedPlot.h"
+#endif
 
 //--
 
 #define SIZE_BUFFER 4096
 
 #define SOUND_DEVICES_DISABLE_OUTPUT
+//#define SPLIT_WAVEFORMS
 
 //--
 
@@ -32,6 +38,8 @@ public:
 
 	WaveformPlot()
 	{
+		ofSetCircleResolution(44);
+
 		// Font label text
 		size_TTF = 11;
 		name_TTF = "JetBrainsMonoNL-ExtraBold.ttf";
@@ -52,60 +60,17 @@ public:
 		ofRemoveListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
 	};
 
-private:
-
 	//--
 
-	//TODO: mesh
-	ofVboMesh meshWaveform;
+#ifdef USE_ROUNDED_WAVEFORM
+	RoundedPlot roundedPlot;
+#endif
+
+	ofVboMesh meshWaveformA;
+	ofPath pathWaveform;
+	int countsamples;
 
 public:
-
-	/*
-	*
-	void makeWaveformMesh(ofSoundBuffer buffer)
-	{
-		if (buffer.size() > 0) {
-
-			if (meshWaveform.getNumVertices() != buffer.getNumFrames())
-			{
-				meshWaveform.clear();
-				meshWaveform.setMode(OF_PRIMITIVE_LINE_STRIP);
-				meshWaveform.setUsage(GL_DYNAMIC_DRAW);
-
-				float h = 1.0f;
-
-				float xInc = 1.0f / (float)(buffer.getNumFrames());
-				glm::vec3 v;
-				v.x = 0;
-				for (int i = 0; i < buffer.getNumFrames(); i++) {
-					{
-						v.y = ofMap(0, -1, 1, h, h);
-						meshWaveform.addVertex(v);
-					}
-					v.x += xInc;
-				}
-			}
-		}
-	};
-
-	void updateWaveformMesh(ofSoundBuffer buffer) {
-		auto chans = buffer.getNumChannels();
-		if (chans > 0 && buffer.size() > 0) {
-			float h = 1.0f / float(chans);
-
-			h *= 500;
-
-			auto& wv = meshWaveform.getVertices();
-			for (size_t i = 0; i < wv.size(); i++) {
-				wv[i].y = ofMap(buffer[i * chans], -1, 1, h, h);
-			}
-		}
-	};
-
-	*/
-
-	//--
 
 	ofxSurfingGui* ui;
 	void setUiPtr(ofxSurfingGui* _ui) {
@@ -195,16 +160,26 @@ private:
 
 private:
 
-	ofParameter<bool> W_bScope{ "Scope", true };
+	ofParameter<bool> W_bScope1{ "Scope 1", false };
+	ofParameter<bool> W_bScope2{ "Scope 2", false };
 	ofParameter<bool> W_bLine{ "Line", true };
 	ofParameter<bool> W_bBars{ "Bars", false };
-	ofParameter<bool> W_bCircle{ "Circle", false };
+	ofParameter<bool> W_bCircles{ "Circles", false };
+	ofParameter<bool> W_bMesh1{ "Mesh 1", false };
+
+	ofParameter<bool> W_bMesh{ "Mesh", false };
+	ofParameter<bool> W_bMeshFill{ "Fill", true };
+	ofParameter<bool> W_bMeshStroke{ "Stroke", false };
+
 	ofParameter<float> W_Spread{ "Spread", 0, 0, 1 };
-	ofParameter<float> W_WidthRad{ "W/Rad", 0.5f, 0, 1 };
+	ofParameter<float> W_RatioWidth{ "RatioWidth", 0.5f, 0, 1 };
+	ofParameter<float> W_RatioRad{ "RatioRadius", 0.5f, 0, 1 };
+
 	ofParameter<float> W_WidthMin{ "Min", 0.1f, 0, 1 };
 	ofParameter<bool> W_bAbs{ "Abs", true };
 	ofParameter<bool> W_bBottom{ "Bottom", false };
 	ofParameter<float> W_Alpha{ "Alpha", 0.5, 0, 1 };
+	ofParameter<float> W_AlphaCircle{ "AlphaCircle", 0.5, 0, 1 };
 	ofParameter<bool> W_bHLine{ "H Line", true };
 	ofParameter<bool> W_bTransparent{ "Transparent", true };
 	ofParameter<bool> W_bClamp{ "Clamp", true };
@@ -218,7 +193,15 @@ private:
 
 	ofParameter<ofColor> cPlot{ "c Plot", ofColor(0, 225), ofColor(0), ofColor(0) };
 	ofParameter<ofColor> cPlotBg{ "c Bg", ofColor(64, 128), ofColor(0), ofColor(0) };
+	ofParameter<ofColor> cPlotFill{ "c Fill", ofColor(64, 128), ofColor(0), ofColor(0) };
 	ofParameter<ofColor> cText{ "c Text", ofColor(255, 225), ofColor(0), ofColor(0) };
+
+	string sTextIn = "INPUT";
+	string sTextOut = "INPUT";
+
+public:
+	void setTextIn(string s) { sTextIn = s; }
+	void setTextOut(string s) { sTextOut = s; }
 
 public:
 
@@ -284,10 +267,15 @@ public:
 		// for presets
 		params_PlotsWaveform.setName("PLOTS WAVEFORM");
 		params_PlotsWaveform.add(gain);
-		params_PlotsWaveform.add(W_bScope);
+		params_PlotsWaveform.add(W_bScope1);
 		params_PlotsWaveform.add(W_bLine);
 		params_PlotsWaveform.add(W_bBars);
-		params_PlotsWaveform.add(W_bCircle);
+		params_PlotsWaveform.add(W_bCircles);
+		params_PlotsWaveform.add(W_bMesh);
+		params_PlotsWaveform.add(W_bMeshFill);
+		params_PlotsWaveform.add(W_bMeshStroke);
+		params_PlotsWaveform.add(W_bMesh1);
+		params_PlotsWaveform.add(W_bScope2);
 		params_PlotsWaveform.add(W_Spread);
 		params_PlotsWaveform.add(W_bAbs);
 		params_PlotsWaveform.add(W_bHLine);
@@ -296,7 +284,8 @@ public:
 		params_PlotsWaveform.add(W_bClampItems);
 		params_PlotsWaveform.add(W_Rounded);
 		params_PlotsWaveform.add(W_bMirror);
-		params_PlotsWaveform.add(W_WidthRad);
+		params_PlotsWaveform.add(W_RatioWidth);
+		params_PlotsWaveform.add(W_RatioRad);
 		params_PlotsWaveform.add(W_WidthMin);
 		params_PlotsWaveform.add(W_bBottom);
 		params_PlotsWaveform.add(W_bLabel);
@@ -304,12 +293,19 @@ public:
 		params_PlotsEsthetics.setName("ESTHETICS");
 		params_PlotsEsthetics.add(W_bTransparent);
 		params_PlotsEsthetics.add(W_Alpha);
+		params_PlotsEsthetics.add(W_AlphaCircle);
 		params_PlotsEsthetics.add(W_LineWidthScope);
 		params_PlotsEsthetics.add(W_LineWidthLines);
 		params_PlotsEsthetics.add(cPlot);
 		params_PlotsEsthetics.add(cPlotBg);
+		params_PlotsEsthetics.add(cPlotFill);
 		params_PlotsEsthetics.add(cText);
 		params_PlotsWaveform.add(params_PlotsEsthetics);
+
+#ifdef USE_ROUNDED_WAVEFORM
+		params_PlotsWaveform.add(roundedPlot.W_bCircled);
+		params_PlotsWaveform.add(roundedPlot.params_Circled);
+#endif
 
 		ofAddListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
 
@@ -353,6 +349,11 @@ public:
 
 		//--
 
+#ifdef USE_ROUNDED_WAVEFORM
+		//roundedPlot.setPlotPtr(&plotIn[0]);
+#endif
+		//--
+
 		//TODO:
 		//initFbo();
 	};
@@ -372,7 +373,14 @@ public:
 			if (ui->BeginWindowSpecial(bGui_Main))
 			{
 				ui->Add(ui->bMinimize, OFX_IM_TOGGLE_ROUNDED);
+				if (!ui->bMinimize) {
+					ui->Add(ui->bDebug, OFX_IM_TOGGLE_ROUNDED_MINI);
+					if (ui->bDebug) {
+						ui->AddLabel("Elements: " + ofToString(countsamples + 1));
+					}
+				}
 				ui->AddSpacingSeparated();
+
 				ui->Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				ui->AddSpacingSeparated();
 
@@ -405,7 +413,7 @@ public:
 				//--
 
 				// 2. Presets
-				
+
 				surfingPresets.drawImGui(false);
 
 				ui->EndWindowSpecial();
@@ -417,7 +425,6 @@ public:
 
 			//if (!ui->bMinimize)
 			{
-
 				//if(bGui_Settings) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_MEDIUM;
 
 				if (ui->BeginWindowSpecial(bGui_Settings))
@@ -432,48 +439,112 @@ public:
 					ui->AddSpacingSeparated();
 
 					ui->Add(gain, OFX_IM_HSLIDER_MINI);
-					ui->AddSpacingSeparated();
-					ui->AddSpacing();
-					ui->Add(W_bScope, OFX_IM_TOGGLE_SMALL);
-					ui->Add(W_bLine, OFX_IM_TOGGLE_SMALL);
-					ui->Add(W_bBars, OFX_IM_TOGGLE_SMALL);
-					ui->Add(W_bCircle, OFX_IM_TOGGLE_SMALL);
+
+					//--
+
 					ui->AddSpacingSeparated();
 
-					ui->Add(W_Spread);
-					if (W_bCircle || W_bBars) ui->Add(W_WidthRad);
-					if (W_bCircle || W_bBars || W_bLine) ui->Add(W_WidthMin);
-					ui->AddSpacing();
-					if (W_bBars) ui->Add(W_Rounded);
+					if (ui->BeginTree("ELEMENTS"))
+					{
+						ui->Add(W_bScope1, OFX_IM_TOGGLE_SMALL, 2, true);
+						ui->Add(W_bScope2, OFX_IM_TOGGLE_SMALL, 2);
 
-					if (!ui->bMinimize) {
+#ifdef USE_ROUNDED_WAVEFORM
+						ui->Add(roundedPlot.W_bCircled, OFX_IM_TOGGLE_SMALL);
+						ui->AddSpacingSeparated();
+
+						ui->Add(roundedPlot.W_bCircled, OFX_IM_TOGGLE_SMALL);
+						if (roundedPlot.W_bCircled) ui->AddGroup(roundedPlot.params_Circled);
+						/*
+						if (roundedPlot.W_bCircled) {
+							if(ui - BeginTree("Circled")) {
+								ui->Add(roundedPlot.gain);
+								ui->Add(roundedPlot.W_CircledRadius);
+								ui->Add(roundedPlot.W_CircledSize);
+								ui->Add(roundedPlot.W_Spread2);
+								ui->Add(roundedPlot.W_RatioWidth2);
+								ui->Add(roundedPlot.W_RatioRad2);
+								ui->Add(roundedPlot.W_Rounded2);
+								ui->Add(roundedPlot.W_WidthMin2);
+								ui->EndTree();
+							}
+						}
+						*/
+#endif
 						ui->AddSpacing();
+
+						//if(!W_bCircled){
+						ui->Add(W_bLine, OFX_IM_TOGGLE_SMALL, 2, true);
+						ui->Add(W_bBars, OFX_IM_TOGGLE_SMALL, 2);
+						ui->Add(W_bCircles, OFX_IM_TOGGLE_SMALL);
+						ui->AddSpacing();
+						ui->Add(W_bMesh1, OFX_IM_TOGGLE_SMALL);
+
+						ui->AddSpacingSeparated();
+
+						if (W_bCircles || W_bBars || W_bLine || W_bMesh1) ui->Add(W_Spread);
+						if (W_bBars) ui->Add(W_RatioWidth);
+						if (W_bCircles) ui->Add(W_RatioRad);
+						if (W_bCircles || W_bBars || W_bLine || W_bMesh1) ui->Add(W_WidthMin);
+						ui->AddSpacing();
+						if (W_bBars) ui->Add(W_Rounded);
+
+						ui->EndTree();
+					}
+
+					ui->AddSpacingSeparated();
+
+					//--
+
+					if (!ui->bMinimize)
+					{
 						if (ui->BeginTree("EXTRA"))
 						{
-							ui->Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui->Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui->Add(W_bBottom, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui->AddSpacing();
+							if (W_bCircles || W_bBars || W_bLine || W_bMesh1) {
+								ui->Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
+								ui->Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
+								ui->Add(W_bBottom, OFX_IM_TOGGLE_ROUNDED_MINI);
+								ui->AddSpacing();
+							}
 							ui->Add(W_bClamp, OFX_IM_TOGGLE_ROUNDED_MINI);
 							ui->Add(W_bClampItems, OFX_IM_TOGGLE_ROUNDED_MINI);
 							ui->AddSpacing();
 							ui->Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+							ui->EndTree();
+						}
+
+						//--
+
+						ui->AddSpacingSeparated();
+
+						if (ui->BeginTree("ESTHETIC"))
+						{
+							ui->AddLabel("Box");
+							ui->Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui->Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
+							if (!W_bTransparent) ui->Add(cPlotBg, OFX_IM_COLOR_INPUT);
 							ui->AddSpacingSeparated();
 
-							if (ui->BeginTree("ESTHETIC"))
+							if (W_bMesh1)
 							{
-								ui->Add(W_Alpha);
-								ui->Add(boxPlotIn.bUseBorder, OFX_IM_TOGGLE_ROUNDED_MINI);
-								if (W_bScope) ui->Add(W_LineWidthScope, OFX_IM_STEPPER);
-								if (W_bLine) ui->Add(W_LineWidthLines, OFX_IM_STEPPER);
-								ui->Add(cPlot, OFX_IM_COLOR_INPUT);
-								ui->Add(W_bTransparent, OFX_IM_TOGGLE_ROUNDED_MINI);
-								if(!W_bTransparent) ui->Add(cPlotBg, OFX_IM_COLOR_INPUT);
-								ui->AddSpacing();
-								ui->Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
-								if (W_bLabel) ui->Add(cText, OFX_IM_COLOR_INPUT);
-								ui->EndTree();
+								ui->Add(W_bMeshStroke, OFX_IM_TOGGLE_ROUNDED_SMALL);
+								ui->Add(W_bMeshFill, OFX_IM_TOGGLE_ROUNDED_SMALL);
+								ui->Add(cPlotFill, OFX_IM_COLOR_INPUT);
 							}
+
+							ui->Add(cPlot, OFX_IM_COLOR_INPUT);
+
+							ui->Add(W_Alpha, OFX_IM_HSLIDER_MINI);
+							if (W_bCircles) ui->Add(W_AlphaCircle, OFX_IM_HSLIDER_MINI);
+
+							if (W_bScope1 || (W_bMesh1 && W_bMeshStroke))
+								ui->Add(W_LineWidthScope, OFX_IM_STEPPER);
+							if (W_bLine) ui->Add(W_LineWidthLines, OFX_IM_STEPPER);
+							ui->AddSpacingSeparated();
+
+							ui->Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
+							if (W_bLabel) ui->Add(cText, OFX_IM_COLOR_INPUT);
 
 							ui->EndTree();
 						}
@@ -501,19 +572,9 @@ public:
 	{
 		if (!bGui_Plots) return;
 
-		//TODO: multiple modes make weird height..
-		// must not overwrite y.
-		// use absolute vars
-
-		//if (bUseFbo) fbo.draw(300, 300, 320, 240);
-
 		if (!bGui_PlotIn && !bGui_PlotOut) return;
 
-		//ofColor cPlot = ofColor(0, 225);
-		//ofColor cPlotBg = ofColor(64, 128);
-		//ofColor cText = ofColor(255, 225);
-
-		float g = ofMap(gain, gain.getMin(), gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
+		float _gain = ofMap(gain, gain.getMin(), gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
 
 		//--
 
@@ -525,12 +586,12 @@ public:
 
 			if (bGui_PlotIn)
 			{
-				boxPlotIn.draw();
+				boxPlotIn.draw();//box
 
-				int __x = boxPlotIn.getX();
-				int __w = boxPlotIn.getWidth();
-				int __h = boxPlotIn.getHeight();
-				int __y = boxPlotIn.getY() + __h / 2;
+				int xb = boxPlotIn.getX();
+				int wb = boxPlotIn.getWidth();
+				int hb = boxPlotIn.getHeight();
+				int yb = boxPlotIn.getY() + hb / 2;
 
 				// Bg plot
 				if (!W_bTransparent)
@@ -542,276 +603,494 @@ public:
 
 				//--
 
-				//ofSetColor(cPlot);
-
-				// color
+				// Color Plot with alpha
 				int _a = ofMap(W_Alpha, 0, 1, 0, cPlot.get().a);
 				ofColor _c = ofColor(cPlot, _a);
 				ofSetColor(_c);
 
+				//--
+
 				ofPushMatrix();
-				ofTranslate(__x, __y);
-
-				//--
-
-				////TODO:WIP
-				//if (bUseFbo)
-				//	if (bUpdateFbo)
-				//	{
-				//		//bUpdateFbo = false;
-				//		fbo.begin();
-				//		ofClear(0, 0, 0, 0);
-				//	}
-
-
-				//--
-
-				// 0. Scope
-
-				if (W_bScope)
 				{
-					ofNoFill();
-					ofSetLineWidth(W_LineWidthScope);
+					ofTranslate(xb, yb);
 
-					//// color
-					//int _a = ofMap(W_Alpha, 0, 1, 100, 255);
-					//ofColor _c = ofColor(cPlot, _a);
-					//ofSetColor(_c);
+					//--
 
-					float a = __h * g;//amp gain
+					// Scope
 
-					for (int i = 0; i < SIZE_BUFFER; ++i)
+					if (W_bScope1)
 					{
-						float x1 = ofMap(i, 0, SIZE_BUFFER - 1, 0, __w);
-						float x2 = ofMap(i + 1, 0, SIZE_BUFFER - 1, 0, __w);
+						ofNoFill();
+						ofSetLineWidth(W_LineWidthScope);
 
-						float y1 = plotIn[i] * a;
-						float y2 = plotIn[i + 1] * a;
+						float a = hb * _gain;//amp gain
 
-						//clamp
-						float px = 2;
-						x1 = ofClamp(x1, px, __w - px);
-						x2 = ofClamp(x2, px, __w - px);
-						y1 = ofClamp(y1, -__h / 2, __h / 2);
-						y2 = ofClamp(y2, -__h / 2, __h / 2);
+						for (int i = 0; i < SIZE_BUFFER - 1; ++i)//?
+						{
+							float x1 = ofMap(i, 0, SIZE_BUFFER - 1, 0, wb);
+							float x2 = ofMap(i + 1, 0, SIZE_BUFFER - 1, 0, wb);
 
-						ofDrawLine(x1, y1, x1, y2);
+							float y1 = plotIn[i] * a;
+							float y2 = plotIn[i + 1] * a;
+
+							//clamp
+							if (W_bClamp) {
+								float px = 2;
+								x1 = ofClamp(x1, px, wb - px);
+								x2 = ofClamp(x2, px, wb - px);
+								y1 = ofClamp(y1, -hb / 2, hb / 2);
+								y2 = ofClamp(y2, -hb / 2, hb / 2);
+							}
+
+							ofDrawLine(x1, y1, x1, y2);
+						}
 					}
 
+					//--
 
-					//TODO:
-					meshWaveform.draw();
-				}
-
-				//--
-
-				// Lines / Bars / Circles types 
-				{
-					ofNoFill();
-					ofSetLineWidth(W_LineWidthLines);
-
-					float a = __h * g;//amp gain
-
-					// amount of desired lines or rectangles
-					int amount = (int)ofMap(W_Spread, 0, 1, 200, 6, true);
-
-					int stepi = SIZE_BUFFER / amount;//it step
-					float stepw = (__w / (float)amount);//width of each
-
-					int ii = -1;
-
-					for (int i = 0; i < SIZE_BUFFER; i++)
+					// Lines / Bars / Circles types 
 					{
-						/*
-						if (i > amount) continue;//skip
-						ii = i;
-						*/
+						//ofNoFill();
+						if (W_bLine) ofSetLineWidth(W_LineWidthLines);
 
-						// will discard some samples
-						if (i % stepi == 0)
-						{
-							ii++;
-						}
-						else continue;//skip it
+						float _amplify = hb * _gain;//amp gain
 
+						// Amount of desired elements 
+						// (lines or rectangles)
+						int amount = (int)ofMap(W_Spread, 0, 1, boxPlotIn.getWidth(), 3, true);
+
+						//TODO: remake
+						int iStep = SIZE_BUFFER / amount;//it step
+						float xStep = wb / (float)amount;//width of each
+
+						float hb_Half = hb / 2;
+
+						int ii = -1;
 
 						//--
 
-						ofPushMatrix();
+						// E Scope 2
+						// a plot with positive side only
+						if (W_bScope2)
+						{
+							ofPushMatrix();
 
-						// The raw point to draw
-						float x = ii * stepw;
-						float y = plotIn[ii] * a;
+							ofTranslate(0, -hb);
+							ofTranslate(0, hb_Half);
+							//if (W_bBottom) ofTranslate(0, hb_Half);
 
-						// apply min size
-						float hMin = 10;
-						y = MAX(y, W_WidthMin * hMin);
+							//--
 
-						float __hf = __h / 2;
+							// Color Plot with alpha 
+							int _a = ofMap(W_Alpha, 0, 1, 0, cPlot.get().a);
+							ofColor _c = ofColor(cPlot, _a);
+							ofSetColor(_c);
+
+							ofFill();
+
+							ofBeginShape();
+							for (int i = 0; i < SIZE_BUFFER; i++)
+							{
+								float _x = ofMap(i, 0, SIZE_BUFFER, 0, wb);
+								if (i == 0) ofVertex(0, hb);
+
+								float _v = ofMap(plotIn[i] * _gain, 0, 2, 0, hb, true);
+								//float _v = ofMap(plotIn[i] * _gain, -2, 2, 0, hb, true);
+
+								float _y = 2 * _v;
+								if (W_bClamp) _y = ofClamp(_y, 0, hb);
+
+								ofVertex(_x, hb - _y);
+
+								if (i == SIZE_BUFFER - 1) ofVertex(_x, hb);
+							}
+							ofEndShape(false);
+
+							ofPopMatrix();
+						}
+
+						//--
+
+						// Mesh 1 
+
+						// Draw
+						{
+							//--
+
+							if (W_bMesh1)
+							{
+								if (W_bBottom)
+								{
+									ofPushMatrix();
+									ofTranslate(0, hb_Half);
+								}
+
+								if (W_bMeshFill)
+								{
+									int _a = ofMap(W_Alpha, 0, 1, 0, cPlotFill.get().a);
+									ofColor _c = ofColor(cPlotFill, _a);
+
+									pathWaveform.clear();
+									pathWaveform.setColor(_c);
+									pathWaveform.setFilled(true);
+
+									for (int i = 0; i < meshWaveformA.getNumVertices(); i++)
+									{
+										pathWaveform.lineTo(meshWaveformA.getVertex(i));
+									}
+									pathWaveform.draw();
+								}
+
+								if (W_bMeshStroke)
+								{
+									// Color Plot with alpha 
+									int _a = ofMap(W_Alpha, 0, 1, 0, cPlot.get().a);
+									ofColor _c = ofColor(cPlot, _a);
+									ofSetColor(_c);
+									ofSetLineWidth(W_LineWidthScope);
+
+									meshWaveformA.draw();
+								}
+
+								if (W_bBottom) ofPopMatrix();
+							}
+						}
 
 						//----
 
-						// fix clamp 
-						//if (W_bMirror)
-						if (W_bClamp)
-						{
-							float __g = 2.f;
-							if (y < 0) y = (int)ofClamp(y, -__hf * __g, 0);
-							else y = (int)ofClamp(y, 0, __hf * __g);
-						}
+						// Elements
 
-						if (W_bAbs) y = abs(y);
+						countsamples = 0;
 
-						if (W_bBottom)
+						// Init mesh
+						if (W_bMesh1)
 						{
-							ofTranslate(0, __hf);
-						}
-
-						// translate for mirror mode. center to x axis
-						if (W_bMirror && !W_bCircle)
-						{
-							ofTranslate(0, y / 2.f);
+							meshWaveformA.clear();
+							meshWaveformA.setMode(OF_PRIMITIVE_LINE_STRIP);
+							meshWaveformA.setUsage(GL_DYNAMIC_DRAW);
 						}
 
 						//--
 
-						// Clamp x
+						for (int i = 0; i < SIZE_BUFFER; i++)
+						{
+							/*
+							if (i > amount) continue;//skip
+							ii = i;
+							*/
 
-						int px = 2;//pad
+							//TODO: remake
+							//TODO: should know which is the last one to close the mesh loop..
+							// will discard some samples
+							if (i % iStep == 0)
+							{
+								ii++;
+							}
+							else continue;//skip it from here to end (SIZE_BUFFER)!
 
-						//TODO:
-						//bool bskip = false;//discard object that could be out of the box
-						//if (x<px || x>(__w - 2 * px)) bskip = true;
+							//--
 
-						//x = (int)ofClamp(x, px, __w - 2 * px);
+							// Color Plot with alpha
+							int _a = ofMap(W_Alpha, 0, 1, 0, cPlot.get().a);
+							ofColor _c = ofColor(cPlot, _a);
+							ofSetColor(_c);
+
+							//--
+							//TODO:
+							// padding to clamp 
+							int px = 0;//pad
+
+							//--
+
+							ofPushMatrix();
+							{
+								// The raw point to draw
+								float x = ii * xStep;
+								float y = plotIn[ii] * _amplify;
+								float yy;//for use  when mirror
+
+								// Apply min size
+								float hMin = 10;
+								y = MAX(y, W_WidthMin * hMin);
+
+								//----
+
+								// fix clamp 
+								if (W_bClamp)
+								{
+									float __g;
+
+									//clamp styles
+									if (!W_bBottom && W_bMirror) __g = 2.f;
+									else if (W_bBottom && !W_bMirror) __g = 2.f;
+									else if (!W_bBottom && !W_bMirror) __g = 1.f;
+									else if (W_bBottom && W_bMirror) __g = 2.f;//must clamp bottom side!
+
+									float yMax = hb_Half * __g;
+									if (y < 0) y = (int)ofClamp(y, -yMax, 0);
+									else y = (int)ofClamp(y, 0, yMax);
+								}
+
+								if (W_bAbs) y = abs(y);
+
+								if (W_bBottom)
+								{
+									ofTranslate(0, hb_Half);
+								}
+
+								// Translate for mirror mode.
+								// center to x axis
+								if (W_bMirror)
+								{
+									ofPushMatrix();
+									ofTranslate(0, y / 2.f);
+								}
+
+								//--
+
+								// D Mesh 1
+
+								if (W_bMesh1)
+								{
+									glm::vec3 v(x, -y, 0);
+
+									if (W_bMirror)
+									{
+										v.y = v.y + y / 2.f;
+									}
+
+									//TODO: 
+									// should know which / countsamples
+									// is the last one to close the mesh loop..
+									// when ends, could build t he inverted shape 
+									// reading the mesh backwards direction.
+									//if (i == 0) meshWaveformA.addVertex(glm::vec3(0, 0, 0));
+
+									if (!W_bClampItems || (x > px && x < wb - px))
+									{
+										meshWaveformA.addVertex(v);
+										countsamples++;
+									}
+								}
+
+								//--
+
+								// Clamp x
+
+								// A. Lines
+
+								if (W_bLine)
+								{
+									//x = (int)ofClamp(x, px, wb - px);
+									// do or skip if it's outside 
+									if (!W_bClampItems || (x > px && x < wb - px))
+									{
+										ofNoFill();
+
+										ofDrawLine(x, 0, x, -y);
+									}
+								}
+
+								//--
+
+								// B. Bars
+
+								if (W_bBars)
+								{
+									ofFill();
+
+									int gap = 0;
+									//int gap = 1;
+
+									float wr = ofMap(W_RatioWidth, 0, 1.f, 1, xStep - gap, true);
+									float xr = x - (wr / 2.f);
+
+									// do or skip if it's outside 
+									if (!W_bClampItems || (x > px && x < wb - px))
+									{
+										float round = ofMap(W_Rounded, 0, 1, 0, (wr / 2));
+										if (W_Rounded != 0) ofDrawRectRounded(xr, 0, wr, -y, round);
+										else ofDrawRectangle(xr, 0, wr, -y);
+									}
+								}
+
+								//--
+
+								// Translate for mirror mode.
+								// center to x axis
+								if (W_bMirror)
+								{
+									ofPopMatrix();
+								}
+
+								//--
+
+								// C. Circle 
+
+								if (W_bCircles)
+								{
+									float r = ofMap(W_RatioRad, 0, 1, 4, y * 0.5f, true);
+									float rMin = 5;
+									r = MAX(r, W_WidthMin * rMin);
+
+									// do or skip if it's outside
+									if (!W_bClampItems || (x > r && x < (wb - r)))
+									{
+										ofFill();
+
+										// Color Plot with alpha circle
+										int _a = ofMap(W_AlphaCircle, 0, 1, 0, cPlot.get().a);
+										ofColor _c = ofColor(cPlot, _a);
+										ofSetColor(_c);
+
+										ofDrawCircle(x, 0, r);
+									}
+								}
+							}
+							ofPopMatrix();
+						}
 
 						//--
 
-						//// clamp y
-						//y = (int)ofClamp(y, -__hf, __hf);
+						// D Mesh 1
 
-						//--
-
-						//// color
-						//int _a = ofMap(abs(y), 0, __hf, MIN(70, W_Alpha * 100), MIN(70, W_Alpha * 255));
-						//ofColor _c = ofColor(cPlot, _a);
-						//ofSetColor(_c);
-
-						// A. Line
-						if (W_bLine)
+						if (W_bMesh1)
 						{
-							//x = (int)ofClamp(x, px, __w - px);
-							// do or skip if it's outside 
-							if (!W_bClampItems || (x > px && x < __w - px))
+							//--
+
+							// Close inverted loop
+
+							// mesh bottom
+							if (W_bMirror)
 							{
-								ofNoFill();
+								int countlast = countsamples;
 
-								int h = y;
+								// add last from wave to axis
+								{
+									float _h = meshWaveformA.getVertex(countsamples-1).y;
+									//float _h = 0;
+									glm::vec3 v(wb, _h, 0);
+									meshWaveformA.addVertex(v);
+									countsamples++;
+								}
 
-								//float hMin = 10;
-								//h = MAX(h, W_WidthMin * hMin);
+								// add first from axis to wave 
+								{
+									glm::vec3 v(meshWaveformA.getVertex(countlast));
+									meshWaveformA.addVertex(v);
+									countsamples++;
+								}
+								// add symmetric
+								{
+									glm::vec3 v(meshWaveformA.getVertex(countlast));
+									v = glm::vec3(v.x, -v.y,0);
+									meshWaveformA.addVertex(v);
+									countsamples++;
+								}
 
-								ofDrawLine(x, 0, x, -h);
+								//--
+
+								// B mirrorize bottom side!
+
+								// iterate the all waveform inverted
+								for (int i = countlast - 1; i >= 0; i--)
+								{
+									glm::vec3 v(meshWaveformA.getVertex(i));
+									v = glm::vec3(v.x, -v.y, 0);
+									meshWaveformA.addVertex(v);
+								}
+
+								// add last from wave to axis
+								{
+									float _h = meshWaveformA.getVertex(0).y;
+									glm::vec3 v(0, -_h, 0);
+									meshWaveformA.addVertex(v);
+								}
+								// add symmetric
+								{
+									float _h = meshWaveformA.getVertex(0).y;
+									glm::vec3 v(0, _h, 0);
+									meshWaveformA.addVertex(v);
+								}
+								// add close loop from wave to axis
+								{
+									glm::vec3 v(meshWaveformA.getVertex(0));
+									meshWaveformA.addVertex(v);
+								}
+							}
+
+							else // close
+							{
+								// add last from wave to axis
+								{
+									glm::vec3 v(wb, 0, 0);
+									meshWaveformA.addVertex(v);
+								}
+								// add last from wave to axis
+								{
+									glm::vec3 v(0, 0, 0);
+									meshWaveformA.addVertex(v);
+								}
+								{
+									glm::vec3 v(meshWaveformA.getVertex(0));
+									v = glm::vec3(v.x, v.y, 0);
+									meshWaveformA.addVertex(v);
+								}
 							}
 						}
 
-						// B. Bars
-						if (W_bBars)
-						{
-							ofFill();
+					}
 
-							int gap = 1;
-							float wr = ofMap(W_WidthRad, 0, 1.f, 1, stepw - gap, true);
-							float xr = x - (wr / 2.f);
+					//--
 
-							float h = y;
+					// Horizontal line
 
-							//float hMin = 10;
-							//h = MAX(h, W_WidthMin * hMin);
+					if (W_bHLine)
+					{
+						ofSetLineWidth(W_LineWidthScope);
+						ofDrawLine(0, 0, wb, 0);
+					}
 
-							//xr = (int)ofClamp(xr, px, __w - wr - px);
-							// do or skip if it's outside 
-							if (!W_bClampItems || (x > px && x < __w - px))
-							{
-								float round = ofMap(W_Rounded, 0, 1, 0, (wr / 2));
-								if (W_Rounded != 0) ofDrawRectRounded(xr, 0, wr, -h, round);
-								else ofDrawRectangle(xr, 0, wr, -h);
-							}
-						}
+					//--
 
-						// C. Circle 
-						if (W_bCircle)
-						{
-							float r = ofMap(W_WidthRad / 2.f, 0, 1, 4, y * 1.f, true);
-							float rMin = 5;
-							r = MAX(r, W_WidthMin * rMin);
+					//TODO:
+					// Circled spectrum
+#ifdef USE_ROUNDED_WAVEFORM
+					roundedPlot.r = boxPlotIn.getRectangle();
+					for (int i = 0; i < SIZE_BUFFER; i++)
+					{
+						roundedPlot.plotIn[i] = plotIn[i];
+					}
+					//roundedPlot.plotIn = plotIn;
+					roundedPlot.draw();
+#endif
+					//--
 
-							// do or skip if it's outside
-							if (!W_bClampItems || (x > r && x < (__w - r)))
-							{
-								ofFill();
+					// Label
 
-								ofDrawCircle(x, 0, r);
-							}
-						}
+					if (W_bLabel)
+					{
+						string s = sTextIn;
 
-						//if (W_bMirror && !W_bCircle)
-						//{
-						//}
+						float hh = boxPlotIn.getRectangle().getHeight();
 
-						ofPopMatrix();
+						int w = ofxSurfingHelpers::getWidthBBtextBoxedMini(myFont, s);
+						int h = ofxSurfingHelpers::getHeightBBtextBoxedMini(myFont, s);
+
+						//center right
+						//int xx = wb - w - 10;
+						//int yy = h / 2;
+
+						//bottom right
+						int pad = 12;
+						int xx = wb - w - 0 - pad;
+						int yy = hh / 2 - pad;
+
+						//int xx = p.x - w;
+						//int yy = p.y - h;
+						ofxSurfingHelpers::drawTextBoxedMini(myFont, s, xx, yy, cText);
 					}
 				}
-
-				//--
-
-				// Horizontal line
-
-				if (W_bHLine)
-				{
-					ofSetLineWidth(1);
-					ofNoFill();
-					ofDrawLine(0, 0, __w, 0);
-				}
-
-				//--
-
-				// Label
-
-				if (W_bLabel)
-				{
-					string s = "INPUT";
-
-					float hh = boxPlotIn.getRectangle().getHeight();
-
-					int w = ofxSurfingHelpers::getWidthBBtextBoxedMini(myFont, s);
-					int h = ofxSurfingHelpers::getHeightBBtextBoxedMini(myFont, s);
-
-					//center right
-					//int xx = __w - w - 10;
-					//int yy = h / 2;
-
-					//bottom right
-					int pad = 12;
-					int xx = __w - w - 0 - pad;
-					int yy = hh / 2 - pad;
-
-					//int xx = p.x - w;
-					//int yy = p.y - h;
-					ofxSurfingHelpers::drawTextBoxedMini(myFont, s, xx, yy, cText);
-				}
-
-				//--
-
-				//if (bUseFbo)
-				//	if (bUpdateFbo)
-				//	{
-				//		fbo.end();
-				//		bUpdateFbo = true;
-				//	}
-
-				//--
-
 				ofPopMatrix();
 			}
 
@@ -825,24 +1104,24 @@ public:
 			{
 				boxPlotOut.draw();
 
-				int __x = boxPlotOut.getX();
-				int __w = boxPlotOut.getWidth();
-				int __h = boxPlotOut.getHeight();
-				int __y = boxPlotOut.getY() + __h / 2;
+				int xb = boxPlotOut.getX();
+				int wb = boxPlotOut.getWidth();
+				int hb = boxPlotOut.getHeight();
+				int yb = boxPlotOut.getY() + hb / 2;
 
 				ofPushMatrix();
-				ofTranslate(__x, __y);
+				ofTranslate(xb, yb);
 
 				ofSetLineWidth(W_LineWidthScope);
 				ofNoFill();
 
-				ofDrawLine(0, 0, 1, plotOut[1] * __h * g); // first line
+				ofDrawLine(0, 0, 1, plotOut[1] * hb * _gain); // first line
 
-				for (int i = 1; i < (__w - 1); ++i)
+				for (int i = 1; i < (wb - 1); ++i)
 				{
 					ofDrawLine(
-						i, plotOut[i] * __h * g,
-						i + 1, plotOut[i + 1] * __h * g);
+						i, plotOut[i] * hb * _gain,
+						i + 1, plotOut[i + 1] * hb * _gain);
 				}
 
 				//--
@@ -853,8 +1132,8 @@ public:
 					ofSetLineWidth(1);
 					ofNoFill();
 
-					ofDrawLine(0, 0, __w, 0);
-				}
+					ofDrawLine(0, 0, wb, 0);
+					}
 
 				//--
 
@@ -864,27 +1143,31 @@ public:
 					string s = "OUT";
 					int w = ofxSurfingHelpers::getWidthBBtextBoxedMini(myFont, s);
 					int h = ofxSurfingHelpers::getHeightBBtextBoxedMini(myFont, s);
-					ofxSurfingHelpers::drawTextBoxedMini(myFont, s, __w - w, h / 2);
+					ofxSurfingHelpers::drawTextBoxedMini(myFont, s, wb - w, h / 2);
 				}
 
 				ofPopMatrix();
-		}
+					}
 #endif
-	}
+				}
 		ofPopStyle();
-}
+			}
 
 	//--------------------------------------------------------------
 	void doReset()
 	{
 		W_Spread = 0.5;
-		W_WidthRad = 0.5;
+		W_RatioWidth = 0.5;
 		gain = 0;
-		W_bScope = false;
+		W_bScope1 = false;
+		W_bScope2 = false;
+		W_bMesh1 = false;
+		W_bMeshFill = true;
+		W_bMeshStroke = false;
 		W_bHLine = false;
 		W_bLine = true;
 		W_bBars = false;
-		W_bCircle = false;
+		W_bCircles = false;
 		W_bAbs = true;
 		W_bMirror = true;
 		W_Rounded = 0.5;
@@ -956,7 +1239,7 @@ public:
 
 		// predefined styles
 		/*
-		// Plot waveform
+		// Plot meshWaveformA
 		else if (name == plotType.getName())
 		{
 			switch (plotType)
@@ -964,25 +1247,25 @@ public:
 			case 0: // scope
 				W_bLine = false;
 				W_bBars = false;
-				W_bCircle = false;
+				W_bCircles = false;
 				break;
 
 			case 1: // lines
 				W_bLine = true;
 				W_bBars = false;
-				W_bCircle = false;
+				W_bCircles = false;
 				break;
 
 			case 2: // bar
 				W_bLine = false;
 				W_bBars = true;
-				W_bCircle = false;
+				W_bCircles = false;
 				break;
 
 			case 3: // circle
 				W_bLine = false;
 				W_bBars = false;
-				W_bCircle = true;
+				W_bCircles = true;
 				break;
 			}
 
@@ -998,7 +1281,7 @@ public:
 			if (W_bLine)
 			{
 				W_bBars = false;
-				W_bCircle = false;
+				W_bCircles = false;
 			}
 		}
 
@@ -1007,13 +1290,13 @@ public:
 			if (W_bBars)
 			{
 				W_bLine = false;
-				W_bCircle = false;
+				W_bCircles = false;
 			}
 		}
 
-		else if (name == W_bCircle.getName())
+		else if (name == W_bCircles.getName())
 		{
-			if (W_bCircle)
+			if (W_bCircles)
 			{
 				W_bLine = false;
 				W_bBars = false;
@@ -1021,4 +1304,4 @@ public:
 		}
 		*/
 	}
-};
+		};
