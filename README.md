@@ -5,7 +5,7 @@
 
 **WORK IN PROGRESS**
 - ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
-- USING MS DIRECTSHOW. ASIO OR WASAPI NO TESTED BUT SHOULD WORK.
+- USING MS DIRECTSHOW. ASIO OR WASAPI NOT TESTED BUT SHOULD WORK.
 - CURRENTLY USING ONLY INPUT. INTENDED TO BE USED ON AN AUDIO ANALYZER YET.
 
 ## Screenshot
@@ -13,7 +13,7 @@
 ![](/example/Capture.PNG)  
 
 ## Features
-- **Select** Input and Output (WIP) **devices** using an ImGui based **GUI**.
+- **Select** Input and Output (WIP) **devices** using an **ImGui** based **GUI**.
 - Auto **Store/Recall settings** on startup/exit.
 - **Enable/Bypass** & available **Gain Sliders** (WIP).
 - Display **list devices** from all sound APIs: **DS/ASIO/WASAPI**. 
@@ -21,6 +21,7 @@
 - Scalable and draggable layout.
 - **WIP** Class for waveform plotting using different styles.
 - Styles editor (WIP).
+- **Bloom Shader** for plot styling.
 
 ## Usage
  
@@ -46,6 +47,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self. look other 
 }
 
 /*
+// WIP
 void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self. look other examples
 	audioDevices.audioOut(output);
 }
@@ -57,7 +59,8 @@ void ofApp::audioOut(ofSoundBuffer& output) {//to handle by your self. look othe
 * [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
 * [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
-* ofxGui (_Core_) / Optional
+* [ofxBloom](https://github.com/P-A-N/ofxBloom) / Optional | Bloom Shader
+* ofxGui / Optional | Core
 
 ### Tested Systems
 - **Windows 10** / **VS 2022** / **OF 0.11+**
