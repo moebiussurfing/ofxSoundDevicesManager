@@ -1,6 +1,12 @@
 #pragma once
 
 /*
+* 
+* TODO:
+* 
+	fix bloom window resize 
+	fix select currently saved after saving and refresh
+
 	fft plot example https://github.com/moebiussurfing/examplesOfxMaxim
 	ImGui plot https://github.com/epezent/implot_demos
 */
@@ -50,9 +56,12 @@ public:
 	ofFbo fbo;
 
 	void refreshBloom() {
+		ofLogNotice("WaveformPlot") << (__FUNCTION__);
+
 		ofDisableArbTex();
 		fbo.allocate(boxPlotIn.getWidth(), boxPlotIn.getHeight());
 		ofEnableArbTex();
+
 		bloom.setup(boxPlotIn.getWidth(), boxPlotIn.getHeight(), fbo);
 	}
 
@@ -459,8 +468,8 @@ public:
 						}
 						ui->EndTree();
 					}
-				}
 				ui->AddSpacingSeparated();
+				}
 #endif
 
 				ui->Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
@@ -569,7 +578,7 @@ public:
 						// distribution
 						if (W_bCircles || W_bBars || W_bLine || W_bMesh1)
 							ui->Add(W_Spread);
-						
+
 						if (W_bBars) ui->Add(W_RatioWidth);
 						if (W_bCircles) ui->Add(W_RatioRad);
 
@@ -601,6 +610,7 @@ public:
 							ui->Add(W_bClamp, OFX_IM_TOGGLE_ROUNDED_MINI);
 							ui->Add(W_bClampItems, OFX_IM_TOGGLE_ROUNDED_MINI);
 							ui->AddSpacing();
+
 							ui->Add(W_bHLine, OFX_IM_TOGGLE_ROUNDED_MINI);
 
 							ui->EndTree();
@@ -630,15 +640,16 @@ public:
 								ui->Add(W_bMeshStroke, OFX_IM_TOGGLE_ROUNDED_SMALL);
 								if (W_bMeshStroke)ui->Add(cPlotStroke, OFX_IM_COLOR_INPUT);
 							}
-							if (W_bScope1 || W_bLine || W_bBars || W_bCircles)
+							if (W_bScope1 || W_bScope2 || W_bLine || W_bBars || W_bCircles)
 								ui->Add(cPlotLineBars, OFX_IM_COLOR_INPUT);
 
 							ui->Add(W_Alpha, OFX_IM_HSLIDER_MINI);
 							if (W_bCircles) ui->Add(W_AlphaCircle, OFX_IM_HSLIDER_MINI);
 
-							if (W_bScope1 || (W_bMesh1 && W_bMeshStroke))
+							if (W_bScope1 || W_bScope2 || (W_bMesh1 && W_bMeshStroke))
 								ui->Add(W_LineWidthScope, OFX_IM_STEPPER);
 							if (W_bLine) ui->Add(W_LineWidthLines, OFX_IM_STEPPER);
+
 							ui->AddSpacingSeparated();
 
 							ui->Add(W_bLabel, OFX_IM_TOGGLE_ROUNDED_MINI);
@@ -687,10 +698,10 @@ public:
 
 		//int xx = p.x - w;
 		//int yy = p.y - h;
-		int x = 0; 
+		int x = 0;
 		int y = 0;
 
-		ofColor colorBackground = ofColor(0, 200); 
+		ofColor colorBackground = ofColor(0, 200);
 		bool useShadow = true;
 		ofColor colorShadow = 128;
 
@@ -766,7 +777,7 @@ public:
 #ifndef USE_BLOOM
 						ofTranslate(xb, yb);
 #else
-						ofTranslate(0, hb/2);
+						ofTranslate(0, hb / 2);
 #endif
 						//--
 
@@ -1202,6 +1213,11 @@ public:
 
 						if (W_bHLine)
 						{
+						// Color Plot with alpha
+						int _a = ofMap(W_Alpha, 0, 1, 0, cPlotLineBars.get().a);
+						ofColor _c = ofColor(cPlotLineBars, _a);
+						ofSetColor(_c);
+
 							ofSetLineWidth(W_LineWidthScope);
 							ofDrawLine(0, 0, wb, 0);
 						}
@@ -1282,15 +1298,15 @@ public:
 						int w = ofxSurfingHelpers::getWidthBBtextBoxedMini(myFont, s);
 						int h = ofxSurfingHelpers::getHeightBBtextBoxedMini(myFont, s);
 						ofxSurfingHelpers::drawTextBoxedMini(myFont, s, wb - w, h / 2);
-					}
+			}
 
 					ofPopMatrix();
-				}
+		}
 #endif
-			}
+	}
 			ofPopStyle();
 
-		}
+}
 
 #ifdef USE_BLOOM
 		ofPushMatrix();
