@@ -1,3 +1,4 @@
+ofxBloom
 ofxGui
 ofxImGui
 ofxSoundDevicesManager
