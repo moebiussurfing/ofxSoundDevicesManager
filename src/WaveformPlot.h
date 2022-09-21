@@ -1,10 +1,10 @@
 #pragma once
 
 /*
-* 
+*
 * TODO:
-* 
-	fix bloom window resize 
+*
+	fix bloom window resize
 	fix select currently saved after saving and refresh
 
 	fft plot example https://github.com/moebiussurfing/examplesOfxMaxim
@@ -55,26 +55,30 @@ public:
 	ofxBloom bloom;
 	ofFbo fbo;
 
-	void refreshBloom() {
+	void refreshBloom()
+	{
 		ofLogNotice("WaveformPlot") << (__FUNCTION__);
 
 		ofDisableArbTex();
+		//fbo.allocate(1920, 1080);
 		fbo.allocate(boxPlotIn.getWidth(), boxPlotIn.getHeight());
 		ofEnableArbTex();
 
+		//bloom.setup(1920, 1080, fbo);
 		bloom.setup(boxPlotIn.getWidth(), boxPlotIn.getHeight(), fbo);
 	}
 
-	void setupBloom() {
+	void setupBloom()
+	{
 		refreshBloom();
 
 		/*
 		ofDisableArbTex();
 		fbo.allocate(boxPlotIn.getWidth(), boxPlotIn.getHeight());
 		ofEnableArbTex();
-
-		bloom.setup(boxPlotIn.getWidth(), boxPlotIn.getHeight(), fbo);
 		*/
+
+		//bloom.setup(boxPlotIn.getWidth(), boxPlotIn.getHeight(), fbo);
 
 		bEnable.set("Bloom", false);
 		scale.set("Scale", 0.1f, 0.1f, 16.f);
@@ -281,7 +285,7 @@ public:
 
 		doReset();
 
-		surfingPresets.startup();
+		//surfingPresets.startup();
 		//surfingPresets.doLoad();
 
 #ifdef USE_BLOOM
@@ -455,23 +459,6 @@ public:
 				}
 				ui->AddSpacingSeparated();
 
-#ifdef USE_BLOOM
-				if (!ui->bMinimize)
-				{
-					if (ui->BeginTree("BLOOM"))
-					{
-						ui->Add(bEnable, OFX_IM_TOGGLE);
-						if (bEnable) {
-							ui->Add(scale, OFX_IM_HSLIDER_MINI);
-							ui->Add(thresh, OFX_IM_HSLIDER_MINI);
-							ui->Add(brightness, OFX_IM_HSLIDER_MINI);
-						}
-						ui->EndTree();
-					}
-				ui->AddSpacingSeparated();
-				}
-#endif
-
 				ui->Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				ui->AddSpacingSeparated();
 
@@ -506,6 +493,24 @@ public:
 				// 2. Presets
 
 				surfingPresets.drawImGui(false);
+
+#ifdef USE_BLOOM
+				if (!ui->bMinimize)
+				{
+					ui->AddSpacingSeparated();
+
+					if (ui->BeginTree("BLOOM"))
+					{
+						ui->Add(bEnable, OFX_IM_TOGGLE);
+						if (bEnable) {
+							ui->Add(scale, OFX_IM_HSLIDER_MINI);
+							ui->Add(thresh, OFX_IM_HSLIDER_MINI);
+							ui->Add(brightness, OFX_IM_HSLIDER_MINI);
+						}
+						ui->EndTree();
+					}
+				}
+#endif
 
 				ui->EndWindowSpecial();
 			}
@@ -1213,10 +1218,10 @@ public:
 
 						if (W_bHLine)
 						{
-						// Color Plot with alpha
-						int _a = ofMap(W_Alpha, 0, 1, 0, cPlotLineBars.get().a);
-						ofColor _c = ofColor(cPlotLineBars, _a);
-						ofSetColor(_c);
+							// Color Plot with alpha
+							int _a = ofMap(W_Alpha, 0, 1, 0, cPlotLineBars.get().a);
+							ofColor _c = ofColor(cPlotLineBars, _a);
+							ofSetColor(_c);
 
 							ofSetLineWidth(W_LineWidthScope);
 							ofDrawLine(0, 0, wb, 0);
@@ -1242,11 +1247,11 @@ public:
 						if (W_bLabel)
 						{
 							drawLabel();
-						}
+			}
 #endif
-					}
+		}
 					ofPopMatrix();
-				}
+	}
 
 				//----
 
@@ -1298,10 +1303,10 @@ public:
 						int w = ofxSurfingHelpers::getWidthBBtextBoxedMini(myFont, s);
 						int h = ofxSurfingHelpers::getHeightBBtextBoxedMini(myFont, s);
 						ofxSurfingHelpers::drawTextBoxedMini(myFont, s, wb - w, h / 2);
-			}
+					}
 
 					ofPopMatrix();
-		}
+}
 #endif
 	}
 			ofPopStyle();
