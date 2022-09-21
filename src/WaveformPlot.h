@@ -11,8 +11,9 @@
 	ImGui plot https://github.com/epezent/implot_demos
 */
 
-#define USE_BLOOM
-//#define USE_ROUNDED_WAVEFORM
+#define USE_BLOOM // shader
+
+#define USE_ROUNDED_WAVEFORM // another circled widget
 
 //--
 
@@ -381,7 +382,7 @@ public:
 #endif
 
 #ifdef USE_ROUNDED_WAVEFORM
-		params_PlotsWaveform.add(roundedPlot.W_bCircled);
+		//params_PlotsWaveform.add(roundedPlot.W_bCircled);
 		params_PlotsWaveform.add(roundedPlot.params_Circled);
 #endif
 
@@ -427,9 +428,9 @@ public:
 
 		//--
 
-#ifdef USE_ROUNDED_WAVEFORM
-		//roundedPlot.setPlotPtr(&plotIn[0]);
-#endif
+//#ifdef USE_ROUNDED_WAVEFORM
+//		//roundedPlot.setPlotPtr(&plotIn[0]);
+//#endif
 		//--
 
 		//TODO:
@@ -546,11 +547,13 @@ public:
 						ui->Add(W_bScope2, OFX_IM_TOGGLE_SMALL, 2);
 
 #ifdef USE_ROUNDED_WAVEFORM
-						ui->Add(roundedPlot.W_bCircled, OFX_IM_TOGGLE_SMALL);
 						ui->AddSpacingSeparated();
 
 						ui->Add(roundedPlot.W_bCircled, OFX_IM_TOGGLE_SMALL);
+
+						//ui->Add(roundedPlot.W_bCircled, OFX_IM_TOGGLE_SMALL);
 						if (roundedPlot.W_bCircled) ui->AddGroup(roundedPlot.params_Circled);
+
 						/*
 						if (roundedPlot.W_bCircled) {
 							if(ui - BeginTree("Circled")) {
@@ -566,6 +569,8 @@ public:
 							}
 						}
 						*/
+
+						ui->AddSpacingSeparated();
 #endif
 						ui->AddSpacing();
 
@@ -1232,13 +1237,21 @@ public:
 						//TODO:
 						// Circled spectrum
 #ifdef USE_ROUNDED_WAVEFORM
-						roundedPlot.r = boxPlotIn.getRectangle();
-						for (int i = 0; i < SIZE_BUFFER; i++)
+						if (roundedPlot.W_bCircled) 
 						{
-							roundedPlot.plotIn[i] = plotIn[i];
+							roundedPlot.r = boxPlotIn.getRectangle();
+
+							/*
+							for (int i = 0; i < SIZE_BUFFER; i++)
+							{
+								roundedPlot.plotIn[i] = plotIn[i];
+							}
+							//roundedPlot.plotIn = plotIn;
+							*/
+							//roundedPlot.draw();
+
+							roundedPlot.draw(plotIn);
 						}
-						//roundedPlot.plotIn = plotIn;
-						roundedPlot.draw();
 #endif
 						//--
 

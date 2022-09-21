@@ -29,7 +29,7 @@ public:
 	};
 	*/
 
-	float plotIn[SIZE_BUFFER];
+	//float plotIn[SIZE_BUFFER];
 
 	ofParameterGroup params_Circled{ "Circled" };
 	ofParameter<float> gain{ "Gain", 0, -1, 1 };
@@ -63,7 +63,8 @@ public:
 		params_Circled.add(W_WidthMin2);
 	};
 
-	void draw() {
+	void draw() 
+	{
 		float _gainPower = ofMap(gain, gain.getMin(), gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
 
 		if (W_bCircled)

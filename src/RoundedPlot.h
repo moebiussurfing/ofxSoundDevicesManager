@@ -8,9 +8,19 @@
 class RoundedPlot
 {
 public:
-	RoundedPlot();
-	~RoundedPlot();
+	
+	//RoundedPlot();
+	//~RoundedPlot();
 
+	RoundedPlot::RoundedPlot()
+	{
+		setup();
+	}
+
+	RoundedPlot::~RoundedPlot()
+	{
+	}
+	
 	//TODO:
 	/*
 	float* plotIn[SIZE_BUFFER]; // make this bigger, just in case
@@ -18,11 +28,12 @@ public:
 		plotIn = &_plotPtr;
 	};
 	*/
-	float plotIn[SIZE_BUFFER];
+
+	//float plotIn[SIZE_BUFFER];
 
 	ofParameterGroup params_Circled{ "Circled" };
 	ofParameter<float> gain{ "Gain", 0, -1, 1 };
-	ofParameter<bool> W_bCircled{ "Circled", false };
+	ofParameter<bool> W_bCircled{ "Circled Widget", false };
 	ofParameter<float> W_CircledRadius{ "Radius", 0, 0, 1 };
 	ofParameter<float> W_CircledSize{ "Size", 0, 0, 1 };
 	ofParameter<float> W_Spread2{ "Spread2", 0, 0, 1 };
@@ -52,7 +63,9 @@ public:
 		params_Circled.add(W_WidthMin2);
 	};
 
-	void draw() {
+	//void draw() 
+	void draw(float _plotIn[])
+	{
 		float _gainPower = ofMap(gain, gain.getMin(), gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
 
 		if (W_bCircled)
@@ -105,7 +118,7 @@ public:
 				ofColor _c = ofColor(cPlot, _a);
 				ofSetColor(_c);
 
-				float val = plotIn[i] * _amplify;
+				float val = _plotIn[i] * _amplify;
 
 				if (W_bAbs) val = abs(val);
 
@@ -131,6 +144,7 @@ public:
 				float wr = ofMap(W_RatioWidth2, 0, 1.f, 1, rd / 4, true);//width
 				float offset = 0;
 				//float offset = wr / 2;
+
 				ofDrawRectRounded({ offset, 0, val, wr }, W_Rounded2 * (wr / 2));
 				//ofDrawRectangle({ wr / 2, 0, val, wr });
 
@@ -149,10 +163,10 @@ private:
 
 };
 
-RoundedPlot::RoundedPlot()
-{
-}
-
-RoundedPlot::~RoundedPlot()
-{
-}
+//RoundedPlot::RoundedPlot()
+//{
+//}
+//
+//RoundedPlot::~RoundedPlot()
+//{
+//}
