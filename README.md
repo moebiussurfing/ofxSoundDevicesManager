@@ -51,8 +51,8 @@ void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self. look other 
 * [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
 * [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
-* [ofxBloom](https://github.com/P-A-N/ofxBloom) / Optional | Bloom Shader
-* ofxGui / Optional | Core
+* [ofxBloom](https://github.com/P-A-N/ofxBloom) / Optional
+* ofxGui / Optional
 
 ### Tested Systems
 - **Windows 10** / **VS 2022** / **OF 0.11+**
