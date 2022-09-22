@@ -202,7 +202,7 @@ public:
 
 	ofParameter<bool> bGui_Plots;
 	ofParameter<bool> bGui_Main{ "WAVEFORM", true };
-	ofParameter<bool> bGui_Settings{ "PLOT SETTINGS", false };
+	ofParameter<bool> bGui_Settings{ "WAVEFORM EDIT", false };
 	//ofParameter<bool> bGui_Main{ "SOUND PLOTS", true };
 
 	ofParameter<float> gain{ "Gain", 0, -1, 1 };
@@ -225,9 +225,9 @@ private:
 	ofParameter<bool> W_bLine{ "Line", true };
 	ofParameter<bool> W_bBars{ "Bars", false };
 	ofParameter<bool> W_bCircles{ "Circles", false };
-	ofParameter<bool> W_bMesh1{ "Mesh 1", false };
-
 	ofParameter<bool> W_bMesh{ "Mesh", false };
+
+	//ofParameter<bool> W_bMesh{ "Mesh", false };
 	ofParameter<bool> W_bMeshFill{ "Fill", true };
 	ofParameter<bool> W_bMeshStroke{ "Stroke", false };
 
@@ -346,7 +346,6 @@ public:
 		params_PlotsWaveform.add(W_bMesh);
 		params_PlotsWaveform.add(W_bMeshFill);
 		params_PlotsWaveform.add(W_bMeshStroke);
-		params_PlotsWaveform.add(W_bMesh1);
 		params_PlotsWaveform.add(W_bScope2);
 		params_PlotsWaveform.add(W_Spread);
 		params_PlotsWaveform.add(W_bAbs);
@@ -382,8 +381,8 @@ public:
 #endif
 
 #ifdef USE_ROUNDED_WAVEFORM
-		//params_PlotsWaveform.add(roundedPlot.W_bCircled);
 		params_PlotsWaveform.add(roundedPlot.params_Circled);
+		ui->AddStyle(roundedPlot.bEnable, OFX_IM_HIDDEN);
 #endif
 
 		ofAddListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
@@ -426,11 +425,6 @@ public:
 		//TODO:
 		boxPlotIn.bGui.makeReferenceTo(bGui_PlotIn);
 
-		//--
-
-//#ifdef USE_ROUNDED_WAVEFORM
-//		//roundedPlot.setPlotPtr(&plotIn[0]);
-//#endif
 		//--
 
 		//TODO:
@@ -541,58 +535,39 @@ public:
 
 					ui->AddSpacingSeparated();
 
+					// Elements
+					
 					if (ui->BeginTree("ELEMENTS"))
 					{
 						ui->Add(W_bScope1, OFX_IM_TOGGLE_SMALL, 2, true);
 						ui->Add(W_bScope2, OFX_IM_TOGGLE_SMALL, 2);
-
-#ifdef USE_ROUNDED_WAVEFORM
-						ui->AddSpacingSeparated();
-
-						ui->Add(roundedPlot.W_bCircled, OFX_IM_TOGGLE_SMALL);
-
-						//ui->Add(roundedPlot.W_bCircled, OFX_IM_TOGGLE_SMALL);
-						if (roundedPlot.W_bCircled) ui->AddGroup(roundedPlot.params_Circled);
-
-						/*
-						if (roundedPlot.W_bCircled) {
-							if(ui - BeginTree("Circled")) {
-								ui->Add(roundedPlot.gain);
-								ui->Add(roundedPlot.W_CircledRadius);
-								ui->Add(roundedPlot.W_CircledSize);
-								ui->Add(roundedPlot.W_Spread2);
-								ui->Add(roundedPlot.W_RatioWidth2);
-								ui->Add(roundedPlot.W_RatioRad2);
-								ui->Add(roundedPlot.W_Rounded2);
-								ui->Add(roundedPlot.W_WidthMin2);
-								ui->EndTree();
-							}
-						}
-						*/
-
-						ui->AddSpacingSeparated();
-#endif
-						ui->AddSpacing();
+						//ui->AddSpacingSeparated();
 
 						//if(!W_bCircled){
 						ui->Add(W_bLine, OFX_IM_TOGGLE_SMALL, 2, true);
 						ui->Add(W_bBars, OFX_IM_TOGGLE_SMALL, 2);
 						ui->Add(W_bCircles, OFX_IM_TOGGLE_SMALL);
-						ui->AddSpacing();
+						//ui->AddSpacing();
 
-						ui->Add(W_bMesh1, OFX_IM_TOGGLE_SMALL);
+						ui->Add(W_bMesh, OFX_IM_TOGGLE_SMALL);
 
-						if (W_bCircles || W_bBars || W_bLine || W_bMesh1)
+#ifdef USE_ROUNDED_WAVEFORM
+						//ui->AddSpacingSeparated();
+						ui->Add(roundedPlot.bEnable, OFX_IM_TOGGLE_SMALL);
+						if (roundedPlot.bEnable) ui->AddGroup(roundedPlot.params_Circled);
+#endif
+
+						if (W_bCircles || W_bBars || W_bLine || W_bMesh)
 							ui->AddSpacingSeparated();
 
 						// distribution
-						if (W_bCircles || W_bBars || W_bLine || W_bMesh1)
+						if (W_bCircles || W_bBars || W_bLine || W_bMesh)
 							ui->Add(W_Spread);
 
 						if (W_bBars) ui->Add(W_RatioWidth);
 						if (W_bCircles) ui->Add(W_RatioRad);
 
-						if (W_bCircles || W_bBars || W_bLine || W_bMesh1)
+						if (W_bCircles || W_bBars || W_bLine || W_bMesh)
 							ui->Add(W_WidthMin);
 
 						if (W_bBars) {
@@ -603,15 +578,17 @@ public:
 						ui->EndTree();
 					}
 
-					ui->AddSpacingSeparated();
-
 					//--
+
+					// Extra
 
 					if (!ui->bMinimize)
 					{
+						ui->AddSpacingSeparated();
+
 						if (ui->BeginTree("EXTRA"))
 						{
-							if (W_bCircles || W_bBars || W_bLine || W_bMesh1) {
+							if (W_bCircles || W_bBars || W_bLine || W_bMesh) {
 								ui->Add(W_bAbs, OFX_IM_TOGGLE_ROUNDED_MINI);
 								ui->Add(W_bMirror, OFX_IM_TOGGLE_ROUNDED_MINI);
 								ui->Add(W_bBottom, OFX_IM_TOGGLE_ROUNDED_MINI);
@@ -643,7 +620,7 @@ public:
 
 							ui->AddSpacingSeparated();
 
-							if (W_bMesh1)
+							if (W_bMesh)
 							{
 								ui->Add(W_bMeshFill, OFX_IM_TOGGLE_ROUNDED_SMALL);
 								if (W_bMeshFill)ui->Add(cPlotFill, OFX_IM_COLOR_INPUT);
@@ -656,7 +633,7 @@ public:
 							ui->Add(W_Alpha, OFX_IM_HSLIDER_MINI);
 							if (W_bCircles) ui->Add(W_AlphaCircle, OFX_IM_HSLIDER_MINI);
 
-							if (W_bScope1 || W_bScope2 || (W_bMesh1 && W_bMeshStroke))
+							if (W_bScope1 || W_bScope2 || (W_bMesh && W_bMeshStroke))
 								ui->Add(W_LineWidthScope, OFX_IM_STEPPER);
 							if (W_bLine) ui->Add(W_LineWidthLines, OFX_IM_STEPPER);
 
@@ -891,7 +868,7 @@ public:
 
 							// Draw
 							{
-								if (W_bMesh1)
+								if (W_bMesh)
 								{
 									if (W_bBottom)
 									{
@@ -938,7 +915,7 @@ public:
 							countsamples = 0;
 
 							// Init mesh
-							if (W_bMesh1)
+							if (W_bMesh)
 							{
 								meshWaveformA.clear();
 								meshWaveformA.setMode(OF_PRIMITIVE_LINE_STRIP);
@@ -1026,7 +1003,7 @@ public:
 
 									// D Mesh 1
 
-									if (W_bMesh1)
+									if (W_bMesh)
 									{
 										glm::vec3 v(x, -y, 0);
 
@@ -1130,7 +1107,7 @@ public:
 
 							// D Mesh 1
 
-							if (W_bMesh1)
+							if (W_bMesh)
 							{
 								//--
 
@@ -1237,20 +1214,10 @@ public:
 						//TODO:
 						// Circled spectrum
 #ifdef USE_ROUNDED_WAVEFORM
-						if (roundedPlot.W_bCircled) 
+						if (roundedPlot.bEnable)
 						{
 							roundedPlot.r = boxPlotIn.getRectangle();
-
-							/*
-							for (int i = 0; i < SIZE_BUFFER; i++)
-							{
-								roundedPlot.plotIn[i] = plotIn[i];
-							}
-							//roundedPlot.plotIn = plotIn;
-							*/
-							//roundedPlot.draw();
-
-							roundedPlot.draw(plotIn);
+							roundedPlot.draw(plotIn, SIZE_BUFFER);
 						}
 #endif
 						//--
@@ -1260,11 +1227,11 @@ public:
 						if (W_bLabel)
 						{
 							drawLabel();
-			}
+						}
 #endif
-		}
+					}
 					ofPopMatrix();
-	}
+				}
 
 				//----
 
@@ -1319,12 +1286,12 @@ public:
 					}
 
 					ofPopMatrix();
-}
+				}
 #endif
-	}
+			}
 			ofPopStyle();
 
-}
+		}
 
 #ifdef USE_BLOOM
 		ofPushMatrix();
@@ -1372,7 +1339,7 @@ public:
 
 		W_bScope1 = false;
 		W_bScope2 = false;
-		W_bMesh1 = false;
+		W_bMesh = false;
 		W_bMeshFill = true;
 		W_bMeshStroke = false;
 		W_bHLine = false;

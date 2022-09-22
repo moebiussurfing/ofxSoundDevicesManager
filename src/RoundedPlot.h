@@ -2,15 +2,11 @@
 
 #include "ofMain.h"
 
-#define SIZE_BUFFER 4096
 #define AMP_GAIN_MAX_POWER 10 /// for plots drawing
 
 class RoundedPlot
 {
 public:
-	
-	//RoundedPlot();
-	//~RoundedPlot();
 
 	RoundedPlot::RoundedPlot()
 	{
@@ -20,153 +16,137 @@ public:
 	RoundedPlot::~RoundedPlot()
 	{
 	}
-	
-	//TODO:
-	/*
-	float* plotIn[SIZE_BUFFER]; // make this bigger, just in case
-	void setPlotPtr(float* _plotPtr) {
-		plotIn = &_plotPtr;
-	};
-	*/
 
-	//float plotIn[SIZE_BUFFER];
+	ofParameterGroup params_Circled{ "Circled " };
+	ofParameter<bool> bEnable{ "Circled", false };
+	ofRectangle r;//box
 
-	ofParameterGroup params_Circled{ "Circled" };
+private:
+
 	ofParameter<float> gain{ "Gain", 0, -1, 1 };
-	ofParameter<bool> W_bCircled{ "Circled Widget", false };
-	ofParameter<float> W_CircledRadius{ "Radius", 0, 0, 1 };
-	ofParameter<float> W_CircledSize{ "Size", 0, 0, 1 };
-	ofParameter<float> W_Spread2{ "Spread2", 0, 0, 1 };
-	ofParameter<float> W_RatioWidth2{ "RatioWidth2", 0.5f, 0, 1 };
-	ofParameter<float> W_RatioRad2{ "RatioRadius2", 0.5f, 0, 1 };
-	ofParameter<float> W_Rounded2{ "Rounded2", 0, 0, 1 };
-	ofParameter<float> W_WidthMin2{ "Min2", 0.1f, 0, 1 };
-	ofParameter<float> W_Alpha{ "Alpha", 0.5, 0, 1 };
-	ofParameter<bool> W_bAbs{ "Abs", true };
+	ofParameter<float> radius{ "Radius", 0, 0, 1 };
+	ofParameter<float> spread{ "Spread", 0, 0, 1 };
+	ofParameter<float> ratioWidth{ "Width", 0.5f, 0, 1 };
+	ofParameter<float> rounded{ "Rounded", 0, 0, 1 };
+	ofParameter<float> minWidth{ "Min", 0.1f, 0, 1 };
+	ofParameter<float> alpha{ "Alpha", 0.5, 0, 1 };
+	//ofParameter<bool> bAbs{ "Abs", true };
+	ofParameter<bool> bMirror{ "Mirror", true };
 	ofParameter<ofColor> cPlot{ "c Plot", ofColor(0, 225), ofColor(0), ofColor(0) };
 
-	ofRectangle r;
+public:
 
 	void setup()
 	{
-		params_Circled.add(W_bCircled);
+		params_Circled.add(bEnable);
 		params_Circled.add(gain);
+		params_Circled.add(radius);
+		params_Circled.add(spread);
+		params_Circled.add(ratioWidth);
+		params_Circled.add(rounded);
+		params_Circled.add(minWidth);
+		//params_Circled.add(bAbs);
+		params_Circled.add(bMirror);
 		params_Circled.add(cPlot);
-		params_Circled.add(W_Alpha);
-		params_Circled.add(W_bAbs);
-		params_Circled.add(W_CircledRadius);
-		params_Circled.add(W_CircledSize);
-		params_Circled.add(W_Spread2);
-		params_Circled.add(W_RatioWidth2);
-		params_Circled.add(W_RatioRad2);
-		params_Circled.add(W_Rounded2);
-		params_Circled.add(W_WidthMin2);
+		params_Circled.add(alpha);
 	};
 
-	//void draw() 
-	void draw(float _plotIn[])
+	// NOTE: I think that arrays are passed as reference. 
+	// don't need to use pointers. 
+	void draw(float _plotIn[], int size)
 	{
-		float _gainPower = ofMap(gain, gain.getMin(), gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
+		float _gain = ofMap(gain, gain.getMin(), gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
 
-		if (W_bCircled)
+		if (bEnable)
 		{
-			//// color
-			//int _a = ofMap(W_Alpha, 0, 1, 100, 255);
-			//ofColor _c = ofColor(cPlot, _a);
-			//ofSetColor(_c);
-			//float a = hb * _gainPower;//amp gain
-			//for (int i = 0; i < SIZE_BUFFER - 2; ++i)//?
-			//{
-			//	float y1 = * a;
-			//	ofDrawLine(x1, y1, x1, y2);
-			//}
-
 			float wb = r.getWidth();
 			float hb = r.getHeight();
 
 			ofFill();
 			ofPushMatrix();
-			ofTranslate(wb / 2, 0);
+			ofTranslate(wb / 2.f, 0);
+
+			// Color Plot with alpha
+			int _a = ofMap(alpha, 0, 1.f, 0, cPlot.get().a);
+			ofColor _c = ofColor(cPlot, _a);
+			ofSetColor(_c);
 
 			// Amount of desired elements 
 			// (lines or rectangles)
-			int amount = (int)ofMap(W_Spread2, 0, 1, 365, 8, true);
+			int _amount = (int)ofMap(spread, 0, 1.f, 364, 8, true);
 
 			//TODO: remake
-			int iStep = SIZE_BUFFER / amount;//it step
-			float xStep = wb / (float)amount;//width of each
+			int iStep = size / _amount;//it step
 
-			float hb_Half = hb / 2;
+			float _radius = radius * MIN(wb / 2.f, hb / 2.f); // constraint into box
+			float _radiusGain = _radius * _gain; // apply gain
 
 			int ii = -1;
 
-			float rd = W_CircledRadius * MIN(wb / 2, hb / 2);
-			float sz = ofMap(W_CircledSize, 0, 1, 100, rd, true);
-			float _amplify = sz * _gainPower;//amp gain
-
-			for (int i = 0; i < SIZE_BUFFER / 2; i++)
+			for (int i = 0; i < size / 2; i++)
 			{
 				//TODO:
 				if (i % iStep == 0)
 				{
 					ii++;
 				}
-				else continue;//skip it from here to end (SIZE_BUFFER)!
+				else continue; // skip it from here to end (SIZE_BUFFER)!
 
-				// Color Plot with alpha
-				int _a = ofMap(W_Alpha, 0, 1, 0, cPlot.get().a);
-				ofColor _c = ofColor(cPlot, _a);
-				ofSetColor(_c);
+				// final elements size!
+				float _value = _plotIn[i] * _radiusGain;
 
-				float val = _plotIn[i] * _amplify;
+				// min
+				if (minWidth != 0.f) {
+					int _szmin = 5;
+					_value = MAX(_value, _szmin +  abs(minWidth * _szmin * _plotIn[i]));
+				}
 
-				if (W_bAbs) val = abs(val);
+				//// abs
+				//if (bAbs) _value = abs(_value);
 
-				float t = -HALF_PI + ofMap(i, 0, (SIZE_BUFFER / 2), 0, TWO_PI);
-				float x = cos(t) * rd;
-				float y = sin(t) * rd;
+				float t = -HALF_PI + ofMap(i, 0, (size / 2.f), 0, TWO_PI);
+				float x = cos(t) * _radius;
+				float y = sin(t) * _radius;
 				float a = ofRadToDeg(atan2(y, x));
 
 				ofPushMatrix();
+				{
+					ofTranslate(x, y);
+					ofRotateZDeg(a);
 
-				ofTranslate(x, y);
-				ofRotateZDeg(a);
+					/*
+					// scale
+					float scl = 1;
+					glScalef(scl, scl, scl);
+					*/
 
-				float scl = 1;
-				glScalef(scl, scl, scl);
+					// 1. line
+					//ofDrawLine(0, 0, _value, 0);
 
-				//line
-				//ofDrawLine(0, 0, val, 0);
+					// 2. bar
+					//int gap = 1;
+					float _width = ofMap(ratioWidth, 0, 1.f, 1, _radius / 4.f, true);//width
 
-				//bar
-				ofFill();
-				int gap = 1;
-				float wr = ofMap(W_RatioWidth2, 0, 1.f, 1, rd / 4, true);//width
-				float offset = 0;
-				//float offset = wr / 2;
+					float _oy = - _width / 2.f;
+					float _ox;
+					if (bMirror) _ox = - _value / 2.f;
+					else _ox = 0;
 
-				ofDrawRectRounded({ offset, 0, val, wr }, W_Rounded2 * (wr / 2));
-				//ofDrawRectangle({ wr / 2, 0, val, wr });
+					ofRectangle r(_ox, _oy, _value, _width);
 
+					ofFill();
+					ofDrawRectRounded(r, rounded * (_width / 2));
+				}
 				ofPopMatrix();
 			}
 
-			//ofSetColor(100);
-			//font.drawString(sortTypeInfo, -(font.stringWidth(sortTypeInfo) / 2), 0);
+			/*
+			// center label
+			ofSetColor(100);
+			font.drawString(sortTypeInfo, -(font.stringWidth(sortTypeInfo) / 2), 0);
+			*/
 
 			ofPopMatrix();
 		}
-
 	};
-
-private:
-
 };
-
-//RoundedPlot::RoundedPlot()
-//{
-//}
-//
-//RoundedPlot::~RoundedPlot()
-//{
-//}
