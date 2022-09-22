@@ -41,7 +41,7 @@ void ofApp::draw(){
 	audioDevices.drawGui();
 }
 
-void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self. look other examples
+void ofApp::audioIn(ofSoundBuffer& input) {
 	audioDevices.audioIn(input);
 }
 ```
