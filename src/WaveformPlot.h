@@ -13,7 +13,8 @@
 
 #define USE_BLOOM // shader
 
-#define USE_ROUNDED_WAVEFORM // another circled widget
+#define USE_WAVEFORM_ROUNDED // another circled widget
+#define USE_WAVEFORM_OBJECT // another 3D widget
 
 //--
 
@@ -28,8 +29,12 @@
 #include "ofxBloom.h"
 #endif
 
-#ifdef USE_ROUNDED_WAVEFORM
+#ifdef USE_WAVEFORM_ROUNDED
 #include "RoundedPlot.h"
+#endif
+
+#ifdef USE_WAVEFORM_OBJECT
+#include "WaveformObject.h"
 #endif
 
 //--
@@ -45,11 +50,40 @@
 
 class WaveformPlot
 {
+
+public:
+
+	WaveformPlot()
+	{
+		ofSetCircleResolution(44);
+
+		// Font label text
+		size_TTF = 11;
+		name_TTF = "JetBrainsMonoNL-ExtraBold.ttf";
+		string pathRoot = "assets/fonts/";
+		path_TTF = pathRoot + name_TTF;
+		bool bLoaded = myFont.load(path_TTF, size_TTF, true, true);
+		path_TTF = pathRoot + "telegrama_render.otf";
+		if (!bLoaded) bLoaded = myFont.load(path_TTF, size_TTF, true, true);
+		else if (!bLoaded) bLoaded = myFont.load(OF_TTF_MONO, size_TTF, true, true);
+
+#ifdef USE_WAVEFORM_PLOTS
+		index.makeReferenceTo(surfingPresets.index);
+#endif
+	};
+
+	~WaveformPlot()
+	{
+		ofRemoveListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
+	};
+
+	//--
+
 #ifdef USE_BLOOM
 public:
 
 	ofParameterGroup params_Bloom;
-	ofParameter<bool> bEnable;
+	ofParameter<bool> bDraw;
 	ofParameter<float> scale;
 	ofParameter<float> thresh;
 	ofParameter<float> brightness;
@@ -81,48 +115,22 @@ public:
 
 		//bloom.setup(boxPlotIn.getWidth(), boxPlotIn.getHeight(), fbo);
 
-		bEnable.set("Bloom", false);
+		bDraw.set("Bloom", false);
 		scale.set("Scale", 0.1f, 0.1f, 16.f);
 		thresh.set("Threshold", 0.1f, 0.1f, 2.f);
 		brightness.set("Brightness", 2.5f, 0.f, 30.f);
 
 		params_Bloom.setName("Bloom");
-		params_Bloom.add(bEnable);
+		params_Bloom.add(bDraw);
 		params_Bloom.add(scale);
 		params_Bloom.add(brightness);
 		params_Bloom.add(thresh);
 	}
 #endif
 
-public:
-
-	WaveformPlot()
-	{
-		ofSetCircleResolution(44);
-
-		// Font label text
-		size_TTF = 11;
-		name_TTF = "JetBrainsMonoNL-ExtraBold.ttf";
-		string pathRoot = "assets/fonts/";
-		path_TTF = pathRoot + name_TTF;
-		bool bLoaded = myFont.load(path_TTF, size_TTF, true, true);
-		path_TTF = pathRoot + "telegrama_render.otf";
-		if (!bLoaded) bLoaded = myFont.load(path_TTF, size_TTF, true, true);
-		else if (!bLoaded) bLoaded = myFont.load(OF_TTF_MONO, size_TTF, true, true);
-
-#ifdef USE_WAVEFORM_PLOTS
-		index.makeReferenceTo(surfingPresets.index);
-#endif
-	};
-
-	~WaveformPlot()
-	{
-		ofRemoveListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
-	};
-
 	//--
 
-#ifdef USE_ROUNDED_WAVEFORM
+#ifdef USE_WAVEFORM_ROUNDED
 	RoundedPlot roundedPlot;
 #endif
 
@@ -136,6 +144,10 @@ public:
 	void setUiPtr(ofxSurfingGui* _ui) {
 		ui = _ui;
 		surfingPresets.setUiPtr(_ui);
+
+#ifdef USE_WAVEFORM_OBJECT
+		o.setUiPtr(_ui);
+#endif
 	}
 
 	SurfingPresets surfingPresets;
@@ -174,6 +186,12 @@ private:
 	//}
 
 	//--
+	 
+#ifdef USE_WAVEFORM_OBJECT
+	WaveformObject o;
+#endif
+	
+	//--
 
 private:
 
@@ -194,7 +212,7 @@ public:
 	ofParameter<int> index{ "Index", 0, 0, 0 };
 #endif
 
-	ofParameter<bool> bGui{ "WAVEFORM PLOT", true };;
+	ofParameter<bool> bGui{ "WAVEFORM PLOT", true };
 	ofParameter<bool> bGui_PlotIn{ "Plot In", true };
 	ofParameter<bool> bGui_PlotOut{ "Plot Out", false };
 
@@ -338,6 +356,7 @@ public:
 
 		// for presets
 		params_PlotsWaveform.setName("PLOTS WAVEFORM");
+
 		params_PlotsWaveform.add(gain);
 		params_PlotsWaveform.add(W_bScope1);
 		params_PlotsWaveform.add(W_bLine);
@@ -359,9 +378,9 @@ public:
 		params_PlotsWaveform.add(W_WidthMin);
 		params_PlotsWaveform.add(W_bBottom);
 		params_PlotsWaveform.add(W_bLabel);
+		params_PlotsWaveform.add(boxPlotIn.bUseBorder);
 
 		params_PlotsEsthetics.setName("ESTHETICS");
-		params_PlotsWaveform.add(boxPlotIn.bUseBorder);
 		params_PlotsEsthetics.add(W_bTransparent);
 		params_PlotsEsthetics.add(W_Alpha);
 		params_PlotsEsthetics.add(W_AlphaCircle);
@@ -373,6 +392,7 @@ public:
 		params_PlotsEsthetics.add(cPlotFill);
 		params_PlotsEsthetics.add(cPlotStroke);
 		params_PlotsEsthetics.add(cText);
+
 		params_PlotsWaveform.add(params_PlotsEsthetics);
 
 #ifdef USE_BLOOM
@@ -380,11 +400,14 @@ public:
 		params_PlotsWaveform.add(params_Bloom);
 #endif
 
-#ifdef USE_ROUNDED_WAVEFORM
+#ifdef USE_WAVEFORM_ROUNDED
 		params_PlotsWaveform.add(roundedPlot.params_Circled);
-		ui->AddStyle(roundedPlot.bEnable, OFX_IM_HIDDEN);
+		ui->AddStyle(roundedPlot.bDraw, OFX_IM_HIDDEN);
 #endif
 
+#ifdef USE_WAVEFORM_OBJECT
+		params_PlotsWaveform.add(o.params);
+#endif
 		ofAddListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
 
 		//--
@@ -496,8 +519,8 @@ public:
 
 					if (ui->BeginTree("BLOOM"))
 					{
-						ui->Add(bEnable, OFX_IM_TOGGLE);
-						if (bEnable) {
+						ui->Add(bDraw, OFX_IM_TOGGLE);
+						if (bDraw) {
 							ui->Add(scale, OFX_IM_HSLIDER_MINI);
 							ui->Add(thresh, OFX_IM_HSLIDER_MINI);
 							ui->Add(brightness, OFX_IM_HSLIDER_MINI);
@@ -551,11 +574,21 @@ public:
 
 						ui->Add(W_bMesh, OFX_IM_TOGGLE_SMALL);
 
-#ifdef USE_ROUNDED_WAVEFORM
+#ifdef USE_WAVEFORM_ROUNDED
 						//ui->AddSpacingSeparated();
-						ui->Add(roundedPlot.bEnable, OFX_IM_TOGGLE_SMALL);
-						if (roundedPlot.bEnable) ui->AddGroup(roundedPlot.params_Circled);
+						ui->Add(roundedPlot.bDraw, OFX_IM_TOGGLE_SMALL);
+						if (roundedPlot.bDraw) ui->AddGroup(roundedPlot.params_Circled);
 #endif
+
+#ifdef USE_WAVEFORM_OBJECT
+						ui->Add(o.bDraw, OFX_IM_TOGGLE_SMALL);
+						if (o.bDraw) {
+							ui->Indent();
+							ui->Add(o.bGui, OFX_IM_TOGGLE_ROUNDED_SMALL);
+							ui->Unindent();
+						}
+#endif
+						//--
 
 						if (W_bCircles || W_bBars || W_bLine || W_bMesh)
 							ui->AddSpacingSeparated();
@@ -649,6 +682,12 @@ public:
 					ui->EndWindowSpecial();
 				}
 			}
+
+			//--
+
+#ifdef USE_WAVEFORM_OBJECT
+			o.drawGui();
+#endif
 		}
 		//ui->End();
 	}
@@ -715,6 +754,8 @@ public:
 	{
 		if (!bGui_Plots) return;
 		if (!bGui_PlotIn && !bGui_PlotOut) return;
+
+		//--
 
 		// box
 		int xb = boxPlotIn.getX();
@@ -1213,13 +1254,24 @@ public:
 
 						//TODO:
 						// Circled spectrum
-#ifdef USE_ROUNDED_WAVEFORM
-						if (roundedPlot.bEnable)
+#ifdef USE_WAVEFORM_ROUNDED
+						if (roundedPlot.bDraw)
 						{
 							roundedPlot.r = boxPlotIn.getRectangle();
 							roundedPlot.draw(plotIn, SIZE_BUFFER);
 						}
 #endif
+						//--
+
+//#ifdef USE_WAVEFORM_OBJECT
+//						//TODO: fails probably bc no depth/3d settings
+//						if (o.bDraw)
+//						{
+//							//o.r = ofGetCurrentViewport();
+//							o.r = boxPlotIn.getRectangle();
+//							o.draw(plotIn, SIZE_BUFFER);
+//						}
+//#endif
 						//--
 
 						// Label
@@ -1303,7 +1355,7 @@ public:
 #ifdef USE_BLOOM
 		fbo.end();
 
-		if (bEnable) {
+		if (bDraw) {
 			bloom.setScale(scale);
 			bloom.setThreshold(thresh);
 			bloom.setBrightness(brightness);
@@ -1314,6 +1366,15 @@ public:
 		}
 
 		else fbo.draw(xb, yb - hb / 2);
+#endif
+
+#ifdef USE_WAVEFORM_OBJECT
+		if (o.bDraw)
+		{
+			//o.r = ofGetCurrentViewport();
+			o.r = boxPlotIn.getRectangle();
+			o.draw(plotIn, SIZE_BUFFER);
+		}
 #endif
 
 #ifdef USE_BLOOM

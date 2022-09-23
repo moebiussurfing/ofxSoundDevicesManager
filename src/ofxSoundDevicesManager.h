@@ -887,13 +887,13 @@ private:
 #endif
 
 #ifdef USE_WAVEFORM_PLOTS
-						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
-						//ui.Indent();
+						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+						ui.Indent();
 						ui.Add(waveformPlot.bGui_Settings, OFX_IM_TOGGLE_ROUNDED);
-						//ui.Unindent();
 						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+						ui.Unindent();
 #endif
 					}
 					else
@@ -909,10 +909,12 @@ private:
 
 #ifdef USE_WAVEFORM_PLOTS
 						ui.AddSpacingSeparated();
+						
 						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
-						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED);
-						ui.Indent();
 						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+						ui.Indent();
+						ui.Add(waveformPlot.bGui_Settings, OFX_IM_TOGGLE_ROUNDED);
 						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 						ui.Unindent();
 #endif
@@ -937,7 +939,7 @@ private:
 			if (ui.BeginWindowSpecial(bGui_In))
 			{
 				ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
-				//ui.Add(deviceIn_Volume, OFX_IM_SLIDER);
+				//ui.Add(deviceIn_Volume, OFX_IM_SLIDER);//TODO:
 				ui.AddCombo(deviceIn_Port, inDevicesNames);
 
 				ui.EndWindowSpecial();

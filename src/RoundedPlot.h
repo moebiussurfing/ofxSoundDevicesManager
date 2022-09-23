@@ -18,7 +18,7 @@ public:
 	}
 
 	ofParameterGroup params_Circled{ "Circled " };
-	ofParameter<bool> bEnable{ "Circled", false };
+	ofParameter<bool> bDraw{ "Circled", false };
 	ofRectangle r;//box
 
 private:
@@ -38,7 +38,7 @@ public:
 
 	void setup()
 	{
-		params_Circled.add(bEnable);
+		params_Circled.add(bDraw);
 		params_Circled.add(gain);
 		params_Circled.add(radius);
 		params_Circled.add(spread);
@@ -57,7 +57,7 @@ public:
 	{
 		float _gain = ofMap(gain, gain.getMin(), gain.getMax(), 0, AMP_GAIN_MAX_POWER, true);
 
-		if (bEnable)
+		if (bDraw)
 		{
 			float wb = r.getWidth();
 			float hb = r.getHeight();

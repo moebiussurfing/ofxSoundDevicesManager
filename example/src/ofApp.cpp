@@ -1,8 +1,7 @@
 #include "ofApp.h"
 
 //--------------------------------------------------------------
-void ofApp::setup()
-{
+void ofApp::setup() {
 	sampleRate = 48000;
 	bufferSize = 512;
 	numBuffers = 4;
@@ -12,7 +11,6 @@ void ofApp::setup()
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-
 	audioDevices.drawGui();
 }
 
