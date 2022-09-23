@@ -6,7 +6,8 @@
 **WORK IN PROGRESS**
 - ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
 - USING MS DIRECTSHOW. ASIO OR WASAPI NOT TESTED BUT SHOULD WORK.
-- CURRENTLY USING ONLY INPUT. INTENDED TO BE USED ON AN AUDIO ANALYZER YET.
+- CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED ON AN AUDIO ANALYZER.
+- STYLED WAVEFORM PLOT STANDALONE CLASS.
 
 ## Screenshot
 
@@ -41,7 +42,7 @@ void ofApp::draw(){
 	audioDevices.drawGui();
 }
 
-void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self. look other examples
+void ofApp::audioIn(ofSoundBuffer& input) {
 	audioDevices.audioIn(input);
 }
 ```
@@ -63,7 +64,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {//to handle by your self. look other 
 * Test / Make it macOS compatible.
 * Improve setting using Port Name instead of Port Numbers.
 * Improve plotting performance using ofMesh.
-* Add **VU meters**.
+* Add **VU meters** FROM ofxSoundObjects.
 
 ### NOTES
 * Would crash when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app or by hardcoding devices. 
