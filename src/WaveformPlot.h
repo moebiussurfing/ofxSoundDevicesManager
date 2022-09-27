@@ -90,6 +90,17 @@ public:
 	ofxBloom bloom;
 	ofFbo fbo;
 
+	void initBloom()
+	{
+		ofLogNotice("WaveformPlot") << (__FUNCTION__);
+
+		ofDisableArbTex();
+		fbo.allocate(1920, 1080);
+		ofEnableArbTex();
+
+		bloom.setup(1920, 1080, fbo);
+	}
+
 	void refreshBloom()
 	{
 		ofLogNotice("WaveformPlot") << (__FUNCTION__);
@@ -105,7 +116,8 @@ public:
 
 	void setupBloom()
 	{
-		refreshBloom();
+		//refreshBloom();
+		initBloom();
 
 		/*
 		ofDisableArbTex();
@@ -138,9 +150,12 @@ public:
 	ofPath pathWaveform;
 	int countsamples;
 
+	//--
+
 public:
 
 	ofxSurfingGui* ui;
+
 	void setUiPtr(ofxSurfingGui* _ui) {
 		ui = _ui;
 		surfingPresets.setUiPtr(_ui);
@@ -151,6 +166,8 @@ public:
 	}
 
 	SurfingPresets surfingPresets;
+
+	//--
 
 private:
 
@@ -186,11 +203,12 @@ private:
 	//}
 
 	//--
-	 
+
 #ifdef USE_WAVEFORM_OBJECT
+public:
 	WaveformObject o;
 #endif
-	
+
 	//--
 
 private:
@@ -220,7 +238,7 @@ public:
 
 	ofParameter<bool> bGui_Plots;
 	ofParameter<bool> bGui_Main{ "WAVEFORM", true };
-	ofParameter<bool> bGui_Settings{ "WAVEFORM EDIT", false };
+	ofParameter<bool> bGui_Edit{ "WAVEFORM EDIT", false };
 	//ofParameter<bool> bGui_Main{ "SOUND PLOTS", true };
 
 	ofParameter<float> gain{ "Gain", 0, -1, 1 };
@@ -427,7 +445,7 @@ public:
 		ui.setup();
 
 		ui.addWindowSpecial(bGui_Main);
-		ui.addWindowSpecial(bGui_Settings);
+		ui.addWindowSpecial(bGui_Edit);
 
 		ui.startup();
 		*/
@@ -438,7 +456,7 @@ public:
 		params.add(bGui);
 		params.add(bGui_Plots);
 		params.add(bGui_Main);
-		params.add(bGui_Settings);
+		params.add(bGui_Edit);
 		params.add(bGui_PlotIn);
 		params.add(bGui_PlotOut);
 		params.add(W_vReset);
@@ -477,7 +495,7 @@ public:
 				}
 				ui->AddSpacingSeparated();
 
-				ui->Add(bGui_Settings, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				ui->Add(bGui_Edit, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				ui->AddSpacingSeparated();
 
 				ui->Add(bGui_PlotIn, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
@@ -539,9 +557,9 @@ public:
 
 			//if (!ui->bMinimize)
 			{
-				//if(bGui_Settings) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_MEDIUM;
+				//if(bGui_Edit) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_MEDIUM;
 
-				if (ui->BeginWindowSpecial(bGui_Settings))
+				if (ui->BeginWindowSpecial(bGui_Edit))
 				{
 					//if (!bGui_Main)
 					{
@@ -559,7 +577,7 @@ public:
 					ui->AddSpacingSeparated();
 
 					// Elements
-					
+
 					if (ui->BeginTree("ELEMENTS"))
 					{
 						ui->Add(W_bScope1, OFX_IM_TOGGLE_SMALL, 2, true);
@@ -581,10 +599,12 @@ public:
 #endif
 
 #ifdef USE_WAVEFORM_OBJECT
-						ui->Add(o.bDraw, OFX_IM_TOGGLE_SMALL);
+						if (ui->Add(o.bDraw, OFX_IM_TOGGLE_SMALL)) {
+							if (!o.bDraw)o.bGui = false;
+						};
 						if (o.bDraw) {
 							ui->Indent();
-							ui->Add(o.bGui, OFX_IM_TOGGLE_ROUNDED_SMALL);
+							ui->Add(o.bGui, OFX_IM_TOGGLE_ROUNDED);
 							ui->Unindent();
 						}
 #endif
@@ -686,7 +706,7 @@ public:
 			//--
 
 #ifdef USE_WAVEFORM_OBJECT
-			o.drawGui();
+			if (bGui_Edit) o.drawGui();
 #endif
 		}
 		//ui->End();
@@ -1279,11 +1299,11 @@ public:
 						if (W_bLabel)
 						{
 							drawLabel();
-						}
+			}
 #endif
-					}
+		}
 					ofPopMatrix();
-				}
+	}
 
 				//----
 
@@ -1338,7 +1358,7 @@ public:
 					}
 
 					ofPopMatrix();
-				}
+}
 #endif
 			}
 			ofPopStyle();
@@ -1459,7 +1479,7 @@ public:
 		else if (name == bGui.getName())
 		{
 			//workflow
-			if (!bGui_Main && !bGui_Settings)
+			if (!bGui_Main && !bGui_Edit)
 				bGui_Main.setWithoutEventNotifications(true);
 
 			return;

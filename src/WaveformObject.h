@@ -212,8 +212,17 @@ private:
 
 public:
 
+	/*
+		void audioReceived(float* input, int bufferSize, int nChannels) {
+		// store input in audioInput buffer
+		memcpy(audioInput, input, sizeof(float) * bufferSize);
+	*/
+
 	//void draw() {
 	void draw(float _plotIn[], int size) {
+		//void draw(float* _plotIn) {
+		//	int size = sizeof(float) * _plotIn;
+
 		if (!bDraw) return;
 
 		//update();
@@ -252,8 +261,12 @@ public:
 		//ofDisableDepthTest();
 
 		//ui->Begin();
+		bool b;
+		if (ui->isThereSpecialWindowFor(bGui)) b = ui->BeginWindowSpecial(bGui);
+		else b = ui->BeginWindow(bGui);
 
-		if (ui->BeginWindow("WaveformObject")) {
+		if (b)
+		{
 			ui->Add(ui->bMinimize, OFX_IM_TOGGLE_ROUNDED);
 			ui->Add(bExpand, OFX_IM_TOGGLE_ROUNDED_MINI);
 			ui->AddSpacingSeparated();
@@ -342,9 +355,10 @@ public:
 			if (ui->AddButton("Reset")) {
 				doReset();
 			}
-
-			ui->EndWindow();
 		}
+
+		if (ui->isThereSpecialWindowFor(bGui)) ui->EndWindowSpecial();
+		else ui->EndWindow();
 
 		//ui->DrawWindowAdvanced();
 		//ui->drawWindowAlignHelpers();

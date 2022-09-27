@@ -891,7 +891,7 @@ private:
 						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Indent();
-						ui.Add(waveformPlot.bGui_Settings, OFX_IM_TOGGLE_ROUNDED);
+						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
 						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 						ui.Unindent();
 #endif
@@ -914,7 +914,7 @@ private:
 						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Indent();
-						ui.Add(waveformPlot.bGui_Settings, OFX_IM_TOGGLE_ROUNDED);
+						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
 						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 						ui.Unindent();
 #endif
@@ -994,7 +994,7 @@ public:
 		//	// bc special window has internal set pos
 		//	ImGui::SetNextWindowPos(ImVec2(0, 0));
 		//	if (waveformPlot.bGui)
-		//		if (waveformPlot.bGui_Main || waveformPlot.bGui_Settings)
+		//		if (waveformPlot.bGui_Main || waveformPlot.bGui_Edit)
 		//		{
 		//			if (bGui_Main) ui.setNextWindowAfterWindowNamed(bGui_Main);
 		//		}
@@ -1246,7 +1246,10 @@ private:
 #endif
 #ifdef USE_WAVEFORM_PLOTS
 		ui.addWindowSpecial(waveformPlot.bGui_Main);
-		ui.addWindowSpecial(waveformPlot.bGui_Settings);
+		ui.addWindowSpecial(waveformPlot.bGui_Edit);
+#endif
+#ifdef USE_WAVEFORM_OBJECT
+		ui.addWindowSpecial(waveformPlot.o.bGui);
 #endif
 
 		// Plot
