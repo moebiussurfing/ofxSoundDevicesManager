@@ -18,7 +18,7 @@ public:
 	{
 	}
 
-	ofParameterGroup params{ "Object" };
+	ofParameterGroup params{ "3D Object" };
 	ofParameter<int> stroke{ "Stroke", 2, 0, 10 };
 	ofParameter<bool> bExpand{ "Expand", false };
 	ofParameter<bool> bGui{ "Object Gui", false };
@@ -26,7 +26,7 @@ public:
 	ofParameter<bool> bB{ "B", false };
 	ofParameter<bool> bC{ "C", false };
 	ofParameter<bool> bD{ "D", false };
-	ofParameter<bool> bDraw{ "Object", false };
+	ofParameter<bool> bDraw{ "3D Object", false };
 	ofParameter<float> gain{ "Gain", 0, -1, 1 };
 	ofParameter<float> g1{ "g1", 0.75, 0, 1 };
 	ofParameter<float> g2{ "g2", 0.75, 0, 1 };

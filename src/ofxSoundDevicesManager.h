@@ -909,7 +909,7 @@ private:
 
 #ifdef USE_WAVEFORM_PLOTS
 						ui.AddSpacingSeparated();
-						
+
 						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
@@ -935,7 +935,7 @@ private:
 			// In
 
 			//if(bGui_In) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
-			
+
 			if (ui.BeginWindowSpecial(bGui_In))
 			{
 				ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
@@ -999,7 +999,6 @@ public:
 		//			if (bGui_Main) ui.setNextWindowAfterWindowNamed(bGui_Main);
 		//		}
 		//	*/
-
 		//	//waveformPlot.drawImGui();
 		//}
 
@@ -1248,7 +1247,7 @@ private:
 		ui.addWindowSpecial(waveformPlot.bGui_Main);
 		ui.addWindowSpecial(waveformPlot.bGui_Edit);
 #endif
-#ifdef USE_WAVEFORM_OBJECT
+#ifdef USE_WAVEFORM_3D_OBJECT
 		ui.addWindowSpecial(waveformPlot.o.bGui);
 #endif
 
@@ -1326,7 +1325,7 @@ public:
 
 		if (deviceIn_Enable)
 		{
-			float _rms = 0.0;
+			float _rms = 0.0;//TODO: not used
 			int _count = 0;
 
 			////TODO:
@@ -1336,9 +1335,52 @@ public:
 			for (size_t i = 0; i < input.getNumFrames(); i++)
 			{
 #ifdef USE_WAVEFORM_PLOTS
-				////plotIn[indexIn] = input[i * nChannels] * getVolumeInput();
-				waveformPlot.plotIn[indexIn] = input[i * nChannels];
 
+				/*
+				waveformPlot.plotIn[indexIn] = input[i * nChannels];
+				*/
+
+				////plotIn[indexIn] = input[i * nChannels] * getVolumeInput();
+
+				//--
+
+				{
+					///*
+
+					// Smooth
+
+					float tempInput = input[i * nChannels];
+					float tempOutput = waveformPlot.plotIn[indexIn];
+
+
+					if (waveformPlot.bSmooth)
+					{
+						// sub gain
+						float _gain = ofMap(waveformPlot.smoothGain.get(),
+							waveformPlot.smoothGain.getMin(), waveformPlot.smoothGain.getMax(),
+							0, AMP_GAIN_MAX_POWER, true);
+						tempInput *= _gain;
+
+						/*
+							float s1 = ofMap(waveformPlot.smoothVal1.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
+							waveformPlot.ofxKuValueSmooth(tempOutput, tempInput, s1);
+							*/
+
+						float s1 = ofMap(waveformPlot.smoothVal1.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
+						float s2 = ofMap(waveformPlot.smoothVal2.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
+						waveformPlot.ofxKuValueSmoothDirected(tempOutput, tempInput, s1, s2);
+
+						waveformPlot.plotIn[indexIn] = tempOutput;
+					}
+					else
+					{
+						waveformPlot.plotIn[indexIn] = tempInput;
+					}
+
+					//*/
+				}
+
+				//--
 
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
@@ -1350,7 +1392,7 @@ public:
 				}
 #endif
 
-				//-
+				//--
 
 				// code from here: https://github.com/edap/examplesOfxMaxim
 				// rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
@@ -1376,7 +1418,7 @@ public:
 		}
 
 		// not enabled: 
-		// erase plot
+		// erase plot to zero!
 		else
 		{
 			for (size_t i = 0; i < input.getNumFrames(); ++i)
@@ -1427,9 +1469,9 @@ public:
 					indexOut = 0;
 				}
 #endif
+				}
 			}
 		}
-	}
 #endif
 
 private:
@@ -1595,7 +1637,7 @@ private:
 	}
 #endif
 
-};
+	};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78

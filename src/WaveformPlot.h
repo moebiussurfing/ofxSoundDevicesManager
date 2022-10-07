@@ -1,9 +1,11 @@
 #pragma once
 
 /*
-*
-* TODO:
-*
+	TODO:
+
+	remake spread as zoom
+		add offset, and speed..etc
+	add gradient colors. widget
 	fix bloom window resize
 	fix select currently saved after saving and refresh
 
@@ -11,14 +13,18 @@
 	ImGui plot https://github.com/epezent/implot_demos
 */
 
-#define USE_BLOOM // shader
+//--
 
+#define USE_BLOOM // Fx Shader
+
+// Extra elements
 #define USE_WAVEFORM_ROUNDED // another circled widget
-#define USE_WAVEFORM_OBJECT // another 3D widget
+#define USE_WAVEFORM_3D_OBJECT // another 3D widget
 
 //--
 
 #include "ofMain.h"
+
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
@@ -29,11 +35,13 @@
 #include "ofxBloom.h"
 #endif
 
+// A 2D parametric generated object
 #ifdef USE_WAVEFORM_ROUNDED
 #include "RoundedPlot.h"
 #endif
 
-#ifdef USE_WAVEFORM_OBJECT
+// A 3D parametric generated object
+#ifdef USE_WAVEFORM_3D_OBJECT
 #include "WaveformObject.h"
 #endif
 
@@ -46,10 +54,33 @@
 
 //--
 
-#define AMP_GAIN_MAX_POWER 10 /// for plots drawing
+#define AMP_GAIN_MAX_POWER 10 // for plots drawing
 
+//--------------------------------------------------------------
 class WaveformPlot
 {
+
+public:
+
+	//--
+
+	// Smoothing
+
+#define SMOOTH_MIN 0.600f
+#define SMOOTH_MAX 0.980f
+
+	template <typename T>
+	void ofxKuValueSmooth(T& value, T target, float smooth) {
+		value += (target - value) * (1 - smooth);
+	}
+
+	template <typename T>
+	void ofxKuValueSmoothDirected(T& value, T target, float smooth0, float smooth1) {
+		float smooth = (target < value) ? smooth0 : smooth1;
+		ofxKuValueSmooth(value, target, smooth);
+	}
+
+	//--
 
 public:
 
@@ -76,6 +107,12 @@ public:
 	{
 		ofRemoveListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
 	};
+
+	ofParameter<float> smoothVal1;
+	ofParameter<float> smoothVal2;
+	ofParameter<float> smoothGain;
+	ofParameter<bool> bSmooth;
+	ofEventListeners listeners;
 
 	//--
 
@@ -116,8 +153,9 @@ public:
 
 	void setupBloom()
 	{
-		//refreshBloom();
-		initBloom();
+		//TODO: WIP fix fbo resize on runtime
+		refreshBloom();//box
+		//initBloom();//1080p
 
 		/*
 		ofDisableArbTex();
@@ -160,7 +198,7 @@ public:
 		ui = _ui;
 		surfingPresets.setUiPtr(_ui);
 
-#ifdef USE_WAVEFORM_OBJECT
+#ifdef USE_WAVEFORM_3D_OBJECT
 		o.setUiPtr(_ui);
 #endif
 	}
@@ -204,7 +242,7 @@ private:
 
 	//--
 
-#ifdef USE_WAVEFORM_OBJECT
+#ifdef USE_WAVEFORM_3D_OBJECT
 public:
 	WaveformObject o;
 #endif
@@ -224,6 +262,7 @@ public:
 
 	ofParameterGroup params_PlotsWaveform;
 	ofParameterGroup params_PlotsEsthetics;
+	ofParameterGroup params_Smooth;
 	ofParameterGroup params{ "WaveformPlot" };
 
 #ifdef USE_WAVEFORM_PLOTS
@@ -423,7 +462,7 @@ public:
 		ui->AddStyle(roundedPlot.bDraw, OFX_IM_HIDDEN);
 #endif
 
-#ifdef USE_WAVEFORM_OBJECT
+#ifdef USE_WAVEFORM_3D_OBJECT
 		params_PlotsWaveform.add(o.params);
 #endif
 		ofAddListener(params_PlotsWaveform.parameterChangedE(), this, &WaveformPlot::Changed_params_PlotsWaveform);
@@ -449,6 +488,22 @@ public:
 
 		ui.startup();
 		*/
+
+		//--
+
+		// Smooth
+
+		bSmooth.set("SMOOTH", false);
+		smoothGain.set("Gain", 0.0, -1, 1);
+		smoothVal1.set("Power1", 0.5, 0.0f, 1);
+		smoothVal2.set("Power2", 0.5, 0.0f, 1);
+
+		params_Smooth.setName("SMOOTH");
+		params_Smooth.add(bSmooth);
+		params_Smooth.add(smoothGain);
+		params_Smooth.add(smoothVal1);
+		params_Smooth.add(smoothVal2);
+		params_PlotsWaveform.add(params_Smooth);
 
 		//--
 
@@ -572,6 +627,43 @@ public:
 
 					ui->Add(gain, OFX_IM_HSLIDER_MINI);
 
+					ui->AddSpacingSeparated();
+
+					//--
+
+					// Smooth
+
+					if (ui->BeginTree("SMOOTH"))
+					{
+						ui->Add(bSmooth, OFX_IM_TOGGLE_ROUNDED_SMALL);
+						if (bSmooth)
+						{
+							ImGui::Columns(3, "", false);
+							ui->Add(smoothGain, OFX_IM_KNOB_DOTKNOB, 3);
+							ImGui::PushID("##R");
+							if (ui->AddButton("Reset", OFX_IM_BUTTON_SMALL, 3)) {
+								smoothGain = 0;
+								smoothVal1 = 0.5;
+								smoothVal2 = 0.5;
+							}
+							ImGui::PopID();
+
+							ImGui::NextColumn();
+							ui->Add(smoothVal1, OFX_IM_VSLIDER_NO_LABELS, 3);
+							string s;
+							s = smoothVal1.getName() + " " + ofToString(smoothVal1.get(), 2);
+							ui->AddTooltip(s);
+
+							ImGui::NextColumn();
+							ui->Add(smoothVal2, OFX_IM_VSLIDER_NO_LABELS, 3);
+							s = smoothVal2.getName() + " " + ofToString(smoothVal2.get(), 2);
+							ui->AddTooltip(s);
+							ImGui::Columns(1);
+						}
+
+						ui->EndTree();
+					}
+
 					//--
 
 					ui->AddSpacingSeparated();
@@ -598,7 +690,7 @@ public:
 						if (roundedPlot.bDraw) ui->AddGroup(roundedPlot.params_Circled);
 #endif
 
-#ifdef USE_WAVEFORM_OBJECT
+#ifdef USE_WAVEFORM_3D_OBJECT
 						if (ui->Add(o.bDraw, OFX_IM_TOGGLE_SMALL)) {
 							if (!o.bDraw)o.bGui = false;
 						};
@@ -705,7 +797,7 @@ public:
 
 			//--
 
-#ifdef USE_WAVEFORM_OBJECT
+#ifdef USE_WAVEFORM_3D_OBJECT
 			if (bGui_Edit) o.drawGui();
 #endif
 		}
@@ -773,7 +865,7 @@ public:
 	void drawPlots()
 	{
 		if (!bGui_Plots) return;
-		if (!bGui_PlotIn && !bGui_PlotOut) return;
+		if (!bGui_PlotIn && !bGui_PlotOut) return;//out not implemented yet
 
 		//--
 
@@ -1283,7 +1375,7 @@ public:
 #endif
 						//--
 
-//#ifdef USE_WAVEFORM_OBJECT
+//#ifdef USE_WAVEFORM_3D_OBJECT
 //						//TODO: fails probably bc no depth/3d settings
 //						if (o.bDraw)
 //						{
@@ -1299,11 +1391,11 @@ public:
 						if (W_bLabel)
 						{
 							drawLabel();
-			}
+						}
 #endif
-		}
+					}
 					ofPopMatrix();
-	}
+				}
 
 				//----
 
@@ -1358,7 +1450,7 @@ public:
 					}
 
 					ofPopMatrix();
-}
+				}
 #endif
 			}
 			ofPopStyle();
@@ -1388,7 +1480,7 @@ public:
 		else fbo.draw(xb, yb - hb / 2);
 #endif
 
-#ifdef USE_WAVEFORM_OBJECT
+#ifdef USE_WAVEFORM_3D_OBJECT
 		if (o.bDraw)
 		{
 			//o.r = ofGetCurrentViewport();
