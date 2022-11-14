@@ -15,7 +15,8 @@
 
 //--
 
-#define USE_BLOOM // Fx Shader
+//TODO: is duplicated into parent class!
+//#define USE_BLOOM // Fx Shader
 
 // Extra elements
 #define USE_WAVEFORM_ROUNDED // another circled widget
@@ -27,8 +28,9 @@
 
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
+
 #include "ofxSurfingImGui.h"
-#include "surfingPresets.h"
+#include "ofxSurfingPresetsLite.h"
 #include "imgui_stdlib.h"
 
 #ifdef USE_BLOOM
@@ -203,7 +205,7 @@ public:
 #endif
 	}
 
-	SurfingPresets surfingPresets;
+	ofxSurfingPresetsLite surfingPresets;
 
 	//--
 
@@ -625,7 +627,8 @@ public:
 					ui->Add(bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 					ui->AddSpacingSeparated();
 
-					ui->Add(gain, OFX_IM_HSLIDER_MINI);
+					//ui->Add(gain, OFX_IM_HSLIDER_MINI);
+					ui->Add(gain, OFX_IM_KNOB_DOTKNOB, 2);
 
 					ui->AddSpacingSeparated();
 

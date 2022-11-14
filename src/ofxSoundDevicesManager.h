@@ -20,6 +20,7 @@
 	+	store devices by names? just editing xml file bc sorting can change on the system?
 
 	+	integrate / move to with ofSoundObjects
+		maybe a too much dependencies to only use the input in most situations.
 	+	change all to ofSoundBuffer, not buffer, channels..etc
 	+	add sample-rate and other settings to gui selectors. store to XML too. Restart must be required maybe
 	https://github.com/roymacdonald/ofxSoundDeviceManager
@@ -214,12 +215,12 @@ public:
 
 		//TODO:
 		// For MS Windows only.
-		//TODO:
-		// add macOS + Linux
 		ApiNames.clear();
 		ApiNames.push_back("MS_WASAPI"); // 0
 		ApiNames.push_back("MS_ASIO"); // 1
 		ApiNames.push_back("MS_DS"); // 2
+		//TODO:
+		// add macOS + Linux
 
 		//--
 
@@ -284,6 +285,8 @@ private:
 		bGui.set("SOUND DEVICES", true);
 		bGui_Main.set("SOUND DEVICES", true);
 
+		bDebugExtra.set("Extra", false);
+
 		//--
 
 		// Gui Toggles
@@ -302,6 +305,7 @@ private:
 #endif
 		params_Gui.add(bGui_Internal);
 		params_Gui.add(boxHelpInfo.bGui);
+		params_Gui.add(bDebugExtra);
 
 		bGui_Internal.setSerializable(false);
 
@@ -477,6 +481,7 @@ public:
 
 	ofParameter<bool> bGui;
 	ofParameter<bool> bGui_Main;
+	ofParameter<bool> bDebugExtra;
 
 	//-
 
@@ -892,7 +897,8 @@ private:
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Indent();
 						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
-						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
 						ui.Unindent();
 #endif
 					}
@@ -915,12 +921,17 @@ private:
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Indent();
 						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
-						ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 						ui.Unindent();
 #endif
 						ui.AddSpacingSeparated();
 						ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED);
-
+						if (boxHelpInfo.bGui) {
+							ui.Indent();
+							ui.Add(bDebugExtra, OFX_IM_TOGGLE_ROUNDED_MINI);
+							ui.Unindent();
+						}
 #ifdef USE_OFXGUI_INTERNAL 
 						ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
@@ -958,16 +969,16 @@ private:
 				ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 				ui.EndWindowSpecial();
-			}
+		}
 #endif
 			//--
 
 #ifdef USE_WAVEFORM_PLOTS
 			waveformPlot.drawImGui();
 #endif
-		}
-		ui.End();
 	}
+		ui.End();
+}
 
 public:
 
@@ -1093,7 +1104,7 @@ private:
 		// this is slow..
 		// 
 		// WASAPI
-		if (_apiIndex_oF == 7 || !ui.bMinimize) // MS_WASAPI
+		if (_apiIndex_oF == 7 || (!ui.bMinimize && bDebugExtra)) // MS_WASAPI
 		{
 			if (!ui.bMinimize) helpInfo += "  > WASAPI \n\n";
 			auto devicesWs = inStream.getDeviceList(ofSoundDevice::Api::MS_WASAPI);
@@ -1111,7 +1122,7 @@ private:
 		}
 
 		// ASIO
-		if (_apiIndex_oF == 8 || !ui.bMinimize) // MS_ASIO
+		if (_apiIndex_oF == 8 || (!ui.bMinimize && bDebugExtra)) // MS_ASIO
 		{
 			if (!ui.bMinimize) helpInfo += "  > ASIO \n\n";
 			auto devicesAsio = inStream.getDeviceList(ofSoundDevice::Api::MS_ASIO);
@@ -1129,7 +1140,7 @@ private:
 		}
 
 		// DS
-		if (_apiIndex_oF == 9 || !ui.bMinimize) // MS_DS
+		if (_apiIndex_oF == 9 || (!ui.bMinimize && bDebugExtra)) // MS_DS
 		{
 			if (!ui.bMinimize) helpInfo += "  > MS DIRECTSHOW \n\n";
 			auto devicesDs = inStream.getDeviceList(ofSoundDevice::Api::MS_DS);
@@ -1469,8 +1480,8 @@ public:
 					indexOut = 0;
 				}
 #endif
-				}
 			}
+		}
 		}
 #endif
 
@@ -1488,6 +1499,12 @@ private:
 
 		// MS Windows sound APIs
 		else if (name == ui.bMinimize.getName())
+		{
+			bUpdateHelp = true;
+
+			return;
+		}
+		else if (name == bDebugExtra.getName())
 		{
 			bUpdateHelp = true;
 
