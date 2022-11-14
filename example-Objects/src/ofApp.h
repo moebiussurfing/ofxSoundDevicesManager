@@ -7,6 +7,9 @@
 #include "ofxSoundDevicesManager.h"
 #include "ofxWindowApp.h"
 
+#include "ofxSoundObjects.h"
+#include "waveformDraw.h"
+
 class ofApp : public ofBaseApp
 {
 	public:
@@ -20,6 +23,10 @@ class ofApp : public ofBaseApp
 		int sampleRate;
 		int bufferSize;
 		int numBuffers;
+
+		waveformDraw wave;
+		ofxSoundInput input;
+		//ofxSoundOutput output;
 		
 		ofxWindowApp w;
 };

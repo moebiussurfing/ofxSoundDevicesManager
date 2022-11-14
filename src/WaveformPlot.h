@@ -25,6 +25,8 @@
 
 #include "ofMain.h"
 
+#include "ofxSoundObjects.h"
+
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
@@ -56,9 +58,77 @@
 
 #define AMP_GAIN_MAX_POWER 10 // for plots drawing
 
+/*
+#include "ofxSoundObjects.h"
+class ofxGistSoundObject : public ofxSoundObject {
+
+public:
+
+	ofxGistSoundObject : ofxSoundObject(OFX_SOUND_OBJECT_PROCESSOR) {
+		ofxGist* gist = nullptr;// make sure that you set this properly. It could be a pointer or an instance, it is up to you.
+
+		void process(ofSoundBuffer & input, ofSoundBuffer & output) {
+			output = input; // copy the input data to the output. This will copy settings and all. It goes at the "expense" of copying the audio data as well. which in this case I think you need. Otherwise just copy the settings and not the data.
+
+			// I am assuming that your gist.processAudio(buffer, bufferSize, nChannels, sampleRate); function operates destructively over the audio samples, this is why I copied the audio data, so the input does not get corrupted.
+			if (gist) {// just make sure we dont have a nullptr
+				gist->processAudio(output.getBuffer().data(), output.getNumFrames(), output.getNumChannels(), output.getSampleRate());
+			}
+		}
+	}
+*/
+
 //--------------------------------------------------------------
-class WaveformPlot
+//class WaveformPlot
+class WaveformPlot : public ofxSoundObject
 {
+
+public:
+
+	//--------------------------------------------------------------
+	virtual void process(ofSoundBuffer& input, ofSoundBuffer& output) {
+		calculate(input);
+		output = input;
+	} 
+
+	//--------------------------------------------------------------
+	void calculate(ofSoundBuffer& input) 
+	{
+/*
+		size_t nc = input.getNumChannels();
+
+		processData.resize(nc);
+
+
+		auto t = ofGetElapsedTimeMillis();
+
+		if (ofxSoundUtils::getBufferPeaks(input, processData.peak, processData.holdPeak)) {
+			lastPeakTime = t;
+			processData.lastPeak = processData.peak;
+			processData.holdPeak = processData.peak;
+		}
+		else {
+			auto releaseStart = lastPeakTime + getPeakHoldTime();
+			auto releaseEnd = releaseStart + getPeakReleaseTime();
+			if (releaseStart < t && t <= releaseEnd) {
+				float pct = 1.0 - ofMap(t, releaseStart, releaseEnd, 0, 1, true);
+				for (size_t i = 0; i < processData.peak.size(); i++) {
+					processData.holdPeak[i] = processData.lastPeak[i] * pct;
+				}
+			}
+		}
+
+		for (size_t i = 0; i < nc; i++) {
+			processData.rms[i] = input.getRMSAmplitudeChannel(i);
+			processData.bClippingPeak[i] = processData.peak[i] >= 1.0;
+			processData.bClippingRms[i] = processData.rms[i] >= 1.0;
+		}
+
+		std::lock_guard<std::mutex> mtx(mutex);
+		drawData = processData;
+		bNeedsUpdate = true;
+*/
+	}
 
 public:
 

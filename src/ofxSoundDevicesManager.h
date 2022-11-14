@@ -407,13 +407,21 @@ private:
 	//--
 
 private:
+public:
 
 	// Sound Devices
 
 	ofSoundStream inStream;
+
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 	ofSoundStream outStream;
 #endif
+
+public:
+
+	auto getSoundStream() {
+		return inStream;
+	}
 
 public:
 
