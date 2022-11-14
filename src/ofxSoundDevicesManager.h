@@ -41,7 +41,7 @@
 
 // OPTIONAL
 
-#define USE_WAVEFORM_PLOTS
+//#define USE_WAVEFORM_PLOTS
 
 #define SOUND_DEVICES_DISABLE_OUTPUT 
 //TODO: Must be duplicated to WaveformPlot.h. Must edit on both places!

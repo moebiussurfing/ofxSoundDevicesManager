@@ -15,7 +15,7 @@
 
 //--
 
-#define USE_BLOOM // Fx Shader
+//#define USE_BLOOM // Fx Shader
 
 // Extra elements
 #define USE_WAVEFORM_ROUNDED // another circled widget
@@ -28,7 +28,7 @@
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
-#include "surfingPresets.h"
+#include "ofxSurfingPresetsLite.h"
 #include "imgui_stdlib.h"
 
 #ifdef USE_BLOOM
@@ -203,7 +203,7 @@ public:
 #endif
 	}
 
-	SurfingPresets surfingPresets;
+	ofxSurfingPresetsLite surfingPresets;
 
 	//--
 
