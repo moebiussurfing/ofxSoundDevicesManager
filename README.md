@@ -18,10 +18,7 @@
 	- Auto **Store/Recall settings** on startup/exit.
 	- **Enable/Bypass** & available **Gain Sliders** (WIP).
 	- Display **list devices** from all sound APIs: **DS/ASIO/WASAPI**. 
-- Plot preview **Waveforms** Class. 
-	- Scalable and draggable layout.
-	- Styles editor with presets.
-	- **Bloom Shader** for plot styling.
+
 
 ## Usage
  
@@ -52,19 +49,16 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
 * [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
-* [ofxBloom](https://github.com/P-A-N/ofxBloom) / Optional
 * ofxGui / Optional
 
 ### Tested Systems
 - **Windows 10** / **VS 2022** / **OF 0.11+**
 
 ### TODO / IDEAS
-* Make it https://github.com/roymacdonald/ofxSoundObjects compatible.
-* Merge from https://github.com/roymacdonald/ofxSoundDeviceManager. 
+* Make it https://github.com/roymacdonald/ofxSoundObjects compatible. (?)
+* Merge stuff from https://github.com/roymacdonald/ofxSoundDeviceManager. (?)
 * Test / Make it macOS compatible.
-* Improve setting using Port Name instead of Port Numbers.
-* Improve plotting performance using ofMesh.
-* Add **VU meters** FROM ofxSoundObjects.
+* Improve settings using Port Name instead of Port Numbers.
 
 ### NOTES
 * Would crash when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app or by hardcoding devices. 
