@@ -1,7 +1,8 @@
 #include "ofApp.h"
 
 //--------------------------------------------------------------
-void ofApp::setup() {
+void ofApp::setup() 
+{
 	sampleRate = 48000;
 	bufferSize = 512;
 	numBuffers = 4;
@@ -35,7 +36,8 @@ void ofApp::setup() {
 }
 
 //--------------------------------------------------------------
-void ofApp::draw() {
+void ofApp::draw()
+{
 	ofBackground(128);
 
 	audioDevices.drawGui();
@@ -43,7 +45,8 @@ void ofApp::draw() {
 }
 
 //--------------------------------------------------------------
-void ofApp::audioIn(ofSoundBuffer& input) {
+void ofApp::audioIn(ofSoundBuffer& input)
+{
 	audioDevices.audioIn(input);
 }
 

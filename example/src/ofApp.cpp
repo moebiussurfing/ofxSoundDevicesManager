@@ -23,4 +23,6 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 void ofApp::keyPressed(int key)
 {
 	if (key == 'g') audioDevices.setVisibleToggle();
+
+	if (key == ' ') ofxImGuiSurfing::ImGui_ThemeImStyle();
 }

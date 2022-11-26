@@ -4,6 +4,10 @@
 
 	TODO:
 
+	+	add thread to build help info without drop frames
+
+	+	get smooth VU from use ofxSurfingSmooth code
+
 	+	WIP: INPUT ONLY. But probably can be enabled and easy to fix.
 
 	+	WIP: WINDOWS ONLY
@@ -66,6 +70,7 @@
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
+#include "surfingTimers.h"
 
 #ifdef USE_WAVEFORM_PLOTS
 #include "WaveformPlot.h"
@@ -323,7 +328,7 @@ private:
 		deviceIn_Enable.set("Enable", false);
 		deviceIn_Port.set("Port", 0, 0, 10);
 		// that param is the loaded from settings. not the name. should be the same
-		deviceIn_Volume.set("Volume", 0.5f, 0.f, 1.f);
+		deviceIn_Gain.set("Gain", 0.f, -1.f, 1.f);
 		deviceIn_Api.set("Api", 0, 0, 10);
 		deviceIn_ApiName.set("Api ", "");
 		deviceIn_PortName.set("Port ", "");
@@ -359,9 +364,10 @@ private:
 		// Input
 		params_In.setName("INPUT");
 		params_In.add(deviceIn_Enable);
-		//params_In.add(deviceIn_Volume);
 		params_In.add(deviceIn_Port);
 		params_In.add(deviceIn_PortName);
+		params_In.add(deviceIn_Gain);
+		params_In.add(deviceIn_vuSmooth);
 		//params_In.add(deviceIn_Api);
 		//params_In.add(deviceIn_ApiName);//labels
 
@@ -505,11 +511,17 @@ private:
 
 	ofParameterGroup params_In;
 	ofParameter<bool> deviceIn_Enable;
-	ofParameter<float> deviceIn_Volume;
+	ofParameter<float> deviceIn_Gain;
 	ofParameter<int> deviceIn_Port;
 	ofParameter<string> deviceIn_PortName;
 	ofParameter<int> deviceIn_Api;
 	ofParameter<string> deviceIn_ApiName;
+
+	// rms signal to use on VU
+	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 };
+	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 };
+
+	//--
 
 	// Out
 
@@ -889,7 +901,8 @@ private:
 					ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
 					ui.AddSpacing();
 
-					ui.Add(bEnableAudio, OFX_IM_TOGGLE);
+					if (!bGui_In) ui.Add(bEnableAudio, OFX_IM_TOGGLE);
+
 					ui.AddSpacing();
 
 					if (ui.bMinimize)
@@ -912,6 +925,7 @@ private:
 					}
 					else
 					{
+						ui.AddLabelBig("API");
 						ui.AddCombo(apiIndex_Windows, ApiNames);
 						ui.AddSpacingSeparated();
 
@@ -943,24 +957,42 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 						ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+						}
 
+					if (!bGui_In) 
+					{
+						if (!ui.bMinimize) ui.AddSpacingSeparated();
+						else ui.AddSpacing();
+						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+					}
 					ui.EndWindowSpecial();
+					}
 				}
-			}
 
 			//--
 
-			// In
+			// Input
 
 			//if(bGui_In) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
 
 			if (ui.BeginWindowSpecial(bGui_In))
 			{
 				ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
-				//ui.Add(deviceIn_Volume, OFX_IM_SLIDER);//TODO:
+				ui.AddSpacing();
+
+				if (!ui.bMinimize) {
+					ui.AddLabelBig("DEVICE");
+				}
 				ui.AddCombo(deviceIn_Port, inDevicesNames);
 
+				if (!ui.bMinimize) {
+					ui.AddLabelBig("VU METER");
+					ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, 2, 1 / 2.f);
+					ui.SameLine();
+					ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_DOTKNOB, 2, 1 / 2.f);
+				}
+				ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+				//ui.Add(deviceIn_vuValue, OFX_IM_HSLIDER_MINI_NO_NUMBER);
 				ui.EndWindowSpecial();
 			}
 
@@ -977,16 +1009,16 @@ private:
 				ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 				ui.EndWindowSpecial();
-		}
+			}
 #endif
 			//--
 
 #ifdef USE_WAVEFORM_PLOTS
 			waveformPlot.drawImGui();
 #endif
-	}
+			}
 		ui.End();
-}
+		}
 
 public:
 
@@ -1024,7 +1056,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-	}
+		}
 
 private:
 
@@ -1213,7 +1245,7 @@ public:
 #ifdef USE_WAVEFORM_PLOTS
 		waveformPlot.setPath(pathGlobal + "/" + "Waveform");
 #endif
-	}
+}
 
 	//--
 
@@ -1286,7 +1318,7 @@ private:
 	////--------------------------------------------------------------
 	//float getVolumeInput()
 	//{
-	//	if (deviceIn_Enable) return deviceIn_Volume;
+	//	if (deviceIn_Enable) return deviceIn_Gain;
 	//	else return 0.0f;
 	//}
 
@@ -1328,10 +1360,6 @@ private:
 private:
 
 	// Plot waveforms
-
-	////TODO:
-	//float smoothedVolume_Input = 0; // rms signal to use on VU
-	//float smoothedVolume_Out = 0; // rms signal to use on VU
 
 	bool bUpdateHelp = false;
 
@@ -1404,7 +1432,7 @@ public:
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
-				}
+		}
 				else
 				{
 					indexIn = 0;
@@ -1426,14 +1454,52 @@ public:
 
 				_count += 2; // 2 channels
 				//_count += 1; // 1 channel
-			}
+	}
 
 			//--
 
-			_rms /= (float)_count;
+			_rms = _rms / (float)_count;
 			_rms = sqrt(_rms);
 
-			//smoothedVolume_Input = _rms * deviceIn_Volume;
+			//--
+
+			//TODO: use ofxSurfingSmooth code
+
+			//deviceIn_vuValue *= 0.93;
+			//deviceIn_vuValue += 0.07 * _rms;
+
+			float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 0.5f, 0.95f, true);
+			//float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 0.f, 0.95f, true);
+			deviceIn_vuValue *= smooth;
+			deviceIn_vuValue += (1 - smooth) * _rms;
+
+			//scaledVol = ofMap(deviceIn_vuValue, 0.0, 0.17, 0.0, 1.0, true);
+
+			// gain
+			float gmax = 1.75f;
+			if (deviceIn_Gain == 0) {
+			}
+			else if (deviceIn_Gain < 0) {
+				deviceIn_vuValue /= deviceIn_Gain * gmax;
+			}
+			else if (deviceIn_Gain > 0) {
+				deviceIn_vuValue *= deviceIn_Gain * gmax;
+			}
+			//float g = ofMap(deviceIn_Gain, -1, 1, 1.f / gmax, gmax, false);
+			//deviceIn_vuValue = g * deviceIn_vuValue.get();
+
+			//// gain
+			//float gmax = 50;
+			//float g = ofMap(deviceIn_vuSmooth.get(), 0.1, 1, 1, gmax, true);
+			//deviceIn_vuValue = g * ofMap(_rms * deviceIn_Gain, 0.f, 1.0f, 0, 1, true);
+
+			//// smooth
+			//float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 1.f, 0.1f, true);
+			//static float tar;
+			//float cur = deviceIn_vuValue.get();
+			//ofxSurfingHelpers::ofxKuValueSmooth(cur, tar, smooth);
+
+			//deviceIn_vuValue.set(cur);
 		}
 
 		// not enabled: 
@@ -1448,7 +1514,7 @@ public:
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
-				}
+	}
 				else
 				{
 					indexIn = 0;
@@ -1488,7 +1554,7 @@ public:
 					indexOut = 0;
 				}
 #endif
-			}
+}
 		}
 		}
 #endif
@@ -1661,6 +1727,30 @@ private:
 		}
 	}
 #endif
+
+	/*
+	* //TODO: smooth helpers...
+	float getRMSAmplitude(std::vector<float> &buffer, std::size_t channels) const {
+		double acc = 0;
+		for (size_t i = 0; i < buffer.size(); i++) {
+			acc += buffer[i] * buffer[i];
+		}
+		return sqrt(acc / (double)buffer.size());
+	}
+
+	float getRMSAmplitudeChannel(std::vector<float> &buffer, std::size_t channels, std::size_t channel) const {
+		if (channel > channels - 1) {
+			return 0;
+		}
+
+		double acc = 0;
+		for (size_t i = 0; i < getNumFrames(); i++) {
+			float sample = getSample(i, channel);
+			acc += sample * sample;
+		}
+		return sqrt(acc / (double)getNumFrames());
+	}
+	*/
 
 	};
 
