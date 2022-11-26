@@ -29,6 +29,7 @@
 
 #include "ofxSurfingBoxHelpText.h"
 #include "ofxSurfingBoxInteractive.h"
+
 #include "ofxSurfingImGui.h"
 #include "ofxSurfingPresetsLite.h"
 #include "imgui_stdlib.h"
@@ -695,7 +696,8 @@ public:
 					ui->Add(bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 					ui->AddSpacingSeparated();
 
-					ui->Add(gain, OFX_IM_HSLIDER_MINI);
+					//ui->Add(gain, OFX_IM_HSLIDER_MINI);
+					ui->Add(gain, OFX_IM_KNOB_DOTKNOB, 2);
 
 					ui->AddSpacingSeparated();
 
