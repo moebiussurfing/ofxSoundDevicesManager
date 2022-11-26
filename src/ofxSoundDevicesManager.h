@@ -957,17 +957,17 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 						ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-						}
+					}
 
-					if (!bGui_In) 
+					if (!bGui_In)
 					{
 						if (!ui.bMinimize) ui.AddSpacingSeparated();
 						else ui.AddSpacing();
 						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 					}
 					ui.EndWindowSpecial();
-					}
 				}
+			}
 
 			//--
 
@@ -1016,9 +1016,9 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 			waveformPlot.drawImGui();
 #endif
-			}
-		ui.End();
 		}
+		ui.End();
+	}
 
 public:
 
@@ -1056,7 +1056,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-		}
+	}
 
 private:
 
@@ -1245,7 +1245,7 @@ public:
 #ifdef USE_WAVEFORM_PLOTS
 		waveformPlot.setPath(pathGlobal + "/" + "Waveform");
 #endif
-}
+	}
 
 	//--
 
@@ -1399,7 +1399,6 @@ public:
 					float tempInput = input[i * nChannels];
 					float tempOutput = waveformPlot.plotIn[indexIn];
 
-
 					if (waveformPlot.bSmooth)
 					{
 						// sub gain
@@ -1432,7 +1431,7 @@ public:
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
-		}
+				}
 				else
 				{
 					indexIn = 0;
@@ -1454,12 +1453,14 @@ public:
 
 				_count += 2; // 2 channels
 				//_count += 1; // 1 channel
-	}
+			}
 
 			//--
 
 			_rms = _rms / (float)_count;
 			_rms = sqrt(_rms);
+
+			_rms = ofClamp(_rms, 0, 1);
 
 			//--
 
@@ -1476,7 +1477,7 @@ public:
 			//scaledVol = ofMap(deviceIn_vuValue, 0.0, 0.17, 0.0, 1.0, true);
 
 			// gain
-			float gmax = 1.75f;
+			float gmax = 1.5f;
 			if (deviceIn_Gain == 0) {
 			}
 			else if (deviceIn_Gain < 0) {
@@ -1487,6 +1488,8 @@ public:
 			}
 			//float g = ofMap(deviceIn_Gain, -1, 1, 1.f / gmax, gmax, false);
 			//deviceIn_vuValue = g * deviceIn_vuValue.get();
+
+			deviceIn_vuValue = ofClamp(deviceIn_vuValue, 0, 1);
 
 			//// gain
 			//float gmax = 50;
@@ -1500,6 +1503,8 @@ public:
 			//ofxSurfingHelpers::ofxKuValueSmooth(cur, tar, smooth);
 
 			//deviceIn_vuValue.set(cur);
+
+			cout << "rms:" << ofToString(_rms, 2) << " \t " << "vu:" << ofToString(deviceIn_vuValue.get(), 2) << endl;
 		}
 
 		// not enabled: 
@@ -1514,14 +1519,14 @@ public:
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
-	}
+				}
 				else
 				{
 					indexIn = 0;
-				}
-#endif
-			}
 		}
+#endif
+	}
+}
 	}
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
@@ -1554,7 +1559,7 @@ public:
 					indexOut = 0;
 				}
 #endif
-}
+			}
 		}
 		}
 #endif
