@@ -1,7 +1,7 @@
 # ofxSoundDevicesManager
 
 # OVERVIEW
-**openFrameworks** add-on to easily handle selected system sound devices and plot signal waveform.  
+**openFrameworks** add-on to easily handle selected system sound devices. Currently Input devices only.  
 
 **WORK IN PROGRESS**
 - ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
