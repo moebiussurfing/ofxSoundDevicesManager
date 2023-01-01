@@ -3,6 +3,8 @@
 
 	TODO
 
+	add fade in to avoid clicks when dragging position
+
 */
 
 
