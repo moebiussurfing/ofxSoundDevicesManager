@@ -1,13 +1,14 @@
 # ofxSoundDevicesManager
 
 # OVERVIEW
-**openFrameworks** add-on to easily handle selected system sound devices. Currently Input devices only.  
+**openFrameworks** add-on to easily handle selected system sound devices.  
+Currently Input devices only.  
 
 **WORK IN PROGRESS**
 - ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
-- USING MS DIRECTSHOW. ASIO OR WASAPI NOT TESTED BUT SHOULD WORK.
+- USING MS DIRECTSHOW. ASIO OR WASAPI HAS NOT BEEN TESTED BUT SHOULD WORK.
 - CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED ON AN AUDIO ANALYZER.
-- STYLED WAVEFORM PLOT STANDALONE CLASS.
+- COMPATIBLE WITH ofxSurfingAudioPlots FOR STYLED WAVEFORM PLOT.
 
 ## Screenshot
 
@@ -15,10 +16,9 @@
 
 ## Features
 - **Select** Input and Output (WIP) **devices** using an **ImGui** based **GUI**.
-	- Auto **Store/Recall settings** on startup/exit.
-	- **Enable/Bypass** & available **Gain Sliders** (WIP).
-	- Display **list devices** from all sound APIs: **DS/ASIO/WASAPI**. 
-
+- Auto **Store/Recall settings** on startup/exit.
+- **Enable/Bypass** & available **Gain Sliders** (WIP).
+- Display **list devices** from all sound APIs: **DS/ASIO/WASAPI**. 
 
 ## Usage
  
@@ -50,6 +50,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
 * ofxGui / Optional
+* [ofxSurfingAudioPlots](https://github.com/moebiussurfing/ofxSurfingAudioPlots/) / Optional for example 2
 
 ### Tested Systems
 - **Windows 10** / **VS 2022** / **OF 0.11+**
@@ -68,4 +69,4 @@ An add-on by **@moebiusSurfing**
 *(ManuMolina). 2020-2022.*
 
 ## LICENSE
-*MIT License*  
+*MIT License*
