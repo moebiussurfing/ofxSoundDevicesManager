@@ -62,6 +62,8 @@ private:
 
 	string name_Audio = "NO FILE";
 
+	bool bStopped = true;
+
 public:
 
 	void setup()
@@ -220,6 +222,10 @@ private:
 		if (name == position.getName())
 		{
 			playerAudio.setPosition(position);
+
+			//workflow
+			//if (!bPlay && !playerAudio.getIsPlaying()) bPlay = true;
+			if (bStopped) bPlay = true;
 		}
 		if (name == bLoop.getName())
 		{
@@ -227,19 +233,26 @@ private:
 		}
 		if (name == bPlay.getName())
 		{
-			if (bPlay) {
-				if (playerAudio.isPlaying()) playerAudio.setPaused(false);
+			if (bPlay.get()) {
+				if (playerAudio.getIsPlaying()) playerAudio.setPaused(false);
+				//if (playerAudio.isPlaying()) playerAudio.setPaused(false);
 				else playerAudio.play();
+				bStopped = false;
 			}
-			else {
-				if (playerAudio.isPlaying()) playerAudio.setPaused(true);
-				else playerAudio.stop();
+			else {//TODO: some small bug
+				if (playerAudio.isPlaying()) 
+					playerAudio.setPaused(true);
+				else 
+					playerAudio.stop();
+				bStopped = false;
 			}
 		}
 		if (name == bStop.getName())
 		{
+			//bPlay.set(false);
 			bPlay.setWithoutEventNotifications(false);
 			playerAudio.stop();
+			bStopped = true;
 		}
 	};
 
@@ -327,7 +340,7 @@ public:
 
 			ui->BeginBlinkText(bNotLoadedAudio);
 			{
-				ui->AddLabelBig(name_Audio);
+				ui->AddLabel(name_Audio);
 				string s = getPath();
 				ui->AddTooltip(s);
 			}
@@ -338,20 +351,31 @@ public:
 
 		if (!bNotLoadedAudio)
 		{
+			// time label
+
+			bool b = !bPlay && !bStopped;
+			bool b2 = bStopped;
+			if (b2) ui->BeginDarkenText();
+			ui->BeginBlinkText(b);
+			
 			float t = getPositionAudioMS() / 1000.f;
 			string s = ofxSurfingHelpers::calculateTime(t);
 			ui->AddLabelHugeXXL(s);
+			
+			ui->EndBlinkText(b);
+			if (b2) ui->EndDarkenText();
+			
+			ui->AddSpacing();
+
+			ui->PushFont(OFX_IM_FONT_BIG);
+			ui->Add(bPlay, OFX_IM_TOGGLE_BIG_BORDER_BLINK, 2, 0.5f);
+			ui->SameLine();
+			ui->Add(bStop, OFX_IM_BUTTON_BIG, 2, 0.5f);
+			ui->PopFont();
+
 			ui->AddSpacing();
 
 			ui->Add(position, OFX_IM_HSLIDER_NO_LABELS);
-			//ui->Add(position, OFX_IM_HSLIDER_SMALL_NO_LABELS);
-			//ui->Add(position, OFX_IM_HSLIDER_MINI_NO_LABELS);
-
-			ui->AddSpacing();
-
-			ui->Add(bPlay, OFX_IM_TOGGLE_BIG_BORDER_BLINK, 2, 0.65f);
-			ui->SameLine();
-			ui->Add(bStop, OFX_IM_BUTTON_BIG, 2, 0.35f);
 
 			if (!ui->bMinimize)
 			{
@@ -359,12 +383,9 @@ public:
 				ui->Add(bLoop, OFX_IM_TOGGLE_ROUNDED_SMALL);
 				ui->AddSpacingSeparated();
 
-				//TODO: center
+				//TODO: center. search ImGui addon that does responsive layout
 				//ImGui::Dummy(ImVec2(100, 0));
-				ui->AddSeparatedVertical(false);
 				ui->Add(volume, OFX_IM_KNOB_DOTKNOB, 2);
-				ui->AddSeparatedVertical(false);
-				//ui->Add(volume, OFX_IM_HSLIDER_MINI);
 			}
 		}
 	};

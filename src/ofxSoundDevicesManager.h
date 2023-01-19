@@ -272,7 +272,7 @@ public:
 		//----
 
 		// Comment to avoid loading settings
-		// helpful for when the app is stucked (when starting maybe)
+		// helpful for when the app is stuck (when starting maybe)
 		// for ASIO / WASAPI or some other problem.
 
 		startup();
