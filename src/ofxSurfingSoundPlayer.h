@@ -204,7 +204,7 @@ public:
 
 private:
 
-	void Changed_Params(ofAbstractParameter& e) 
+	void Changed_Params(ofAbstractParameter& e)
 	{
 		std::string name = e.getName();
 
@@ -263,7 +263,7 @@ public:
 			path = file.getAbsolutePath();
 
 			ofLogNotice("ofxSurfingSoundPlayer") << "Name: " << name_Audio;
-			ofLogNotice("ofxSurfingSoundPlayer") <<  "Path: " << path;
+			ofLogNotice("ofxSurfingSoundPlayer") << "Path: " << path;
 			load(path);
 		}
 		else
@@ -314,6 +314,8 @@ public:
 	{
 		bool bNotLoadedAudio = !isLoadedAudio();
 
+		ui->Add(ui->bMinimize, OFX_IM_TOGGLE_ROUNDED_SMALL);
+		ui->AddSpacingSeparated();
 		if (!ui->bMinimize)
 		{
 			SurfingGuiTypes st = OFX_IM_BUTTON_SMALL;
@@ -325,7 +327,7 @@ public:
 
 			ui->BeginBlinkText(bNotLoadedAudio);
 			{
-				ui->AddLabel(name_Audio);
+				ui->AddLabelBig(name_Audio);
 				string s = getPath();
 				ui->AddTooltip(s);
 			}
@@ -338,12 +340,13 @@ public:
 		{
 			float t = getPositionAudioMS() / 1000.f;
 			string s = ofxSurfingHelpers::calculateTime(t);
-
-			ui->AddLabelHuge(s);
+			ui->AddLabelHugeXXL(s);
 			ui->AddSpacing();
 
-			ui->Add(position, OFX_IM_HSLIDER_SMALL_NO_LABELS);
+			ui->Add(position, OFX_IM_HSLIDER_NO_LABELS);
+			//ui->Add(position, OFX_IM_HSLIDER_SMALL_NO_LABELS);
 			//ui->Add(position, OFX_IM_HSLIDER_MINI_NO_LABELS);
+
 			ui->AddSpacing();
 
 			ui->Add(bPlay, OFX_IM_TOGGLE_BIG_BORDER_BLINK, 2, 0.65f);
@@ -358,8 +361,9 @@ public:
 
 				//TODO: center
 				//ImGui::Dummy(ImVec2(100, 0));
+				ui->AddSeparatedVertical(false);
 				ui->Add(volume, OFX_IM_KNOB_DOTKNOB, 2);
-
+				ui->AddSeparatedVertical(false);
 				//ui->Add(volume, OFX_IM_HSLIDER_MINI);
 			}
 		}
@@ -375,12 +379,15 @@ public:
 			return;
 		}
 
+		ImVec2 size_min = ImVec2(180, 100);
+		ImVec2 size_max = ImVec2(FLT_MAX, FLT_MAX);
+		ImGui::SetNextWindowSizeConstraints(size_min, size_max);
+
 		if (ui->BeginWindow(bGui))
 		{
 			drawImGuiWidgets();
+
 			ui->EndWindow();
 		}
-
-		//--
 	}
 };
