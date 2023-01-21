@@ -4,6 +4,8 @@
 
 	TODO:
 
+	+	make log conversion to gain smoother to make it more audio realistic.
+
 	+	add thread to build help info without drop frames
 
 	+	get smooth VU from use ofxSurfingSmooth code
@@ -541,10 +543,10 @@ private:
 	ofParameterGroup params_Control;
 	ofParameterGroup params_Gui;
 
-	ofParameter<bool> bGui_In{ "Input", true };
+	ofParameter<bool> bGui_In{ "INPUT", true };
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
-	ofParameter<bool> bGui_Out{ "Output", false };
+	ofParameter<bool> bGui_Out{ "OUTPUT", false };
 #endif
 
 	ofParameter<bool> bGui_Internal{ "Internal", false };
@@ -899,7 +901,7 @@ private:
 				if (ui.BeginWindowSpecial(bGui_Main))
 				{
 					ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
-					ui.AddSpacing();
+					ui.AddSpacingSeparated();
 
 					if (!bGui_In) ui.Add(bEnableAudio, OFX_IM_TOGGLE);
 
@@ -913,13 +915,23 @@ private:
 #endif
 
 #ifdef USE_WAVEFORM_PLOTS
+						ui.AddSpacingSeparated();
+
 						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Indent();
 						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
+						
 						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+
+						// Center a single widget
+						float w = ui.getWidgetsWidth(2) / 2;
+						// Pass the expected widget width divided by two
+						AddSpacingPad(w);
 						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+
 						ui.Unindent();
 #endif
 					}
@@ -943,8 +955,16 @@ private:
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Indent();
 						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
-						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+
+						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
 						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+												
+						// Center a single widget
+						float w = ui.getWidgetsWidth(2) / 2;
+						// Pass the expected widget width divided by two
+						AddSpacingPad(w);
+						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+						
 						ui.Unindent();
 #endif
 						ui.AddSpacingSeparated();
@@ -1014,7 +1034,7 @@ private:
 			//--
 
 #ifdef USE_WAVEFORM_PLOTS
-			waveformPlot.drawImGui();
+			waveformPlot.drawImGui(false);
 #endif
 		}
 		ui.End();

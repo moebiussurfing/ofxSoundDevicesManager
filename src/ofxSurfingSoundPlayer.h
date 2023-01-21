@@ -240,9 +240,9 @@ private:
 				bStopped = false;
 			}
 			else {//TODO: some small bug
-				if (playerAudio.isPlaying()) 
+				if (playerAudio.isPlaying())
 					playerAudio.setPaused(true);
-				else 
+				else
 					playerAudio.stop();
 				bStopped = false;
 			}
@@ -332,7 +332,7 @@ public:
 		if (!ui->bMinimize)
 		{
 			SurfingGuiTypes st = OFX_IM_BUTTON_SMALL;
-			if (ui->AddButton("Open File", st))
+			if (ui->AddButton("OPEN FILE", st))
 			{
 				doOpenDialogPath();
 			}
@@ -357,14 +357,14 @@ public:
 			bool b2 = bStopped;
 			if (b2) ui->BeginDarkenText();
 			ui->BeginBlinkText(b);
-			
+
 			float t = getPositionAudioMS() / 1000.f;
 			string s = ofxSurfingHelpers::calculateTime(t);
 			ui->AddLabelHugeXXL(s);
-			
+
 			ui->EndBlinkText(b);
 			if (b2) ui->EndDarkenText();
-			
+
 			ui->AddSpacing();
 
 			ui->PushFont(OFX_IM_FONT_BIG);
@@ -383,9 +383,17 @@ public:
 				ui->Add(bLoop, OFX_IM_TOGGLE_ROUNDED_SMALL);
 				ui->AddSpacingSeparated();
 
-				//TODO: center. search ImGui addon that does responsive layout
-				//ImGui::Dummy(ImVec2(100, 0));
-				ui->Add(volume, OFX_IM_KNOB_DOTKNOB, 2);
+				//TODO:
+				//ui->AddComboBundle(volume);
+				//ui->Add(volume, OFX_IM_COMBO_MULTI);
+
+				// Center a single widget
+				{
+					float w = ui->getWidgetsWidth(2) / 2;
+					// Pass the expected widget width divided by two
+					AddSpacingPad(w);
+					ui->Add(volume, OFX_IM_KNOB_DOTKNOB, 2);
+				}
 			}
 		}
 	};
@@ -395,8 +403,10 @@ public:
 		if (!bGui) return;
 
 		if (ui == NULL) {
-			ofLogError("ofxSurfingSoundPlayer") << " ofxImGui is not instantiated. You should set the parent ui instance as reference!";
-			ofLogError("ofxSurfingSoundPlayer") << " Usually: player.setUiPtr(&ui);";
+			ofLogError("ofxSurfingSoundPlayer") <<
+				" ofxImGui is not instantiated. You should set the parent ui instance as reference!";
+			ofLogError("ofxSurfingSoundPlayer") <<
+				" Usually: player.setUiPtr(&ui);";
 			return;
 		}
 
