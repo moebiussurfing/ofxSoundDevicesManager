@@ -21,14 +21,39 @@ class ofxSurfingSoundPlayer
 {
 public:
 
-	ofxSurfingSoundPlayer() {
+	ofxSurfingSoundPlayer::ofxSurfingSoundPlayer() {
 	};
 
-	~ofxSurfingSoundPlayer() {
+	ofxSurfingSoundPlayer::~ofxSurfingSoundPlayer() {
 		exit();
 	};
 
-	//--
+	//----
+
+	// Fix noises when scrubbing
+	// adding fades
+
+private:
+
+	enum PlayerState_
+	{
+		PlayerState_STOP_OUT = 0,
+		PlayerState_STOPPED,
+		PlayerState_PLAY_IN,
+		PlayerState_PLAYING,
+		PlayerState_PLAY_OUT,
+		PlayerState_PAUSED,
+		PlayerState_AMOUNT,
+	};
+
+	PlayerState_ playerState;
+	PlayerState_ playerState_PRE = PlayerState_(-1);
+
+	float fadeVal = 0;
+	float fadeVal_PRE = -1;
+	float fadeStep = 0.05;
+
+	//----
 
 private:
 
@@ -133,7 +158,75 @@ public:
 	{
 		if (!bLoaded) return;
 
-		if (position != playerAudio.getPosition()) position.setWithoutEventNotifications(playerAudio.getPosition());
+		//--
+
+		// Fade volume transitions
+		// to avoid glitches
+		{
+			// Sate changed
+			if (playerState != playerState_PRE)
+			{
+				playerState_PRE = playerState;
+
+				switch (playerState)
+				{
+				case ofxSurfingSoundPlayer::PlayerState_STOP_OUT:
+					break;
+				case ofxSurfingSoundPlayer::PlayerState_STOPPED:
+					fadeVal = 0;
+					break;
+				case ofxSurfingSoundPlayer::PlayerState_PLAY_IN:
+					fadeVal = 0;
+					break;
+				case ofxSurfingSoundPlayer::PlayerState_PLAYING:
+					break;
+				case ofxSurfingSoundPlayer::PlayerState_PLAY_OUT:
+					break;
+				case ofxSurfingSoundPlayer::PlayerState_PAUSED:
+					break;
+				case ofxSurfingSoundPlayer::PlayerState_AMOUNT:
+					break;
+				}
+			}
+
+			// Update on states
+			switch (playerState)
+			{
+			case ofxSurfingSoundPlayer::PlayerState_STOP_OUT:
+				fadeVal -= fadeStep;
+				fadeVal = ofClamp(fadeVal, 0, 1);
+				break;
+			case ofxSurfingSoundPlayer::PlayerState_STOPPED:
+				fadeVal = 0;
+				break;
+			case ofxSurfingSoundPlayer::PlayerState_PLAY_IN:
+				fadeVal += fadeStep;
+				fadeVal = ofClamp(fadeVal, 0, 1);
+				break;
+			case ofxSurfingSoundPlayer::PlayerState_PLAYING:
+				break;
+			case ofxSurfingSoundPlayer::PlayerState_PLAY_OUT:
+				fadeVal -= fadeStep;
+				fadeVal = ofClamp(fadeVal, 0, 1);
+				break;
+			case ofxSurfingSoundPlayer::PlayerState_PAUSED:
+				break;
+			case ofxSurfingSoundPlayer::PlayerState_AMOUNT:
+				break;
+			}
+
+			if (fadeVal != fadeVal_PRE) {
+				fadeVal_PRE = fadeVal;
+				playerAudio.setVolume(fadeVal * volume.get());
+			}
+		}
+
+		//--
+
+		if (position != playerAudio.getPosition())
+		{
+			position.setWithoutEventNotifications(playerAudio.getPosition());
+		}
 
 		ofSoundUpdate();
 	};
@@ -219,41 +312,77 @@ private:
 			volume.setWithoutEventNotifications(ofClamp(volume, 0, 1));
 			playerAudio.setVolume(volume.get());
 		}
-		if (name == position.getName())
-		{
-			playerAudio.setPosition(position);
-
-			//workflow
-			//if (!bPlay && !playerAudio.getIsPlaying()) bPlay = true;
-			if (bStopped) bPlay = true;
-		}
 		if (name == bLoop.getName())
 		{
 			playerAudio.setLoop(bLoop);
 		}
+
+		//--
+
+		if (name == position.getName())
+		{
+			//workflow
+			//if (!bPlay && !playerAudio.getIsPlaying()) bPlay = true;
+
+			playerState = PlayerState_PLAY_IN;
+			fadeVal = 0;
+			playerAudio.setVolume(0);
+
+			playerAudio.setPosition(position);
+
+			if (bStopped) bPlay = true;
+		}
+
+		//--
+
+		// Play
+
 		if (name == bPlay.getName())
 		{
-			if (bPlay.get()) {
-				if (playerAudio.getIsPlaying()) playerAudio.setPaused(false);
-				//if (playerAudio.isPlaying()) playerAudio.setPaused(false);
-				else playerAudio.play();
+			if (bPlay.get())
+			{
+				if (playerAudio.getIsPlaying())
+				{
+					playerAudio.setPaused(false);
+					//if (playerAudio.isPlaying()) playerAudio.setPaused(false);
+					playerState = PlayerState_PLAY_OUT;
+				}
+				else
+				{
+					playerAudio.play();
+					playerState = PlayerState_PLAY_IN;
+					fadeVal = 0;
+					playerAudio.setVolume(0);
+				}
 				bStopped = false;
 			}
-			else {//TODO: some small bug
+			//TODO: some small bug
+			else
+			{
 				if (playerAudio.isPlaying())
+				{
 					playerAudio.setPaused(true);
+					playerState = PlayerState_PLAY_OUT;
+				}
 				else
-					playerAudio.stop();
+				{
+					//playerAudio.stop();
+				}
+
 				bStopped = false;
 			}
 		}
+
 		if (name == bStop.getName())
 		{
 			//bPlay.set(false);
 			bPlay.setWithoutEventNotifications(false);
 			playerAudio.stop();
 			bStopped = true;
+			playerState = PlayerState_STOP_OUT;
 		}
+
+		//--
 	};
 
 public:
@@ -277,6 +406,7 @@ public:
 
 			ofLogNotice("ofxSurfingSoundPlayer") << "Name: " << name_Audio;
 			ofLogNotice("ofxSurfingSoundPlayer") << "Path: " << path;
+
 			load(path);
 		}
 		else
@@ -394,6 +524,20 @@ public:
 					AddSpacingPad(w);
 					ui->Add(volume, OFX_IM_KNOB_DOTKNOB, 2);
 				}
+			}
+
+			//--
+
+			ui->AddSpacing();
+			ui->AddDebugToggle(false);
+			if (ui->bDebug) {
+				string s; 
+				
+				s = ofToString(fadeVal, 3);
+				ui->AddLabel(s);
+
+				s = ofToString(playerState);
+				ui->AddLabel(s);
 			}
 		}
 	};
