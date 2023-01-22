@@ -73,6 +73,7 @@
 #include "ofxSurfingBoxInteractive.h"
 #include "ofxSurfingImGui.h"
 #include "surfingTimers.h"
+#include "surfingMaths.h"
 
 #ifdef USE_WAVEFORM_PLOTS
 #include "WaveformPlot.h"
@@ -87,6 +88,7 @@ class ofxSoundDevicesManager
 class ofxSoundDevicesManager : public ofBaseApp
 #endif
 {
+	//--
 
 public:
 
@@ -900,14 +902,16 @@ private:
 
 				if (ui.BeginWindowSpecial(bGui_Main))
 				{
-					ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
-					ui.AddSpacingSeparated();
+					ui.AddMinimizerToggle();
+					//ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
+					//ui.AddSpacingSeparated();
 
 					if (!bGui_In) ui.Add(bEnableAudio, OFX_IM_TOGGLE);
 
 					ui.AddSpacing();
 
-					if (ui.bMinimize)
+					//if (ui.bMinimize)
+					if (ui.isMinimized())
 					{
 						ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
@@ -920,22 +924,25 @@ private:
 						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-						ui.Indent();
-						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
-						
+
+						//ui.Indent();
+						//ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
+
 						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
 
 						// Center a single widget
-						float w = ui.getWidgetsWidth(2) / 2;
-						// Pass the expected widget width divided by two
-						AddSpacingPad(w);
-						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+						{
+							float w = ui.getWidgetsWidth(2) / 2;
+							// Pass the expected widget width divided by two
+							AddSpacingPad(w);
+							ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+						}
 
-						ui.Unindent();
+						//ui.Unindent();
 #endif
 					}
-					else
+					else // maximized
 					{
 						ui.AddLabelBig("API");
 						ui.AddCombo(apiIndex_Windows, ApiNames);
@@ -958,13 +965,13 @@ private:
 
 						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
 						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
-												
+
 						// Center a single widget
 						float w = ui.getWidgetsWidth(2) / 2;
 						// Pass the expected widget width divided by two
 						AddSpacingPad(w);
 						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
-						
+
 						ui.Unindent();
 #endif
 						ui.AddSpacingSeparated();
@@ -1006,7 +1013,10 @@ private:
 				ui.AddCombo(deviceIn_Port, inDevicesNames);
 
 				if (!ui.bMinimize) {
+					ui.AddSpacingSeparated();
+					ui.AddSpacing();
 					ui.AddLabelBig("VU METER");
+					ui.AddSpacing();
 					ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, 2, 1 / 2.f);
 					ui.SameLine();
 					ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_DOTKNOB, 2, 1 / 2.f);
@@ -1415,6 +1425,8 @@ public:
 					///*
 
 					// Smooth
+					//TODO: 
+					// Could be better inside the plot class..
 
 					float tempInput = input[i * nChannels];
 					float tempOutput = waveformPlot.plotIn[indexIn];
@@ -1430,11 +1442,19 @@ public:
 						/*
 							float s1 = ofMap(waveformPlot.smoothVal1.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
 							waveformPlot.ofxKuValueSmooth(tempOutput, tempInput, s1);
-							*/
+						*/
 
-						float s1 = ofMap(waveformPlot.smoothVal1.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
-						float s2 = ofMap(waveformPlot.smoothVal2.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
-						waveformPlot.ofxKuValueSmoothDirected(tempOutput, tempInput, s1, s2);
+						if (waveformPlot.typeSmooth.get() == 1)
+						{
+							float s1 = ofMap(waveformPlot.smoothVal1.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
+							float s2 = ofMap(waveformPlot.smoothVal2.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
+							waveformPlot.ofxKuValueSmoothDirected(tempOutput, tempInput, s1, s2);
+						}
+						else if (waveformPlot.typeSmooth.get() == 0)
+						{
+							float s1 = ofMap(waveformPlot.smoothVal1.get(), 0, 1, SMOOTH_MIN, SMOOTH_MAX);
+							waveformPlot.ofxKuValueSmooth(tempOutput, tempInput, s1);
+						}
 
 						waveformPlot.plotIn[indexIn] = tempOutput;
 					}
@@ -1484,19 +1504,29 @@ public:
 
 			//--
 
-			//TODO: use ofxSurfingSmooth code
+			//TODO: 
+			// Could use ofxSurfingSmooth // ofxStream code snippets
 
 			//deviceIn_vuValue *= 0.93;
 			//deviceIn_vuValue += 0.07 * _rms;
 
-			float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 0.5f, 0.95f, true);
+			//float _smooth = ofxSurfingHelpers::exponentialFunction(deviceIn_vuSmooth.get())/10.f;
+			float _smooth = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_vuSmooth.get() * 10.f);
+			//cout << "_smooth:" << _smooth << endl;
+			float smooth = ofMap(_smooth, 0.f, 1.0f, 0.5f, 0.9f, true);
+
 			//float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 0.f, 0.95f, true);
+			////float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 0.5f, 0.7f, true);
+
 			deviceIn_vuValue *= smooth;
 			deviceIn_vuValue += (1 - smooth) * _rms;
 
 			//scaledVol = ofMap(deviceIn_vuValue, 0.0, 0.17, 0.0, 1.0, true);
 
-			// gain
+			//--
+
+			// Apply gain
+
 			float gmax = 1.5f;
 			if (deviceIn_Gain == 0) {
 			}
@@ -1506,8 +1536,27 @@ public:
 			else if (deviceIn_Gain > 0) {
 				deviceIn_vuValue *= deviceIn_Gain * gmax;
 			}
+
+			//TODO:
+			// Log
+			//float gmax = 1.5f;
+			//if (deviceIn_Gain == 0) {
+			//}
+			//else if (deviceIn_Gain < 0) {
+			//	deviceIn_vuValue /= squaredFunction(deviceIn_Gain) * gmax;
+			//}
+			//else if (deviceIn_Gain > 0) {
+			//	deviceIn_vuValue *= squaredFunction(deviceIn_Gain) * gmax;
+			//}
+
+			//--
+
 			//float g = ofMap(deviceIn_Gain, -1, 1, 1.f / gmax, gmax, false);
 			//deviceIn_vuValue = g * deviceIn_vuValue.get();
+
+			//--
+
+			// Clamp
 
 			deviceIn_vuValue = ofClamp(deviceIn_vuValue, 0, 1);
 
@@ -1524,7 +1573,7 @@ public:
 
 			//deviceIn_vuValue.set(cur);
 
-			cout << "rms:" << ofToString(_rms, 2) << " \t " << "vu:" << ofToString(deviceIn_vuValue.get(), 2) << endl;
+			//cout << "rms:" << ofToString(_rms, 2) << " \t " << "vu:" << ofToString(deviceIn_vuValue.get(), 2) << endl;
 		}
 
 		// not enabled: 
@@ -1543,10 +1592,10 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
-	}
-}
+			}
+		}
 	}
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
@@ -1581,7 +1630,7 @@ public:
 #endif
 			}
 		}
-		}
+	}
 #endif
 
 private:
@@ -1777,7 +1826,7 @@ private:
 	}
 	*/
 
-	};
+};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78
