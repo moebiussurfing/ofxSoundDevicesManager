@@ -936,7 +936,7 @@ private:
 							float w = ui.getWidgetsWidth(2) / 2;
 							// Pass the expected widget width divided by two
 							AddSpacingPad(w);
-							ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+							ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
 						}
 
 						//ui.Unindent();
