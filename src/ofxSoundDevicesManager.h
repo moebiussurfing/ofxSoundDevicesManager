@@ -4,13 +4,15 @@
 
 	TODO:
 
-	+	make log conversion to gain smoother to make it more audio realistic.
+	+	WIP: Enable toggles not working
+
+		Out not working as player can't pick which output devide to use!
+	+	WIP: INPUT ONLY. 
+		But probably output can be enabled and easy to fix.
+		enable output and test with an example
 
 	+	get smooth VU from use ofxSurfingSmooth code
 	https://github.com/turowskipaul/ofxDataStream/blob/master/src/ofxDataStream.cpp
-
-	+	WIP: INPUT ONLY. But probably out can be enabled and easy to fix.
-		+	enable output and test with an example
 
 	+	add thread to build help info without drop frames
 
@@ -49,19 +51,26 @@
 
 // OPTIONAL
 
-//#define USE_WAVEFORM_PLOTS // TODO: split
-//TODO: Must be duplicated to WaveformPlot.h. Must edit on both places!
+//#define USE_WAVEFORM_PLOTS 
+//TODO: Must be duplicated to WaveformPlot.h
+// Must edit on both places!
+// TODO: split
 
-#define SOUND_DEVICES_DISABLE_OUTPUT 
+//#define NOT_USE_DEVICE_OUTPUT
+//TODO: should add directive to exclude input..
+// Disables all Output management.
+// Input is always included!
 
 #define USE_SOUNDPLAYER
+// Includes sound player class 
+// allows load and playing sound files.
 
 //--
 
 //TODO: WIP:
-#define USE_ofBaseApp_Pointer
-//enabled: add-on class uses a passed by reference ofBaseApp pointer. 
-//disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/out callbacks..
+//#define USE_ofBaseApp_Pointer
+// enabled: add-on class uses a passed by reference ofBaseApp pointer. 
+// disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/out callbacks..
 
 
 //#define USE_OFXGUI_INTERNAL // ofxGui internal debug or split from ImGui..
@@ -134,8 +143,10 @@ public:
 		//--
 
 		// Channels
+
 		numInputs = 2;
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 		numOutputs = 2;
 #endif
 		_apiIndex_oF = -1;
@@ -160,7 +171,8 @@ public:
 		ofxSurfingHelpers::saveGroup(params_Settings, pathGlobal + "/" + pathSettings);
 
 		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 #endif
 		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
@@ -319,7 +331,7 @@ private:
 		params_Gui.add(bGui_Main);
 		params_Gui.add(bGui_In);
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		params_Gui.add(bGui_Out);
 #endif
 
@@ -344,7 +356,7 @@ private:
 		//-
 
 		// In
-		deviceIn_Enable.set("Enable", false);
+		deviceIn_Enable.set("ENABLE IN", false);
 		deviceIn_Port.set("Port", 0, 0, 10);
 		// that param is the loaded from settings. not the name. should be the same
 
@@ -356,8 +368,8 @@ private:
 		deviceIn_PortName.set("Port ", "");
 
 		// Out
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
-		deviceOut_Enable.set("Enable", false);
+#ifndef NOT_USE_DEVICE_OUTPUT
+		deviceOut_Enable.set("ENABLE OUT", false);
 		deviceOut_Port.set("Port", 0, 0, 10);
 		//that param is the loaded from settings. not the name. should be the same
 		deviceOut_Volume.set("Volume", 0.5f, 0.f, 1.f);
@@ -375,7 +387,7 @@ private:
 		deviceIn_PortName.setSerializable(false);
 
 		// Out
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		deviceOut_Api.setSerializable(false);
 		deviceOut_ApiName.setSerializable(false);
 		deviceOut_PortName.setSerializable(false);
@@ -394,7 +406,7 @@ private:
 		//params_In.add(deviceIn_ApiName);//labels
 
 		// Output
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		params_Out.setName("OUTPUT");
 		params_Out.add(deviceOut_Enable);
 		//params_Out.add(deviceOut_Volume);
@@ -416,14 +428,15 @@ private:
 		params_Settings.add(waveformPlot.index);
 #endif
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		params_Settings.add(params_Out);
 #endif
 
 		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
 
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 #endif
 
@@ -445,7 +458,7 @@ public:
 
 	ofSoundStream inStream;
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 	ofSoundStream outStream;
 #endif
 
@@ -455,10 +468,15 @@ public:
 		return inStream;
 	}
 
+	float getVumeterValue() const {
+		return deviceIn_vuValue.get();
+	}
+
 public:
 
 	int numInputs;
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 	int numOutputs;
 #endif
 
@@ -499,7 +517,8 @@ private:
 
 	std::vector<ofSoundDevice> inDevices;
 	std::vector<string> inDevicesNames;
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 	std::vector<ofSoundDevice> outDevices;
 	std::vector<string> outDevicesNames;
 #endif
@@ -507,7 +526,8 @@ private:
 	// Settings
 
 	ofSoundStreamSettings inSettings;
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 	ofSoundStreamSettings outSettings;
 #endif
 
@@ -549,7 +569,7 @@ private:
 
 	// Out
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 	ofParameterGroup params_Out;
 	ofParameter<bool> deviceOut_Enable;
 	ofParameter<float> deviceOut_Volume;
@@ -567,7 +587,7 @@ private:
 
 	ofParameter<bool> bGui_In{ "INPUT", true };
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 	ofParameter<bool> bGui_Out{ "OUTPUT", false };
 #endif
 
@@ -659,7 +679,7 @@ private:
 		// both locked to the same
 		deviceIn_Api = _apiIndex_oF;
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		deviceOut_Api = _apiIndex_oF;
 #endif
 
@@ -676,7 +696,7 @@ private:
 		// Clean
 		ofSoundStreamSettings _settings;
 		inSettings = _settings;
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		outSettings = _settings;
 #endif
 
@@ -725,7 +745,8 @@ private:
 		// APIs and devices
 
 		inDevices.clear();
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 		outDevices.clear();
 #endif
 
@@ -734,7 +755,8 @@ private:
 		case MS_WASAPI:
 			devices_ApiName = "MS_WASAPI";
 			inDevices = inStream.getDeviceList(ofSoundDevice::Api::MS_WASAPI);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 			outDevices = outStream.getDeviceList(ofSoundDevice::Api::MS_WASAPI);
 #endif
 			break;
@@ -742,7 +764,8 @@ private:
 		case MS_ASIO:
 			devices_ApiName = "MS_ASIO";
 			inDevices = inStream.getDeviceList(ofSoundDevice::Api::MS_ASIO);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 			outDevices = outStream.getDeviceList(ofSoundDevice::Api::MS_ASIO);
 #endif
 			break;
@@ -750,7 +773,8 @@ private:
 		case MS_DS:
 			devices_ApiName = "MS_DS";
 			inDevices = inStream.getDeviceList(ofSoundDevice::Api::MS_DS);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 			outDevices = outStream.getDeviceList(ofSoundDevice::Api::MS_DS);
 #endif
 			break;
@@ -769,7 +793,7 @@ private:
 		}
 
 		// Output
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		outDevicesNames.clear();
 		outDevicesNames.resize(outDevices.size());
 		for (int d = 0; d < outDevices.size(); d++)
@@ -827,7 +851,7 @@ private:
 
 		// Output
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		outSettings.bufferSize = bufferSize;
 		outSettings.numBuffers = numBuffers;
 		outSettings.sampleRate = sampleRate;
@@ -874,7 +898,8 @@ private:
 		// Max ports
 
 		deviceIn_Port.setMax(inDevices.size() - 1);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 		deviceOut_Port.setMax(outDevices.size() - 1);
 #endif
 
@@ -887,7 +912,7 @@ private:
 
 		// Out
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		deviceOut_Api = _apiEnum;
 		deviceOut_ApiName = devices_ApiName;
 		if (outDevices.size() > deviceOut_Port)
@@ -898,7 +923,8 @@ private:
 		// Force enable
 
 		deviceIn_Enable.setWithoutEventNotifications(bApiConnected);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+
+#ifndef NOT_USE_DEVICE_OUTPUT
 		deviceOut_Enable.setWithoutEventNotifications(bApiConnected);
 #endif
 
@@ -924,8 +950,18 @@ private:
 
 				if (ui.isMinimized()) // minimized
 				{
+					ui.AddSpacing();
+
 					ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+					if (!bGui_In)
+					{
+						ui.AddSpacing();
+						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+					}
+
+#ifndef NOT_USE_DEVICE_OUTPUT
+					ui.AddSpacingBigSeparated();
+
 					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
 
@@ -956,30 +992,38 @@ private:
 				else // maximized
 				{
 					ui.AddLabelBig("API");
+					ui.AddSpacing();
 					ui.AddCombo(apiIndex_Windows, ApiNames);
+					ui.Add(bEnableAudio, OFX_IM_TOGGLE);
 					ui.AddSpacingSeparated();
 
 					//--
 
 					// In
-
+					ui.AddSpacing();
 					ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-					//ui.AddSpacing();
+					ui.AddSpacing();
 					if (!bGui_In)
 					{
-						ui.Add(bEnableAudio, OFX_IM_TOGGLE);
+						ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
 						//ui.AddSpacing();
 						//ui.AddLabelBig("IN");
 						ui.AddCombo(deviceIn_Port, inDevicesNames);
 					}
-
-					ui.AddSpacing();
+					if (!bGui_In)
+					{
+						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+					}
 
 					//--
 
 					// Out
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
+
+					//--
+
+					ui.AddSpacingBigSeparated();
 					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
 					//--
@@ -1005,7 +1049,7 @@ private:
 					ui.Unindent();
 #endif
 					ui.AddSpacingSeparated();
-					ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED_SMALL);
 					if (boxHelpInfo.bGui) {
 						ui.Indent();
 						ui.Add(bDebugExtra, OFX_IM_TOGGLE_ROUNDED_MINI);
@@ -1014,15 +1058,6 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
-
-				//--
-
-				if (!bGui_In)
-				{
-					if (!ui.bMinimize) ui.AddSpacingSeparated();
-					else ui.AddSpacing();
-					ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 				}
 
 				//--
@@ -1049,13 +1084,14 @@ private:
 
 			if (!ui.bMinimize) {
 				ui.AddLabelBig("DEVICE");
+				ui.AddSpacing();
 			}
 			ui.AddCombo(deviceIn_Port, inDevicesNames);
 
 			if (!ui.bMinimize) {
 				ui.AddSpacingSeparated();
 				ui.AddSpacing();
-				ui.AddLabelBig("VU METER");
+				ui.AddLabelBig("VU");
 				ui.AddSpacing();
 				ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, 2, 1 / 2.f);
 				ui.SameLine();
@@ -1069,7 +1105,7 @@ private:
 	//--------------------------------------------------------------
 	void drawImGuiOut()
 	{
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		if (bGui_Out) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
 		if (ui.BeginWindowSpecial(bGui_Out))
 		{
@@ -1140,6 +1176,12 @@ private:
 	}
 
 public:
+	
+	//TODO: WIP: trick to expose ui..
+	//--------------------------------------------------------------
+	ofxSurfingGui* getUiPtr() {
+		return &ui;
+	};
 
 	//--------------------------------------------------------------
 	void drawGui()
@@ -1186,7 +1228,7 @@ private:
 		inStream.stop();
 		inStream.close();
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		deviceOut_Enable.setWithoutEventNotifications(false);
 		outStream.stop();
 		outStream.close();
@@ -1204,7 +1246,7 @@ private:
 	void setDevices(int input, int output)
 	{
 		deviceIn_Port = input;
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		deviceOut_Port = output;
 #endif
 	}
@@ -1215,7 +1257,7 @@ private:
 		deviceIn_Port = input;
 	}
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 	//--------------------------------------------------------------
 	void setOutputDevice(int output)
 	{
@@ -1245,7 +1287,7 @@ private:
 		helpInfo += "\n  Buffersize : " + ofToString(bufferSize);
 		helpInfo += "\n  Buffers    : " + ofToString(numBuffers);
 		helpInfo += "\n  Inputs     : " + ofToString(numInputs);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		helpInfo += "\n  Outputs    : " + ofToString(numOutputs);
 #endif
 		helpInfo += "\n\n";
@@ -1332,7 +1374,7 @@ private:
 			helpInfo += "  Input  " + ofToString(deviceIn_Port) + "\n";
 			helpInfo += "  " + deviceIn_PortName.get() + "\n\n";
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 			helpInfo += "  Output " + ofToString(deviceOut_Port) + "\n";
 			helpInfo += "  " + deviceOut_PortName.get() + "\n\n";
 #endif
@@ -1410,7 +1452,7 @@ private:
 
 		ui.addWindowSpecial(bGui_Main);
 		ui.addWindowSpecial(bGui_In);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 		ui.addWindowSpecial(bGui_Out);
 #endif
 #ifdef USE_WAVEFORM_PLOTS
@@ -1493,17 +1535,27 @@ public:
 
 	//--------------------------------------------------------------
 	void audioIn(ofSoundBuffer& input) {
+		//TODO:
+		if (!bEnableAudio) return;
+		if (!deviceIn_Enable) return;
 
 		std::size_t nChannels = input.getNumChannels();
 
-		if (deviceIn_Enable)
+		if (deviceIn_Enable.get())
 		{
+			//TODO: 
+			// Could use ofxSurfingSmooth // ofxStream code snippets
+
+			//--
+
 			float _rms = 0.0;//TODO: not used
 			int _count = 0;
 
 			////TODO:
 			//waveformPlot.makeWaveformMesh(input);
 			//waveformPlot.updateWaveformMesh(input);
+
+			//--
 
 			for (size_t i = 0; i < input.getNumFrames(); i++)
 			{
@@ -1575,6 +1627,8 @@ public:
 #endif
 				//--
 
+				// Calulate rms
+
 				// code from here: https://github.com/edap/examplesOfxMaxim
 				// rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
 
@@ -1588,28 +1642,26 @@ public:
 				//--
 
 				// count added samples
-				_count += 2; // 2 channels
-				//_count += 1; // 1 channel
+				_count += 2; // 2 channels. stereo
+				//_count += 1; // 1 channel. mono
 			}
 
 			//--
 
-			// rms
+			// Final Rms
 			_rms = _rms / (float)_count;
 			_rms = sqrt(_rms);
 
-			// clamp
+			// Clamp
 			_rms = ofClamp(_rms, 0, 1);
 
-			//--
-
-			//TODO: 
-			// Could use ofxSurfingSmooth // ofxStream code snippets
-
+			// Alternative
 			//deviceIn_vuValue *= 0.93;
 			//deviceIn_vuValue += 0.07 * _rms;
 
 			//--
+
+			// Extra custom smoothing step
 
 			// A. Raw
 			float smooth = deviceIn_vuSmooth.get();
@@ -1618,9 +1670,8 @@ public:
 			//smooth = ofxSurfingHelpers::squaredFunction(smooth) / 10.f;
 
 			// C. Better mapped
-			smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .8f, true);
-			//smooth = ofMap(smooth, 0.f, 1.0f, 0.f, 1.f, true);
-			//smooth = ofMap(smooth, 0.f, 1.0f, 0.5f, 0.9f, true);
+			smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .66f, true);
+			//smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .8f, true);
 
 			deviceIn_vuValue *= smooth;
 			deviceIn_vuValue += (1 - smooth) * _rms;
@@ -1631,19 +1682,21 @@ public:
 
 			// Apply gain
 
-			//TODO:
 			// Log
 			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(deviceIn_Gain);
 			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
 
 			// Apply gain to raw vu value
 			float gainExtra = 2;
+			//float gainExtra = 1.75f;//tweak
+			//float gainExtra = 1.5f;//tweak
+
 			deviceIn_vuValue = deviceIn_GainLog * deviceIn_vuValue.get() * gainExtra;
 
 			//--
 
 			// Clamp
-			deviceIn_vuValue = ofClamp(deviceIn_vuValue, 0, 1);
+			deviceIn_vuValue = ofClamp(deviceIn_vuValue, 0, 1.f);
 		}
 
 		// Device in not enabled: 
@@ -1668,10 +1721,14 @@ public:
 		}
 	}
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 	//--------------------------------------------------------------
 	void audioOut(ofSoundBuffer& output)
 	{
+		//TODO:
+		if (!bEnableAudio) return;
+		if (!deviceOut_Enable) return;
+
 		std::size_t outChannels = output.getNumChannels();
 
 		if (deviceOut_Enable) // fill plot
@@ -1825,7 +1882,7 @@ private:
 			return;
 		}
 	}
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+#ifndef NOT_USE_DEVICE_OUTPUT
 	//--------------------------------------------------------------
 	void Changed_params_Out(ofAbstractParameter& e)
 	{

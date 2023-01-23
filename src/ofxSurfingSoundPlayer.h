@@ -7,6 +7,7 @@
 
 */
 
+#define USE_EXTERNAL_DEVICE_OUT_MANAGER
 
 //--
 
@@ -17,7 +18,7 @@
 #include "ofxSurfingHelpers.h"
 #include "ofxSurfingImGui.h"
 
-class ofxSurfingSoundPlayer
+class ofxSurfingSoundPlayer : public ofBaseApp
 {
 public:
 
@@ -60,9 +61,11 @@ private:
 	string path_GLOBAL = "ofxSurfingSoundPlayer";
 	string path_AppSettings = "ofxSurfingSoundPlayer.json";
 
+#ifndef USE_EXTERNAL_DEVICE_OUT_MANAGER
 	ofSoundStreamSettings outSettings;
 	ofSoundStream outStream;
 	std::vector<ofSoundDevice> outDevices;
+#endif
 
 	bool bLoaded = false;
 
@@ -126,7 +129,8 @@ private:
 		//--
 
 		//TODO:
-		//add device selector into ofxSoundDeviceManager
+		// add device selector into ofxSoundDeviceManager
+#ifndef USE_EXTERNAL_DEVICE_OUT_MANAGER
 
 		// hardcoded device
 		int deviceOut_Port = 0;
@@ -150,6 +154,7 @@ private:
 		outSettings.setOutDevice(outDevices[deviceOut_Port]);
 
 		outStream.setup(outSettings);
+#endif
 	};
 
 public:
@@ -233,8 +238,11 @@ public:
 
 private:
 
-	void exit() {
+	void exit() 
+	{
+#ifndef USE_EXTERNAL_DEVICE_OUT_MANAGER
 		outStream.close();
+#endif
 
 		ofRemoveListener(params.parameterChangedE(), this, &ofxSurfingSoundPlayer::Changed_Params);
 
