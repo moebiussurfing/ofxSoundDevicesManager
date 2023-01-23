@@ -40,7 +40,7 @@ private:
 
 	enum PlayerState_
 	{
-		PlayerState_STOP_OUT = 0,
+		PlayerState_STOP_IN = 0,
 		PlayerState_STOPPED,
 		PlayerState_PLAY_IN,
 		PlayerState_PLAYING,
@@ -56,6 +56,9 @@ private:
 	float fadeVal = 0;
 	float fadeVal_PRE = -1;
 	ofParameter<float> fadeStep{ "Step", 0.05, 0, 0.5 };
+
+	//TODO: it seems that ofPlayer do not show if it's played..
+	bool bPlaying = false;
 
 	//----
 
@@ -180,8 +183,8 @@ public:
 
 				switch (playerState)
 				{
-				case ofxSurfingSoundPlayer::PlayerState_STOP_OUT:
-					namePlayerState = "STOP_OUT";
+				case ofxSurfingSoundPlayer::PlayerState_STOP_IN:
+					namePlayerState = "STOP_IN";
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_STOPPED:
 					namePlayerState = "STOPPED";
@@ -190,6 +193,8 @@ public:
 				case ofxSurfingSoundPlayer::PlayerState_PLAY_IN:
 					namePlayerState = "PLAY_IN";
 					fadeVal = 0;
+					//fix bug
+					bPlay = true;
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_PLAYING:
 					namePlayerState = "PLAYING";
@@ -199,8 +204,7 @@ public:
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_PAUSED:
 					namePlayerState = "PAUSED";
-					break;
-				case ofxSurfingSoundPlayer::PlayerState_AMOUNT:
+					fadeVal = 0;
 					break;
 				}
 
@@ -210,7 +214,7 @@ public:
 			// Update on states
 			switch (playerState)
 			{
-			case ofxSurfingSoundPlayer::PlayerState_STOP_OUT:
+			case ofxSurfingSoundPlayer::PlayerState_STOP_IN:
 				fadeVal -= fadeStep;
 				fadeVal = ofClamp(fadeVal, 0, 1);
 				if (fadeVal == 0) playerState = PlayerState_STOPPED;
@@ -231,8 +235,6 @@ public:
 				if (fadeVal == 0) playerState = PlayerState_PAUSED;
 				break;
 			case ofxSurfingSoundPlayer::PlayerState_PAUSED:
-				break;
-			case ofxSurfingSoundPlayer::PlayerState_AMOUNT:
 				break;
 			}
 
@@ -274,6 +276,7 @@ public:
 
 	void setPaused(bool b) {
 		playerAudio.setPaused(b);
+		bPlaying = false;
 	};
 	void setPosition(float pos) {
 		playerAudio.setPosition(pos);
@@ -327,34 +330,27 @@ private:
 	{
 		std::string name = e.getName();
 
-		if (name == path.getName())
-		{
-			this->load(path);
-		}
-		if (name == volume.getName())
-		{
-			volume.setWithoutEventNotifications(ofClamp(volume, 0, 1));
-			playerAudio.setVolume(volume.get());
-		}
-		if (name == bLoop.getName())
-		{
-			playerAudio.setLoop(bLoop);
-		}
-
 		//--
 
 		if (name == position.getName())
 		{
-			//workflow
-			//if (!bPlay && !playerAudio.getIsPlaying()) bPlay = true;
-
 			playerState = PlayerState_PLAY_IN;
 			fadeVal = 0;
 			playerAudio.setVolume(0);
-
 			playerAudio.setPosition(position);
 
-			if (bStopped) bPlay = true;
+			bool b = bPlaying;
+			//bool b = playerAudio.isPlaying();
+
+			if (!bPlay && !b)
+			{
+				bPlay.setWithoutEventNotifications(true);
+				bPlaying = true;
+			}
+
+			//if (bStopped) bPlay = true;
+
+			return;
 		}
 
 		//--
@@ -363,38 +359,56 @@ private:
 
 		if (name == bPlay.getName())
 		{
-			if (bPlay.get())
+			if (bPlay.get()) // true
 			{
-				if (playerAudio.getIsPlaying())
+				bool b = bPlaying;
+				//bool b = playerAudio.isPlaying();//BUG: don't notifies when paused
+				//bool b = playerAudio.getPlayer()->setPaused;
+				//bool b = playerAudio.pause();
+
+				if (b)
 				{
 					playerAudio.setPaused(false);
+					bPlaying = false;
+
 					//if (playerAudio.isPlaying()) playerAudio.setPaused(false);
 					playerState = PlayerState_PLAY_OUT;
 				}
 				else
 				{
 					playerAudio.play();
+					bPlaying = true;
+
 					playerState = PlayerState_PLAY_IN;
 					fadeVal = 0;
 					playerAudio.setVolume(0);
 				}
+
 				bStopped = false;
 			}
 			//TODO: some small bug
-			else
+			else // false
 			{
-				if (playerAudio.isPlaying())
+				bool b = bPlaying;
+				//bool b = playerAudio.isPlaying();
+
+				if (b)
 				{
 					playerAudio.setPaused(true);
+					bPlaying = false;
+
 					playerState = PlayerState_PLAY_OUT;
 				}
 				else
 				{
 					//playerAudio.stop();
+					//bPlaying = false;
 				}
 
 				bStopped = false;
 			}
+
+			return;
 		}
 
 		if (name == bStop.getName())
@@ -402,8 +416,31 @@ private:
 			//bPlay.set(false);
 			bPlay.setWithoutEventNotifications(false);
 			playerAudio.stop();
+			bPlaying = false;
+
 			bStopped = true;
-			playerState = PlayerState_STOP_OUT;
+			playerState = PlayerState_STOP_IN;
+
+			return;
+		}
+
+		if (name == path.getName())
+		{
+			this->load(path);
+
+			return;
+		}
+		if (name == volume.getName())
+		{
+			volume.setWithoutEventNotifications(ofClamp(volume, 0, 1));
+			playerAudio.setVolume(volume.get());
+			return;
+		}
+		if (name == bLoop.getName())
+		{
+			playerAudio.setLoop(bLoop);
+
+			return;
 		}
 
 		//--
@@ -494,7 +531,7 @@ public:
 
 			ui->BeginBlinkText(bNotLoadedAudio);
 			{
-				ui->AddLabelBig(name_Audio);
+				ui->AddLabel(name_Audio);
 
 				string s = getPath();
 				ui->AddTooltip(s);
@@ -513,9 +550,25 @@ public:
 			if (b2) ui->BeginDarkenText();
 			ui->BeginBlinkText(b);
 
-			float t = getPositionAudioMS() / 1000.f;
+			float t = getPositionAudioMS() / 1000.f;//seconds
+			//min::sec
 			string s = ofxSurfingHelpers::calculateTime(t);
 			ui->AddLabelHugeXXL(s);
+			//ms
+			if (!ui->bMinimize)
+			{
+				int tms = getPositionAudioMS() % 1000;
+				s = ofToString(tms);
+				if (tms < 10) s = "00" + s;
+				else if (tms < 100) s = "0" + s;
+
+				// push up
+				AddSpacingOffset(ImVec2{ 0,-13 });
+
+				// align right
+				AddSpacingRightAlign(21);
+				ui->AddLabel(s);
+			}
 
 			ui->EndBlinkText(b);
 			if (b2) ui->EndDarkenText();
@@ -555,19 +608,21 @@ public:
 
 			ui->AddSpacing();
 			ui->AddDebugToggle(false);
-			if (ui->bDebug) 
+			if (ui->bDebug)
 			{
 				ui->Indent();
-				string s;
-				ui->Add(fadeStep, OFX_IM_STEPPER);
+
 				s = ofToString(fadeVal, 3);
 				ui->AddLabel(s);
-
-				s = ofToString(playerState);
-				ui->AddLabel(s);
+				ofxImGuiSurfing::AddProgressBar2(fadeVal);
+				ui->Add(fadeStep, OFX_IM_STEPPER);
 				ui->AddLabel(namePlayerState);
 
-				ofxImGuiSurfing::AddProgressBar2(fadeVal);
+				bool b = bPlaying;
+				//bool b = playerAudio.isPlaying();
+
+				s = "playing " + ofToString(b ? "TRUE" : "FALSE");
+				ui->AddLabel(s);
 
 				ui->Unindent();
 			}
