@@ -18,6 +18,8 @@
 #include "ofxSurfingHelpers.h"
 #include "ofxSurfingImGui.h"
 
+//#define stringify( name ) #name
+
 class ofxSurfingSoundPlayer : public ofBaseApp
 {
 public:
@@ -49,10 +51,11 @@ private:
 
 	PlayerState_ playerState;
 	PlayerState_ playerState_PRE = PlayerState_(-1);
+	string namePlayerState = "";
 
 	float fadeVal = 0;
 	float fadeVal_PRE = -1;
-	float fadeStep = 0.05;
+	ofParameter<float> fadeStep{ "Step", 0.05, 0, 0.5 };
 
 	//----
 
@@ -121,6 +124,8 @@ private:
 		params_Audio.add(position);
 		params_Audio.add(volume);
 
+		params_Audio.add(fadeStep);
+
 		params.add(params_Audio);
 
 		// to starts at zero always!
@@ -176,22 +181,30 @@ public:
 				switch (playerState)
 				{
 				case ofxSurfingSoundPlayer::PlayerState_STOP_OUT:
+					namePlayerState = "STOP_OUT";
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_STOPPED:
+					namePlayerState = "STOPPED";
 					fadeVal = 0;
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_PLAY_IN:
+					namePlayerState = "PLAY_IN";
 					fadeVal = 0;
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_PLAYING:
+					namePlayerState = "PLAYING";
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_PLAY_OUT:
+					namePlayerState = "PLAY_OUT";
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_PAUSED:
+					namePlayerState = "PAUSED";
 					break;
 				case ofxSurfingSoundPlayer::PlayerState_AMOUNT:
 					break;
 				}
+
+				//namePlayerState = stringify(playerState);
 			}
 
 			// Update on states
@@ -200,6 +213,7 @@ public:
 			case ofxSurfingSoundPlayer::PlayerState_STOP_OUT:
 				fadeVal -= fadeStep;
 				fadeVal = ofClamp(fadeVal, 0, 1);
+				if (fadeVal == 0) playerState = PlayerState_STOPPED;
 				break;
 			case ofxSurfingSoundPlayer::PlayerState_STOPPED:
 				fadeVal = 0;
@@ -207,12 +221,14 @@ public:
 			case ofxSurfingSoundPlayer::PlayerState_PLAY_IN:
 				fadeVal += fadeStep;
 				fadeVal = ofClamp(fadeVal, 0, 1);
+				if (fadeVal == 1) playerState = PlayerState_PLAYING;
 				break;
 			case ofxSurfingSoundPlayer::PlayerState_PLAYING:
 				break;
 			case ofxSurfingSoundPlayer::PlayerState_PLAY_OUT:
 				fadeVal -= fadeStep;
 				fadeVal = ofClamp(fadeVal, 0, 1);
+				if (fadeVal == 0) playerState = PlayerState_PAUSED;
 				break;
 			case ofxSurfingSoundPlayer::PlayerState_PAUSED:
 				break;
@@ -238,7 +254,7 @@ public:
 
 private:
 
-	void exit() 
+	void exit()
 	{
 #ifndef USE_EXTERNAL_DEVICE_OUT_MANAGER
 		outStream.close();
@@ -539,14 +555,21 @@ public:
 
 			ui->AddSpacing();
 			ui->AddDebugToggle(false);
-			if (ui->bDebug) {
-				string s; 
-				
+			if (ui->bDebug) 
+			{
+				ui->Indent();
+				string s;
+				ui->Add(fadeStep, OFX_IM_STEPPER);
 				s = ofToString(fadeVal, 3);
 				ui->AddLabel(s);
 
 				s = ofToString(playerState);
 				ui->AddLabel(s);
+				ui->AddLabel(namePlayerState);
+
+				ofxImGuiSurfing::AddProgressBar2(fadeVal);
+
+				ui->Unindent();
 			}
 		}
 	};

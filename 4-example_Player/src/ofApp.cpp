@@ -39,6 +39,7 @@ void ofApp::draw()
 
 	audioDevices.drawGui();
 
+	//TODO: WIP: trick to expose ui..
 	//auto ui = audioDevices.getUiPtr();
 	//ui->Begin();
 	//if (ui->BeginWindow("ofApp")) {
