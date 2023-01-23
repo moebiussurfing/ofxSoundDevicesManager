@@ -6,11 +6,13 @@
 
 	+	make log conversion to gain smoother to make it more audio realistic.
 
-	+	add thread to build help info without drop frames
-
 	+	get smooth VU from use ofxSurfingSmooth code
+	https://github.com/turowskipaul/ofxDataStream/blob/master/src/ofxDataStream.cpp
 
-	+	WIP: INPUT ONLY. But probably can be enabled and easy to fix.
+	+	WIP: INPUT ONLY. But probably out can be enabled and easy to fix.
+		+	enable output and test with an example
+
+	+	add thread to build help info without drop frames
 
 	+	WIP: WINDOWS ONLY
 	+	add macOS/Linux APIs ? https://github.com/roymacdonald/ofxSoundDeviceManager
@@ -22,7 +24,6 @@
 	+	fix api selector. add switch API/device. without exceptions/crashes.
 		add disconnect to allow use only input or output. now, enablers are only like mutes.
 
-	+	enable output and test with an example
 	+	store devices by names? just editing xml file bc sorting can change on the system?
 
 	+	integrate / move to with ofSoundObjects
@@ -48,11 +49,14 @@
 
 // OPTIONAL
 
-#define USE_WAVEFORM_PLOTS // TODO: split
-
-#define SOUND_DEVICES_DISABLE_OUTPUT 
+//#define USE_WAVEFORM_PLOTS // TODO: split
 //TODO: Must be duplicated to WaveformPlot.h. Must edit on both places!
 
+#define SOUND_DEVICES_DISABLE_OUTPUT 
+
+#define USE_SOUNDPLAYER
+
+//--
 
 //TODO: WIP:
 #define USE_ofBaseApp_Pointer
@@ -79,6 +83,12 @@
 #include "WaveformPlot.h"
 #endif
 
+#ifdef USE_SOUNDPLAYER
+#include "ofxSurfingSoundPlayer.h"
+#endif
+
+//--
+
 
 #ifdef USE_ofBaseApp_Pointer
 //--------------------------------------------------------------
@@ -89,6 +99,11 @@ class ofxSoundDevicesManager : public ofBaseApp
 #endif
 {
 	//--
+
+#ifdef USE_SOUNDPLAYER
+private:
+	ofxSurfingSoundPlayer player;
+#endif
 
 public:
 
@@ -332,7 +347,10 @@ private:
 		deviceIn_Enable.set("Enable", false);
 		deviceIn_Port.set("Port", 0, 0, 10);
 		// that param is the loaded from settings. not the name. should be the same
-		deviceIn_Gain.set("Gain", 0.f, -1.f, 1.f);
+
+		//deviceIn_Gain.set("Gain", 0.f, -1.f, 1.f);
+		deviceIn_Gain.set("Gain", 0.5f, 0.f, 1.f);
+
 		deviceIn_Api.set("Api", 0, 0, 10);
 		deviceIn_ApiName.set("Api ", "");
 		deviceIn_PortName.set("Port ", "");
@@ -522,8 +540,10 @@ private:
 	ofParameter<string> deviceIn_ApiName;
 
 	// rms signal to use on VU
-	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 };
-	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 };
+	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 }; // to smooth the vu signal
+	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
+
+	float deviceIn_GainLog;//TODO: maybe useful to be public to apply gain on the parent class.
 
 	//--
 
@@ -603,6 +623,10 @@ private:
 	{
 #ifdef USE_WAVEFORM_PLOTS
 		waveformPlot.update();
+#endif
+
+#ifdef USE_SOUNDPLAYER
+		player.update();
 #endif
 
 		//--
@@ -886,6 +910,179 @@ private:
 private:
 
 	//--------------------------------------------------------------
+	void drawImGuiMain()
+	{
+		if (bGui_Main)
+		{
+			//IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
+
+			if (ui.BeginWindowSpecial(bGui_Main))
+			{
+				ui.AddMinimizerToggle();
+
+				//--
+
+				if (ui.isMinimized()) // minimized
+				{
+					ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+#endif
+
+#ifdef USE_WAVEFORM_PLOTS
+					ui.AddSpacingSeparated();
+
+					//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+
+					//ui.Indent();
+					//ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
+
+					//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+					//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+
+					// Center a single widget
+					{
+						float w = ui.getWidgetsWidth(2) / 2;
+						// Pass the expected widget width divided by two
+						AddSpacingPad(w);
+						ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
+					}
+
+					//ui.Unindent();
+#endif
+				}
+				else // maximized
+				{
+					ui.AddLabelBig("API");
+					ui.AddCombo(apiIndex_Windows, ApiNames);
+					ui.AddSpacingSeparated();
+
+					//--
+
+					// In
+
+					ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					//ui.AddSpacing();
+					if (!bGui_In)
+					{
+						ui.Add(bEnableAudio, OFX_IM_TOGGLE);
+						//ui.AddSpacing();
+						//ui.AddLabelBig("IN");
+						ui.AddCombo(deviceIn_Port, inDevicesNames);
+					}
+
+					ui.AddSpacing();
+
+					//--
+
+					// Out
+
+#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+#endif
+					//--
+
+#ifdef USE_WAVEFORM_PLOTS
+					ui.AddSpacingSeparated();
+
+					//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.Indent();
+					ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
+
+					//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+					//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+
+					// Center a single widget
+					float w = ui.getWidgetsWidth(2) / 2;
+					// Pass the expected widget width divided by two
+					AddSpacingPad(w);
+					ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+
+					ui.Unindent();
+#endif
+					ui.AddSpacingSeparated();
+					ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED);
+					if (boxHelpInfo.bGui) {
+						ui.Indent();
+						ui.Add(bDebugExtra, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Unindent();
+					}
+#ifdef USE_OFXGUI_INTERNAL 
+					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
+#endif
+				}
+
+				//--
+
+				if (!bGui_In)
+				{
+					if (!ui.bMinimize) ui.AddSpacingSeparated();
+					else ui.AddSpacing();
+					ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+				}
+
+				//--
+
+#ifdef USE_SOUNDPLAYER
+				ui.AddSpacingSeparated();
+				ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+#endif
+				//--
+
+				ui.EndWindowSpecial();
+			}
+		}
+	}
+	//--------------------------------------------------------------
+	void drawImGuiIn()
+	{
+		//if(bGui_In) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
+
+		if (ui.BeginWindowSpecial(bGui_In))
+		{
+			ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
+			ui.AddSpacing();
+
+			if (!ui.bMinimize) {
+				ui.AddLabelBig("DEVICE");
+			}
+			ui.AddCombo(deviceIn_Port, inDevicesNames);
+
+			if (!ui.bMinimize) {
+				ui.AddSpacingSeparated();
+				ui.AddSpacing();
+				ui.AddLabelBig("VU METER");
+				ui.AddSpacing();
+				ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, 2, 1 / 2.f);
+				ui.SameLine();
+				ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_DOTKNOB, 2, 1 / 2.f);
+			}
+			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+			//ui.Add(deviceIn_vuValue, OFX_IM_HSLIDER_MINI_NO_NUMBER);
+			ui.EndWindowSpecial();
+		}
+	}
+	//--------------------------------------------------------------
+	void drawImGuiOut()
+	{
+#ifndef SOUND_DEVICES_DISABLE_OUTPUT
+		if (bGui_Out) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
+		if (ui.BeginWindowSpecial(bGui_Out))
+		{
+			ui.Add(deviceOut_Enable, OFX_IM_TOGGLE);
+			//ui.Add(deviceOut_Volume, OFX_IM_SLIDER);
+			ui.AddCombo(deviceOut_Port, outDevicesNames);
+
+			ui.EndWindowSpecial();
+		}
+#endif
+	}
+
+	//--------------------------------------------------------------
 	void drawImGui()
 	{
 		//if (!bGui) return;
@@ -896,157 +1093,49 @@ private:
 
 			// Main
 
-			if (bGui_Main)
-			{
-				//IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
-
-				if (ui.BeginWindowSpecial(bGui_Main))
-				{
-					ui.AddMinimizerToggle();
-					//ui.Add(ui.bMinimize, OFX_IM_TOGGLE_ROUNDED);
-					//ui.AddSpacingSeparated();
-
-					if (!bGui_In) ui.Add(bEnableAudio, OFX_IM_TOGGLE);
-
-					ui.AddSpacing();
-
-					//if (ui.bMinimize)
-					if (ui.isMinimized())
-					{
-						ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
-						ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-#endif
-
-#ifdef USE_WAVEFORM_PLOTS
-						ui.AddSpacingSeparated();
-
-						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
-						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-
-						//ui.Indent();
-						//ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
-
-						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
-						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
-
-						// Center a single widget
-						{
-							float w = ui.getWidgetsWidth(2) / 2;
-							// Pass the expected widget width divided by two
-							AddSpacingPad(w);
-							ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
-						}
-
-						//ui.Unindent();
-#endif
-					}
-					else // maximized
-					{
-						ui.AddLabelBig("API");
-						ui.AddCombo(apiIndex_Windows, ApiNames);
-						ui.AddSpacingSeparated();
-
-						ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
-						ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-#endif
-						//-
-
-#ifdef USE_WAVEFORM_PLOTS
-						ui.AddSpacingSeparated();
-
-						//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
-						ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-						ui.Indent();
-						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
-
-						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
-						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
-
-						// Center a single widget
-						float w = ui.getWidgetsWidth(2) / 2;
-						// Pass the expected widget width divided by two
-						AddSpacingPad(w);
-						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
-
-						ui.Unindent();
-#endif
-						ui.AddSpacingSeparated();
-						ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED);
-						if (boxHelpInfo.bGui) {
-							ui.Indent();
-							ui.Add(bDebugExtra, OFX_IM_TOGGLE_ROUNDED_MINI);
-							ui.Unindent();
-						}
-#ifdef USE_OFXGUI_INTERNAL 
-						ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
-#endif
-					}
-
-					if (!bGui_In)
-					{
-						if (!ui.bMinimize) ui.AddSpacingSeparated();
-						else ui.AddSpacing();
-						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
-					}
-					ui.EndWindowSpecial();
-				}
-			}
+			drawImGuiMain();
 
 			//--
 
 			// Input
 
-			//if(bGui_In) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
-
-			if (ui.BeginWindowSpecial(bGui_In))
-			{
-				ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
-				ui.AddSpacing();
-
-				if (!ui.bMinimize) {
-					ui.AddLabelBig("DEVICE");
-				}
-				ui.AddCombo(deviceIn_Port, inDevicesNames);
-
-				if (!ui.bMinimize) {
-					ui.AddSpacingSeparated();
-					ui.AddSpacing();
-					ui.AddLabelBig("VU METER");
-					ui.AddSpacing();
-					ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, 2, 1 / 2.f);
-					ui.SameLine();
-					ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_DOTKNOB, 2, 1 / 2.f);
-				}
-				ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
-				//ui.Add(deviceIn_vuValue, OFX_IM_HSLIDER_MINI_NO_NUMBER);
-				ui.EndWindowSpecial();
-			}
+			drawImGuiIn();
 
 			//--
 
 			// Out
 
-#ifndef SOUND_DEVICES_DISABLE_OUTPUT
-			if (bGui_Out) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
-			if (ui.BeginWindowSpecial(bGui_Out))
-			{
-				ui.Add(deviceOut_Enable, OFX_IM_TOGGLE);
-				//ui.Add(deviceOut_Volume, OFX_IM_SLIDER);
-				ui.AddCombo(deviceOut_Port, outDevicesNames);
+			drawImGuiOut();
 
-				ui.EndWindowSpecial();
-			}
-#endif
 			//--
+
+			// Wave plot
 
 #ifdef USE_WAVEFORM_PLOTS
 			waveformPlot.drawImGui(false);
 #endif
+			//--
+
+			//TODO:
+			// Alternative to box with ImGui native
+			//ofxImGuiSurfing::AddTextBoxWindow(boxHelpInfo.bGui.getName(), helpInfo);
+
+			////TODO:
+			//static ofRectangle r{ 100,100,100,100 };
+			//static ImVec2 pos{ 100,100 };
+			//string t1 = boxHelpInfo.bGui.getName();
+			//auto t2 = helpInfo.c_str();
+			//ofxImGuiSurfing::AddTooltipPinned(t1.c_str(), pos, &r, t2);
 		}
+
+		//--
+
+#ifdef USE_SOUNDPLAYER
+		player.drawImGui();
+#endif
+
+		//--
+
 		ui.End();
 	}
 
@@ -1332,6 +1421,12 @@ private:
 		ui.addWindowSpecial(waveformPlot.o.bGui);
 #endif
 
+#ifdef USE_SOUNDPLAYER
+		player.setup();
+		player.setUiPtr(&ui);
+		ui.addWindowSpecial(player.bGui);
+#endif
+
 		// Plot
 		//ui.addWindowSpecial(waveformPlot.bGui_Main);
 
@@ -1343,6 +1438,7 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 		waveformPlot.setUiPtr(&ui);
 #endif
+
 	}
 
 	////--------------------------------------------------------------
@@ -1477,7 +1573,6 @@ public:
 					indexIn = 0;
 				}
 #endif
-
 				//--
 
 				// code from here: https://github.com/edap/examplesOfxMaxim
@@ -1486,20 +1581,24 @@ public:
 				float left = input[0];
 				float right = input[1];
 
+				// treat as both channels mixed
 				_rms += left * left;
 				_rms += right * right;
 
 				//--
 
+				// count added samples
 				_count += 2; // 2 channels
 				//_count += 1; // 1 channel
 			}
 
 			//--
 
+			// rms
 			_rms = _rms / (float)_count;
 			_rms = sqrt(_rms);
 
+			// clamp
 			_rms = ofClamp(_rms, 0, 1);
 
 			//--
@@ -1510,13 +1609,18 @@ public:
 			//deviceIn_vuValue *= 0.93;
 			//deviceIn_vuValue += 0.07 * _rms;
 
-			//float _smooth = ofxSurfingHelpers::exponentialFunction(deviceIn_vuSmooth.get())/10.f;
-			float _smooth = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_vuSmooth.get() * 10.f);
-			//cout << "_smooth:" << _smooth << endl;
-			float smooth = ofMap(_smooth, 0.f, 1.0f, 0.5f, 0.9f, true);
+			//--
 
-			//float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 0.f, 0.95f, true);
-			////float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 0.5f, 0.7f, true);
+			// A. Raw
+			float smooth = deviceIn_vuSmooth.get();
+
+			//// B. Expanded
+			//smooth = ofxSurfingHelpers::squaredFunction(smooth) / 10.f;
+
+			// C. Better mapped
+			smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .8f, true);
+			//smooth = ofMap(smooth, 0.f, 1.0f, 0.f, 1.f, true);
+			//smooth = ofMap(smooth, 0.f, 1.0f, 0.5f, 0.9f, true);
 
 			deviceIn_vuValue *= smooth;
 			deviceIn_vuValue += (1 - smooth) * _rms;
@@ -1527,56 +1631,22 @@ public:
 
 			// Apply gain
 
-			float gmax = 1.5f;
-			if (deviceIn_Gain == 0) {
-			}
-			else if (deviceIn_Gain < 0) {
-				deviceIn_vuValue /= deviceIn_Gain * gmax;
-			}
-			else if (deviceIn_Gain > 0) {
-				deviceIn_vuValue *= deviceIn_Gain * gmax;
-			}
-
 			//TODO:
 			// Log
-			//float gmax = 1.5f;
-			//if (deviceIn_Gain == 0) {
-			//}
-			//else if (deviceIn_Gain < 0) {
-			//	deviceIn_vuValue /= squaredFunction(deviceIn_Gain) * gmax;
-			//}
-			//else if (deviceIn_Gain > 0) {
-			//	deviceIn_vuValue *= squaredFunction(deviceIn_Gain) * gmax;
-			//}
+			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(deviceIn_Gain);
+			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
 
-			//--
-
-			//float g = ofMap(deviceIn_Gain, -1, 1, 1.f / gmax, gmax, false);
-			//deviceIn_vuValue = g * deviceIn_vuValue.get();
+			// Apply gain to raw vu value
+			float gainExtra = 2;
+			deviceIn_vuValue = deviceIn_GainLog * deviceIn_vuValue.get() * gainExtra;
 
 			//--
 
 			// Clamp
-
 			deviceIn_vuValue = ofClamp(deviceIn_vuValue, 0, 1);
-
-			//// gain
-			//float gmax = 50;
-			//float g = ofMap(deviceIn_vuSmooth.get(), 0.1, 1, 1, gmax, true);
-			//deviceIn_vuValue = g * ofMap(_rms * deviceIn_Gain, 0.f, 1.0f, 0, 1, true);
-
-			//// smooth
-			//float smooth = ofMap(deviceIn_vuSmooth.get(), 0.f, 1.0f, 1.f, 0.1f, true);
-			//static float tar;
-			//float cur = deviceIn_vuValue.get();
-			//ofxSurfingHelpers::ofxKuValueSmooth(cur, tar, smooth);
-
-			//deviceIn_vuValue.set(cur);
-
-			//cout << "rms:" << ofToString(_rms, 2) << " \t " << "vu:" << ofToString(deviceIn_vuValue.get(), 2) << endl;
 		}
 
-		// not enabled: 
+		// Device in not enabled: 
 		// erase plot to zero!
 		else
 		{
@@ -1600,7 +1670,8 @@ public:
 
 #ifndef SOUND_DEVICES_DISABLE_OUTPUT
 	//--------------------------------------------------------------
-	void audioOut(ofSoundBuffer& output) {
+	void audioOut(ofSoundBuffer& output)
+	{
 		std::size_t outChannels = output.getNumChannels();
 
 		if (deviceOut_Enable) // fill plot

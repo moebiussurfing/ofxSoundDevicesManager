@@ -470,7 +470,8 @@ public:
 
 			ui->BeginBlinkText(bNotLoadedAudio);
 			{
-				ui->AddLabel(name_Audio);
+				ui->AddLabelBig(name_Audio);
+
 				string s = getPath();
 				ui->AddTooltip(s);
 			}
