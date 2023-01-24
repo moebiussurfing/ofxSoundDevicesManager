@@ -7,6 +7,8 @@ void ofApp::setup() {
 	numBuffers = 4;
 
 	audioDevices.setup(sampleRate, bufferSize, numBuffers);
+
+	ofxSurfingHelpers::load(g);
 }
 
 //--------------------------------------------------------------
@@ -25,6 +27,7 @@ void ofApp::draw()
 
 	// rectangle
 	ofPushStyle();
+	ofSetCircleResolution(200);
 	ofRectangle r = ofGetCurrentViewport();
 	float h = ofGetHeight() * v;
 	r.setHeight(h);
@@ -32,7 +35,8 @@ void ofApp::draw()
 	ofFill();
 	if (bFlip) ofSetColor(255);
 	else ofSetColor(0);
-	ofDrawRectangle(r);
+	if (bShape) ofDrawCircle(r.getCenter(), r.getHeight() / 2);
+	else ofDrawRectangle(r);
 	ofPopStyle();
 
 	//--
@@ -50,6 +54,12 @@ void ofApp::draw()
 }
 
 //--------------------------------------------------------------
+void ofApp::exit()
+{
+	ofxSurfingHelpers::save(g);
+}
+
+//--------------------------------------------------------------
 void ofApp::audioIn(ofSoundBuffer& input) {
 	audioDevices.audioIn(input);
 }
@@ -58,5 +68,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 void ofApp::keyPressed(int key)
 {
 	if (key == 'g') audioDevices.setVisibleToggle();
+
 	if (key == ' ') bFlip = !bFlip;
+	if (key == OF_KEY_RETURN) bShape = !bShape;
 }

@@ -7,6 +7,7 @@
 
 */
 
+
 #define USE_EXTERNAL_DEVICE_OUT_MANAGER
 
 //--
@@ -19,8 +20,10 @@
 #include "ofxSurfingImGui.h"
 
 //#define stringify( name ) #name
+//#define stringify( name ) #namebDe
 
-class ofxSurfingSoundPlayer : public ofBaseApp
+//class ofxSurfingSoundPlayer : public ofBaseApp
+class ofxSurfingSoundPlayer
 {
 public:
 
@@ -111,7 +114,12 @@ public:
 
 private:
 
-	void startup() {
+	void startup() 
+	{
+		playerState = ofxSurfingSoundPlayer::PlayerState_STOPPED;
+		namePlayerState = "STOPPED";
+		fadeVal = 0;
+		
 		ofxSurfingHelpers::loadGroup(params, path_GLOBAL + "/" + path_AppSettings);
 	};
 
@@ -561,12 +569,14 @@ public:
 				s = ofToString(tms);
 				if (tms < 10) s = "00" + s;
 				else if (tms < 100) s = "0" + s;
+				s += " ms";
 
 				// push up
 				AddSpacingOffset(ImVec2{ 0,-13 });
 
 				// align right
-				AddSpacingRightAlign(21);
+				AddSpacingRightAlign(35);//ms
+				//AddSpacingRightAlign(21);
 				ui->AddLabel(s);
 			}
 
@@ -606,23 +616,29 @@ public:
 
 			//--
 
-			ui->AddSpacing();
+			ui->bAutoResize = true;
+			ui->AddSpacingSeparated();
 			ui->AddDebugToggle(false);
+			ui->AddSpacing();
 			if (ui->bDebug)
 			{
 				ui->Indent();
 
-				s = ofToString(fadeVal, 3);
-				ui->AddLabel(s);
-				ofxImGuiSurfing::AddProgressBar2(fadeVal);
 				ui->Add(fadeStep, OFX_IM_STEPPER);
-				ui->AddLabel(namePlayerState);
+				ofxImGuiSurfing::AddProgressBar(fadeVal);
+				s = "FADE     " + ofToString(fadeVal, 3);
+				ui->AddLabel(s);
 
 				bool b = bPlaying;
 				//bool b = playerAudio.isPlaying();
 
-				s = "playing " + ofToString(b ? "TRUE" : "FALSE");
+				s = "PLAYING  " + ofToString(b ? "TRUE" : "FALSE");
 				ui->AddLabel(s);
+
+				s = "STOPPED  " + ofToString(bStopped ? "TRUE" : "FALSE");
+				ui->AddLabel(s);
+
+				ui->AddLabel(namePlayerState);
 
 				ui->Unindent();
 			}
@@ -652,4 +668,4 @@ public:
 			ui->EndWindow();
 		}
 	}
-};
+	};

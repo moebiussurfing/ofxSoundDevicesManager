@@ -7,7 +7,7 @@
 	+	WIP: Enable toggles not working
 
 		Out not working as player can't pick which output devide to use!
-	+	WIP: INPUT ONLY. 
+	+	WIP: INPUT ONLY.
 		But probably output can be enabled and easy to fix.
 		enable output and test with an example
 
@@ -42,6 +42,9 @@
 	https://github.com/Feliszt/sound-analyzer-OF
 	https://github.com/roymacdonald/ofxSoundObjects
 
+	Sound Utils
+	https://github.com/perevalovds/ofxSoundUtils/blob/master/src/ofxSoundUtils.h
+
 */
 
 
@@ -54,24 +57,24 @@
 //#define USE_WAVEFORM_PLOTS 
 //TODO: Must be duplicated to WaveformPlot.h
 // Must edit on both places!
-// TODO: split
+//TODO: split
 
-//#define NOT_USE_DEVICE_OUTPUT
+//#define USE_DEVICE_OUTPUT
 //TODO: should add directive to exclude input..
 // Disables all Output management.
 // Input is always included!
 
-#define USE_SOUNDPLAYER
+#define USE_SOUND_FILE_PLAYER
 // Includes sound player class 
 // allows load and playing sound files.
 
 //--
 
 //TODO: WIP:
-//#define USE_ofBaseApp_Pointer
+#define USE_ofBaseApp_Pointer
+// It seems that must be enabled!
 // enabled: add-on class uses a passed by reference ofBaseApp pointer. 
 // disabled: gets ofBaseApp 'locally'. not sure if this can helps on in/out callbacks..
-
 
 //#define USE_OFXGUI_INTERNAL // ofxGui internal debug or split from ImGui..
 
@@ -92,12 +95,11 @@
 #include "WaveformPlot.h"
 #endif
 
-#ifdef USE_SOUNDPLAYER
+#ifdef USE_SOUND_FILE_PLAYER
 #include "ofxSurfingSoundPlayer.h"
 #endif
 
 //--
-
 
 #ifdef USE_ofBaseApp_Pointer
 //--------------------------------------------------------------
@@ -107,15 +109,17 @@ class ofxSoundDevicesManager
 class ofxSoundDevicesManager : public ofBaseApp
 #endif
 {
+private:
+	DemoRotatingText demo;
+
 	//--
 
-#ifdef USE_SOUNDPLAYER
+#ifdef USE_SOUND_FILE_PLAYER
 private:
 	ofxSurfingSoundPlayer player;
 #endif
 
 public:
-
 	int indexIn = 0;
 	int indexOut = 0;
 
@@ -146,7 +150,7 @@ public:
 
 		numInputs = 2;
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		numOutputs = 2;
 #endif
 		_apiIndex_oF = -1;
@@ -172,7 +176,7 @@ public:
 
 		ofRemoveListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		ofRemoveListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 #endif
 		ofRemoveListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
@@ -283,10 +287,10 @@ public:
 		// API
 		// Default settings
 
-		// TODO:
+		//TODO:
 		// Hardcoded
 		apiIndex_Windows = 2; // For the gui? 0-1-2 // WASAPI, ASIO, DS
-		//// TODO:
+		////TODO:
 		//_apiIndex_oF = 9; // API #9 on oF is Windows MS DS
 
 		connectToSoundAPI(_apiIndex_oF); // MS_DS
@@ -295,6 +299,7 @@ public:
 #ifdef USE_WAVEFORM_PLOTS
 		waveformPlot.setup();
 #endif
+		historyVU.assign(MAX_HISTORY_VU, 0.0);
 
 		//--
 
@@ -331,7 +336,7 @@ private:
 		params_Gui.add(bGui_Main);
 		params_Gui.add(bGui_In);
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		params_Gui.add(bGui_Out);
 #endif
 
@@ -368,7 +373,7 @@ private:
 		deviceIn_PortName.set("Port ", "");
 
 		// Out
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		deviceOut_Enable.set("ENABLE OUT", false);
 		deviceOut_Port.set("Port", 0, 0, 10);
 		//that param is the loaded from settings. not the name. should be the same
@@ -387,7 +392,7 @@ private:
 		deviceIn_PortName.setSerializable(false);
 
 		// Out
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		deviceOut_Api.setSerializable(false);
 		deviceOut_ApiName.setSerializable(false);
 		deviceOut_PortName.setSerializable(false);
@@ -406,7 +411,7 @@ private:
 		//params_In.add(deviceIn_ApiName);//labels
 
 		// Output
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		params_Out.setName("OUTPUT");
 		params_Out.add(deviceOut_Enable);
 		//params_Out.add(deviceOut_Volume);
@@ -428,7 +433,7 @@ private:
 		params_Settings.add(waveformPlot.index);
 #endif
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		params_Settings.add(params_Out);
 #endif
 
@@ -436,7 +441,7 @@ private:
 
 		ofAddListener(params_In.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_In);
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		ofAddListener(params_Out.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Out);
 #endif
 
@@ -458,7 +463,7 @@ public:
 
 	ofSoundStream inStream;
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	ofSoundStream outStream;
 #endif
 
@@ -472,11 +477,16 @@ public:
 		return deviceIn_vuValue.get();
 	}
 
+	const int MAX_HISTORY_VU = 1024;
+	//float historyVU[1024];
+	vector<float> historyVU;
+
+
 public:
 
 	int numInputs;
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	int numOutputs;
 #endif
 
@@ -518,7 +528,7 @@ private:
 	std::vector<ofSoundDevice> inDevices;
 	std::vector<string> inDevicesNames;
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	std::vector<ofSoundDevice> outDevices;
 	std::vector<string> outDevicesNames;
 #endif
@@ -527,7 +537,7 @@ private:
 
 	ofSoundStreamSettings inSettings;
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	ofSoundStreamSettings outSettings;
 #endif
 
@@ -569,7 +579,7 @@ private:
 
 	// Out
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	ofParameterGroup params_Out;
 	ofParameter<bool> deviceOut_Enable;
 	ofParameter<float> deviceOut_Volume;
@@ -587,7 +597,7 @@ private:
 
 	ofParameter<bool> bGui_In{ "INPUT", true };
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	ofParameter<bool> bGui_Out{ "OUTPUT", false };
 #endif
 
@@ -645,7 +655,7 @@ private:
 		waveformPlot.update();
 #endif
 
-#ifdef USE_SOUNDPLAYER
+#ifdef USE_SOUND_FILE_PLAYER
 		player.update();
 #endif
 
@@ -679,7 +689,7 @@ private:
 		// both locked to the same
 		deviceIn_Api = _apiIndex_oF;
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		deviceOut_Api = _apiIndex_oF;
 #endif
 
@@ -696,7 +706,7 @@ private:
 		// Clean
 		ofSoundStreamSettings _settings;
 		inSettings = _settings;
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		outSettings = _settings;
 #endif
 
@@ -746,7 +756,7 @@ private:
 
 		inDevices.clear();
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		outDevices.clear();
 #endif
 
@@ -756,7 +766,7 @@ private:
 			devices_ApiName = "MS_WASAPI";
 			inDevices = inStream.getDeviceList(ofSoundDevice::Api::MS_WASAPI);
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 			outDevices = outStream.getDeviceList(ofSoundDevice::Api::MS_WASAPI);
 #endif
 			break;
@@ -765,7 +775,7 @@ private:
 			devices_ApiName = "MS_ASIO";
 			inDevices = inStream.getDeviceList(ofSoundDevice::Api::MS_ASIO);
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 			outDevices = outStream.getDeviceList(ofSoundDevice::Api::MS_ASIO);
 #endif
 			break;
@@ -774,7 +784,7 @@ private:
 			devices_ApiName = "MS_DS";
 			inDevices = inStream.getDeviceList(ofSoundDevice::Api::MS_DS);
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 			outDevices = outStream.getDeviceList(ofSoundDevice::Api::MS_DS);
 #endif
 			break;
@@ -793,7 +803,7 @@ private:
 		}
 
 		// Output
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		outDevicesNames.clear();
 		outDevicesNames.resize(outDevices.size());
 		for (int d = 0; d < outDevices.size(); d++)
@@ -851,7 +861,7 @@ private:
 
 		// Output
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		outSettings.bufferSize = bufferSize;
 		outSettings.numBuffers = numBuffers;
 		outSettings.sampleRate = sampleRate;
@@ -899,7 +909,7 @@ private:
 
 		deviceIn_Port.setMax(inDevices.size() - 1);
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		deviceOut_Port.setMax(outDevices.size() - 1);
 #endif
 
@@ -912,7 +922,7 @@ private:
 
 		// Out
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		deviceOut_Api = _apiEnum;
 		deviceOut_ApiName = devices_ApiName;
 		if (outDevices.size() > deviceOut_Port)
@@ -924,7 +934,7 @@ private:
 
 		deviceIn_Enable.setWithoutEventNotifications(bApiConnected);
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		deviceOut_Enable.setWithoutEventNotifications(bApiConnected);
 #endif
 
@@ -959,7 +969,7 @@ private:
 						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 					}
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 					ui.AddSpacingBigSeparated();
 
 					ui.Add(bGui_Out, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
@@ -1019,7 +1029,7 @@ private:
 
 					// Out
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 
 					//--
 
@@ -1062,7 +1072,7 @@ private:
 
 				//--
 
-#ifdef USE_SOUNDPLAYER
+#ifdef USE_SOUND_FILE_PLAYER
 				ui.AddSpacingSeparated();
 				ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
@@ -1072,6 +1082,7 @@ private:
 			}
 		}
 	}
+
 	//--------------------------------------------------------------
 	void drawImGuiIn()
 	{
@@ -1096,16 +1107,75 @@ private:
 				ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, 2, 1 / 2.f);
 				ui.SameLine();
 				ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_DOTKNOB, 2, 1 / 2.f);
+				ui.AddSpacing();
+
+				ui.AddSpacingSeparated();
+				ui.AddExtraToggle(false);
+				ImGui::Spacing();
+				if (ui.isExtraEnabled())
+				{
+					ofxImGuiSurfing::AddPad2D(deviceIn_vuSmooth, deviceIn_Gain, ImVec2{ -1,-1 }, false, true);
+					ImGui::Spacing();
+
+					ofxImGuiSurfing::AddPlot(deviceIn_vuValue);
+				}
+				ui.AddSpacingSeparated();
 			}
+
 			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
-			//ui.Add(deviceIn_vuValue, OFX_IM_HSLIDER_MINI_NO_NUMBER);
+
+			//--
+
 			ui.EndWindowSpecial();
 		}
+
+		//--
+
+		if (ui.BeginWindow("PLOT", ImGuiWindowFlags_None))
+		{
+
+			//if (ImPlot::BeginPlot("##Digital")) {
+			//	ImPlot::SetupAxisLimits(ImAxis_X1, t - 10.0, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+			//	ImPlot::SetupAxisLimits(ImAxis_Y1, -1, 1);
+			//	for (int i = 0; i < 2; ++i) {
+			//		if (showDigital[i] && dataDigital[i].Data.size() > 0) {
+			//			snprintf(label, sizeof(label), "digital_%d", i);
+			//			ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), 0, dataDigital[i].Offset, 2 * sizeof(float));
+			//		}
+			//	}
+			//	for (int i = 0; i < 2; ++i) {
+			//		if (showAnalog[i]) {
+			//			snprintf(label, sizeof(label), "analog_%d", i);
+			//			if (dataAnalog[i].Data.size() > 0)
+			//				ImPlot::PlotLine(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), 0, dataAnalog[i].Offset, 2 * sizeof(float));
+			//		}
+			//	}
+			//	ImPlot::EndPlot();
+			//}
+
+			//if (0)
+			{
+				float w = ofxImGuiSurfing::getWindowWidthAvail();
+				float h = ofxImGuiSurfing::getWindowHeightAvail();
+				//float h = ofxImGuiSurfing::getWidgetsHeightUnit() * 4;
+				
+				ofxImGuiSurfing::drawWaveform(
+					ImVec2{ w, h },
+					&historyVU[0],
+					//(float *)&historyVU,
+					MAX_HISTORY_VU, 
+					.5f,
+					ImGui::GetColorU32(ImGuiCol_PlotLines));
+			}
+
+			ui.EndWindow();
+		}
 	}
+
 	//--------------------------------------------------------------
 	void drawImGuiOut()
 	{
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		if (bGui_Out) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
 		if (ui.BeginWindowSpecial(bGui_Out))
 		{
@@ -1114,9 +1184,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-		}
-#endif
 	}
+#endif
+}
 
 	//--------------------------------------------------------------
 	void drawImGui()
@@ -1162,21 +1232,42 @@ private:
 			//string t1 = boxHelpInfo.bGui.getName();
 			//auto t2 = helpInfo.c_str();
 			//ofxImGuiSurfing::AddTooltipPinned(t1.c_str(), pos, &r, t2);
+
+			//--
+
+			// Demo
+			/*
+			if (ui.BeginWindow("DEMO", ImGuiWindowFlags_None))
+			{
+				//ofxImGuiSurfing::DebugCheckVersionAndDataLayout();
+
+				ImVec2 diff{ 40, 40 };
+				//ImVec2 diff{ ImGui::GetWindowWidth() / 2, ImGui::GetWindowHeight() / 2 };
+				ofxImGuiSurfing::AddSpacingOffset(diff);
+
+				demo.ImRotateStart();
+				ui.AddLabelHugeXXL("HELLO WORLD");
+				demo.ImRotateEnd(0.0005f * ::GetTickCount());
+
+				//demo.ImRotateDemo("HelloWorld");
+
+				ui.EndWindow();
+			}
+			*/
 		}
 
 		//--
 
-#ifdef USE_SOUNDPLAYER
+#ifdef USE_SOUND_FILE_PLAYER
 		player.drawImGui();
 #endif
-
 		//--
 
 		ui.End();
 	}
 
 public:
-	
+
 	//TODO: WIP: trick to expose ui..
 	//--------------------------------------------------------------
 	ofxSurfingGui* getUiPtr() {
@@ -1202,7 +1293,7 @@ public:
 		//if (bGui)
 		//{
 		//	/*
-		//	// TODO: not working..
+		//	//TODO: not working..
 		//	// bc special window has internal set pos
 		//	ImGui::SetNextWindowPos(ImVec2(0, 0));
 		//	if (waveformPlot.bGui)
@@ -1217,7 +1308,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-	}
+		}
 
 private:
 
@@ -1228,7 +1319,7 @@ private:
 		inStream.stop();
 		inStream.close();
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		deviceOut_Enable.setWithoutEventNotifications(false);
 		outStream.stop();
 		outStream.close();
@@ -1246,7 +1337,7 @@ private:
 	void setDevices(int input, int output)
 	{
 		deviceIn_Port = input;
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		deviceOut_Port = output;
 #endif
 	}
@@ -1257,7 +1348,7 @@ private:
 		deviceIn_Port = input;
 	}
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	//--------------------------------------------------------------
 	void setOutputDevice(int output)
 	{
@@ -1287,7 +1378,7 @@ private:
 		helpInfo += "\n  Buffersize : " + ofToString(bufferSize);
 		helpInfo += "\n  Buffers    : " + ofToString(numBuffers);
 		helpInfo += "\n  Inputs     : " + ofToString(numInputs);
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		helpInfo += "\n  Outputs    : " + ofToString(numOutputs);
 #endif
 		helpInfo += "\n\n";
@@ -1374,7 +1465,7 @@ private:
 			helpInfo += "  Input  " + ofToString(deviceIn_Port) + "\n";
 			helpInfo += "  " + deviceIn_PortName.get() + "\n\n";
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 			helpInfo += "  Output " + ofToString(deviceOut_Port) + "\n";
 			helpInfo += "  " + deviceOut_PortName.get() + "\n\n";
 #endif
@@ -1452,7 +1543,7 @@ private:
 
 		ui.addWindowSpecial(bGui_Main);
 		ui.addWindowSpecial(bGui_In);
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 		ui.addWindowSpecial(bGui_Out);
 #endif
 #ifdef USE_WAVEFORM_PLOTS
@@ -1463,7 +1554,7 @@ private:
 		ui.addWindowSpecial(waveformPlot.o.bGui);
 #endif
 
-#ifdef USE_SOUNDPLAYER
+#ifdef USE_SOUND_FILE_PLAYER
 		player.setup();
 		player.setUiPtr(&ui);
 		ui.addWindowSpecial(player.bGui);
@@ -1534,7 +1625,8 @@ private:
 public:
 
 	//--------------------------------------------------------------
-	void audioIn(ofSoundBuffer& input) {
+	void audioIn(ofSoundBuffer& input)
+	{
 		//TODO:
 		if (!bEnableAudio) return;
 		if (!deviceIn_Enable) return;
@@ -1543,12 +1635,14 @@ public:
 
 		if (deviceIn_Enable.get())
 		{
-			//TODO: 
-			// Could use ofxSurfingSmooth // ofxStream code snippets
+			// Convert Gain control to log scaled
+			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(deviceIn_Gain);
+			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
 
 			//--
 
-			float _rms = 0.0;//TODO: not used
+			float _rms = 0.0f;
+			//TODO: not used
 			int _count = 0;
 
 			////TODO:
@@ -1619,7 +1713,7 @@ public:
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
-				}
+		}
 				else
 				{
 					indexIn = 0;
@@ -1627,13 +1721,38 @@ public:
 #endif
 				//--
 
-				// Calulate rms
+				/*
 
-				// code from here: https://github.com/edap/examplesOfxMaxim
-				// rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
+				// Get the audio signal source here
+				{
+					// Gain
+					// You should get the audio samples here,
+					// On in a parent callback...
+					auto g = deviceIn_GainLog;
+					float left = g * input[0];
+					float right =g * input[1];
+				}
+
+				*/
+
+				//--
+
+				// Calculate rms
+
+				//--
+
+				//TODO: 
+				// Could use ofxSurfingSmooth // ofxStream code snippets
+
+				// code from here: 
+				// https://github.com/edap/examplesOfxMaxim
+				// rms calculation 
+				// as explained here http://openframeworks.cc/ofBook/chapters/sound.html
 
 				float left = input[0];
 				float right = input[1];
+
+				//cout << "input: " << left << "," << right << endl;
 
 				// treat as both channels mixed
 				_rms += left * left;
@@ -1644,11 +1763,11 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+	}
 
 			//--
 
-			// Final Rms
+			// Final rms
 			_rms = _rms / (float)_count;
 			_rms = sqrt(_rms);
 
@@ -1663,6 +1782,8 @@ public:
 
 			// Extra custom smoothing step
 
+			// prepare the smooth control to fit a more useful range
+
 			// A. Raw
 			float smooth = deviceIn_vuSmooth.get();
 
@@ -1671,36 +1792,49 @@ public:
 
 			// C. Better mapped
 			smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .66f, true);
-			//smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .8f, true);
 
-			deviceIn_vuValue *= smooth;
-			deviceIn_vuValue += (1 - smooth) * _rms;
-
-			//scaledVol = ofMap(deviceIn_vuValue, 0.0, 0.17, 0.0, 1.0, true);
+			float _vu = deviceIn_vuValue;
+			_vu *= smooth;
+			_vu += (1 - smooth) * _rms;
 
 			//--
 
 			// Apply gain
 
-			// Log
-			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(deviceIn_Gain);
-			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
-
-			// Apply gain to raw vu value
+			// Use the control gain 
+			// but converted to log scale.
+			// then add an extra gain to the raw vu value.
 			float gainExtra = 2;
 			//float gainExtra = 1.75f;//tweak
 			//float gainExtra = 1.5f;//tweak
 
-			deviceIn_vuValue = deviceIn_GainLog * deviceIn_vuValue.get() * gainExtra;
+			_vu = deviceIn_GainLog * _vu * gainExtra;
 
 			//--
 
 			// Clamp
-			deviceIn_vuValue = ofClamp(deviceIn_vuValue, 0, 1.f);
+			deviceIn_vuValue = ofClamp(_vu, 0, 1.f);
+
+			//--
+
+			// Plot
+
+			historyVU.push_back(deviceIn_vuValue.get());
+			
+			// refresh
+			if (historyVU.size() >= MAX_HISTORY_VU) {
+				historyVU.erase(historyVU.begin(), historyVU.begin() + 1);
+			}
+
+			//--
+
+			//DebugCoutParam(deviceIn_vuValue);
 		}
 
-		// Device in not enabled: 
-		// erase plot to zero!
+		//----
+
+		// Device in not enabled. 
+		// Erase wave plot to zero!
 		else
 		{
 			for (size_t i = 0; i < input.getNumFrames(); ++i)
@@ -1721,7 +1855,7 @@ public:
 		}
 	}
 
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	//--------------------------------------------------------------
 	void audioOut(ofSoundBuffer& output)
 	{
@@ -1882,7 +2016,7 @@ private:
 			return;
 		}
 	}
-#ifndef NOT_USE_DEVICE_OUTPUT
+#ifdef USE_DEVICE_OUTPUT
 	//--------------------------------------------------------------
 	void Changed_params_Out(ofAbstractParameter& e)
 	{

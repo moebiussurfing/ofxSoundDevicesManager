@@ -10,6 +10,7 @@ class ofApp : public ofBaseApp
 public:
 
 	void setup();
+	void exit();
 	void draw();
 	void keyPressed(int key);
 
@@ -19,7 +20,9 @@ public:
 	int bufferSize;
 	int numBuffers;
 
-	ofxWindowApp w;
-
 	ofParameter<bool> bFlip{ "Flip", true };
+	ofParameter<bool> bShape{ "Shape", true };
+	ofParameterGroup g{ "ofApp", bFlip, bShape };
+
+	ofxWindowApp w;
 };
