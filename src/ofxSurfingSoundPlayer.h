@@ -626,16 +626,19 @@ public:
 
 				ui->Add(fadeStep, OFX_IM_STEPPER);
 				ofxImGuiSurfing::AddProgressBar(fadeVal);
-				s = "FADE     " + ofToString(fadeVal, 3);
+				s = "FADE      " + ofToString(fadeVal, 3);
 				ui->AddLabel(s);
 
 				bool b = bPlaying;
 				//bool b = playerAudio.isPlaying();
 
-				s = "PLAYING  " + ofToString(b ? "TRUE" : "FALSE");
+				s = "PLAYING   " + ofToString(b ? "+" : " ");
 				ui->AddLabel(s);
 
-				s = "STOPPED  " + ofToString(bStopped ? "TRUE" : "FALSE");
+				s = "PAUSED    " + ofToString(playerState == PlayerState_PAUSED ? "+" : " ");
+				ui->AddLabel(s);
+
+				s = "STOPPED   " + ofToString(bStopped ? "+" : " ");
 				ui->AddLabel(s);
 
 				ui->AddLabel(namePlayerState);

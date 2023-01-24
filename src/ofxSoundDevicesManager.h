@@ -1158,14 +1158,17 @@ private:
 				float w = ofxImGuiSurfing::getWindowWidthAvail();
 				float h = ofxImGuiSurfing::getWindowHeightAvail();
 				//float h = ofxImGuiSurfing::getWidgetsHeightUnit() * 4;
-				
-				ofxImGuiSurfing::drawWaveform(
-					ImVec2{ w, h },
-					&historyVU[0],
-					//(float *)&historyVU,
-					MAX_HISTORY_VU, 
-					.5f,
-					ImGui::GetColorU32(ImGuiCol_PlotLines));
+
+				//ofxImGuiSurfing::drawWaveform(
+				//	ImVec2{ w, h },
+				//	&historyVU[0],
+				//	//(float *)&historyVU,
+				//	MAX_HISTORY_VU, 
+				//	.5f,
+				//	ImGui::GetColorU32(ImGuiCol_PlotLines));
+
+				ImDrawList* drawList = ImGui::GetWindowDrawList();
+				ImGuiEx::VUMeter(drawList, w, h, deviceIn_vuValue.get(), false);
 			}
 
 			ui.EndWindow();
@@ -1184,7 +1187,7 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-	}
+}
 #endif
 }
 
@@ -1308,7 +1311,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-		}
+	}
 
 private:
 
@@ -1713,7 +1716,7 @@ public:
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
-		}
+				}
 				else
 				{
 					indexIn = 0;
@@ -1763,7 +1766,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-	}
+		}
 
 			//--
 
@@ -1820,7 +1823,7 @@ public:
 			// Plot
 
 			historyVU.push_back(deviceIn_vuValue.get());
-			
+
 			// refresh
 			if (historyVU.size() >= MAX_HISTORY_VU) {
 				historyVU.erase(historyVU.begin(), historyVU.begin() + 1);
@@ -1829,7 +1832,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-		}
+	}
 
 		//----
 
