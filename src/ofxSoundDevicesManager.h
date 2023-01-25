@@ -109,7 +109,19 @@ class ofxSoundDevicesManager
 class ofxSoundDevicesManager : public ofBaseApp
 #endif
 {
+
 private:
+
+	// FFT
+	//TODO: should use a vector instead to vary size!
+	//ofParameter<int> nBandsToGet{ "Bands", 1 , 1, 128 };
+	//static constexpr size_t nBandsToGet = 32;
+	static constexpr size_t nBandsToGet = 128;
+	std::array<float, nBandsToGet> fftSmoothed{ {0} };
+	std::vector<float> data;
+
+	//--
+
 	DemoRotatingText demo;
 
 	//--
@@ -360,6 +372,7 @@ private:
 		params_Control.add(bGui_VuPlot);
 		params_Control.add(bHorizontal);
 		params_Control.add(bGui_Vu);
+		params_Control.add(bGui_FFT);
 
 		params_Control.add(ui.bMinimize);//to refresh help info
 
@@ -587,6 +600,7 @@ private:
 	ofParameter<bool> bHorizontal{ "Horizontal", false };
 	ofParameter<bool> bGui_Vu{ "VU", false };
 	ofParameter<bool> bGui_VuPlot{ "VU HISTORY", false };
+	ofParameter<bool> bGui_FFT{ "FFT", false };
 
 	//--
 
@@ -682,7 +696,7 @@ private:
 
 			buildHelpInfo();
 		}
-	}
+}
 
 private:
 
@@ -824,7 +838,7 @@ private:
 		for (int d = 0; d < outDevices.size(); d++)
 		{
 			outDevicesNames[d] = outDevices[d].name;
-		}
+	}
 #endif
 
 		//--
@@ -1084,7 +1098,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1095,9 +1109,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
+				}
 			}
 		}
-	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1132,7 +1146,7 @@ private:
 					//ui.AddTooltip("Offset Gain");
 
 					ui.AddSpacing();
-					if (ui.AddButton("RESET")){
+					if (ui.AddButton("RESET")) {
 						deviceIn_Gain = .5;
 						deviceIn_vuSmooth = .5;
 						deviceIn_vuOffsetPow = 0.f;
@@ -1173,6 +1187,7 @@ private:
 					ui.Unindent();
 				}
 				ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
+				ui.Add(bGui_FFT, OFX_IM_TOGGLE_ROUNDED_SMALL);
 			}
 
 			//--
@@ -1193,7 +1208,7 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-}
+	}
 #endif
 	}
 
@@ -1231,6 +1246,9 @@ private:
 				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue.get(), bHorizontal);
 
 				if (bGui_VuPlot) ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
+
+				//TODO: FFT bands
+				if (bGui_FFT) ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f);
 			}
 
 			//--
@@ -1252,28 +1270,6 @@ private:
 			//string t1 = boxHelpInfo.bGui.getName();
 			//auto t2 = helpInfo.c_str();
 			//ofxImGuiSurfing::AddTooltipPinned(t1.c_str(), pos, &r, t2);
-
-			//--
-
-			// Demo
-			/*
-			if (ui.BeginWindow("DEMO", ImGuiWindowFlags_None))
-			{
-				//ofxImGuiSurfing::DebugCheckVersionAndDataLayout();
-
-				ImVec2 diff{ 40, 40 };
-				//ImVec2 diff{ ImGui::GetWindowWidth() / 2, ImGui::GetWindowHeight() / 2 };
-				ofxImGuiSurfing::AddSpacingOffset(diff);
-
-				demo.ImRotateStart();
-				ui.AddLabelHugeXXL("HELLO WORLD");
-				demo.ImRotateEnd(0.0005f * ::GetTickCount());
-
-				//demo.ImRotateDemo("HelloWorld");
-
-				ui.EndWindow();
-			}
-			*/
 		}
 
 		//--
@@ -1328,7 +1324,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-	}
+		}
 
 private:
 
@@ -1659,6 +1655,29 @@ public:
 			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(deviceIn_Gain);
 			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
 
+
+			//TODO: FFT bands
+			{
+				// (5) grab the fft, and put in into a "smoothed" array,
+				// by taking maximums, as peaks and then smoothing downward
+				float* val = ofSoundGetSpectrum(nBandsToGet); // request 128 values for fft
+				for (int i = 0; i < nBandsToGet; i++) {
+
+					// let the smoothed value sink to zero:
+					fftSmoothed[i] *= 0.96f;
+
+					// take the max, either the smoothed or the incoming:
+					if (fftSmoothed[i] < val[i]) fftSmoothed[i] = ofClamp(val[i], 0, 1);
+					//if (fftSmoothed[i] < val[i]) fftSmoothed[i] = val[i];
+				}
+				//TODO: pass array to a vector to respect ImPlot API..
+				data.clear();
+				for (size_t i = 0; i < nBandsToGet; i++)
+				{
+					data.push_back(fftSmoothed[i]);
+				}
+			}
+
 			//--
 
 			float _rms = 0.0f;
@@ -1737,7 +1756,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 				//--
 
@@ -1783,7 +1802,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-	}
+		}
 
 			//--
 
@@ -1861,7 +1880,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-		}
+	}
 
 		//----
 
@@ -1881,7 +1900,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 			}
 		}
@@ -1924,7 +1943,7 @@ public:
 #endif
 			}
 		}
-		}
+	}
 #endif
 
 private:
@@ -2120,7 +2139,7 @@ private:
 	}
 	*/
 
-};
+	};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78

@@ -19,9 +19,6 @@
 #include "ofxSurfingHelpers.h"
 #include "ofxSurfingImGui.h"
 
-//#define stringify( name ) #name
-//#define stringify( name ) #namebDe
-
 //class ofxSurfingSoundPlayer : public ofBaseApp
 class ofxSurfingSoundPlayer
 {
