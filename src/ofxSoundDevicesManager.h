@@ -99,6 +99,8 @@
 #include "ofxSurfingSoundPlayer.h"
 #endif
 
+#define MAX_GAIN_BOOST 2.f
+
 //--
 
 #ifdef USE_ofBaseApp_Pointer
@@ -109,6 +111,11 @@ class ofxSoundDevicesManager
 class ofxSoundDevicesManager : public ofBaseApp
 #endif
 {
+
+public:
+
+	//TODO: test avoid thread problems..
+	ofMutex waveformMutex;
 
 private:
 
@@ -289,7 +296,6 @@ public:
 		//position = glm::vec2(25, 25);
 		//gui.setPosition(position.x, position.y);
 #endif
-
 		//--
 
 		setupGui();
@@ -696,7 +702,7 @@ private:
 
 			buildHelpInfo();
 		}
-}
+	}
 
 private:
 
@@ -838,7 +844,7 @@ private:
 		for (int d = 0; d < outDevices.size(); d++)
 		{
 			outDevicesNames[d] = outDevices[d].name;
-	}
+		}
 #endif
 
 		//--
@@ -1098,7 +1104,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1109,9 +1115,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-				}
 			}
 		}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1208,13 +1214,15 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-	}
+		}
 #endif
 	}
 
 	//--------------------------------------------------------------
 	void drawImGui()
 	{
+		ofScopedLock waveformLock(waveformMutex);
+
 		//if (!bGui) return;
 
 		ui.Begin();
@@ -1270,15 +1278,15 @@ private:
 			//string t1 = boxHelpInfo.bGui.getName();
 			//auto t2 = helpInfo.c_str();
 			//ofxImGuiSurfing::AddTooltipPinned(t1.c_str(), pos, &r, t2);
-		}
 
-		//--
+			//--
 
 #ifdef USE_SOUND_FILE_PLAYER
-		player.drawImGui();
+			player.drawImGui();
 #endif
-		//--
+			//--
 
+		}
 		ui.End();
 	}
 
@@ -1324,7 +1332,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-		}
+	}
 
 private:
 
@@ -1643,6 +1651,8 @@ public:
 	//--------------------------------------------------------------
 	void audioIn(ofSoundBuffer& input)
 	{
+		ofScopedLock waveformLock(waveformMutex);
+
 		//TODO:
 		if (!bEnableAudio) return;
 		if (!deviceIn_Enable) return;
@@ -1651,6 +1661,7 @@ public:
 
 		if (deviceIn_Enable.get())
 		{
+
 			// Convert Gain control to log scaled
 			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(deviceIn_Gain);
 			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
@@ -1802,7 +1813,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-		}
+			}
 
 			//--
 
@@ -1830,7 +1841,7 @@ public:
 			//smooth = ofxSurfingHelpers::squaredFunction(smooth);
 			// 
 			// C. Better mapped
-			smooth = ofMap(smooth, 0.f, 1.0f, 0.1f, .9f, true);
+			smooth = ofMap(smooth, 0.f, 1.0f, 0.f, 1.f, true);
 			//smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .66f, true);
 
 			float _vu = deviceIn_vuValue;
@@ -1844,7 +1855,6 @@ public:
 			// Use the control gain 
 			// but converted to log scale.
 			// then add an extra gain to the raw vu value.
-			const float gFactor = 3.f;
 
 			float gainExtra;
 			if (deviceIn_vuOffsetPow.get() == 0) {
@@ -1852,11 +1862,11 @@ public:
 			}
 			else if (deviceIn_vuOffsetPow < 0) {
 				float p = -ofxSurfingHelpers::squaredFunction(deviceIn_vuOffsetPow.get());
-				gainExtra = ofMap(p, -1.f, 0, 1.f / gFactor, 1.f, true);
+				gainExtra = ofMap(p, -1.f, 0, 1.f / MAX_GAIN_BOOST, 1.f, true);
 			}
 			else {
 				float p = ofxSurfingHelpers::squaredFunction(deviceIn_vuOffsetPow.get());
-				gainExtra = ofMap(p, 0, 1.f, 1.f, gFactor, true);
+				gainExtra = ofMap(p, 0, 1.f, 1.f, MAX_GAIN_BOOST, true);
 			}
 
 			_vu = deviceIn_GainLog * _vu * gainExtra;
@@ -1880,7 +1890,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-	}
+		}
 
 		//----
 
@@ -1910,6 +1920,8 @@ public:
 	//--------------------------------------------------------------
 	void audioOut(ofSoundBuffer& output)
 	{
+		ofScopedLock waveformLock(waveformMutex);
+
 		//TODO:
 		if (!bEnableAudio) return;
 		if (!deviceOut_Enable) return;

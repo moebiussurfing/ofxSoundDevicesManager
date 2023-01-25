@@ -91,7 +91,7 @@ private:
 	ofParameter<float> volume{ "Volume", 0.5, 0, 1 };
 	ofParameter<bool> bPlay{ "PLAY", false };
 	ofParameter<void> bStop{ "STOP" };
-	ofParameter<bool> bLoop{ "Loop", false };
+	ofParameter<bool> bLoop{ "Loop", true };
 	ofParameter<float> position{ "Position", 0, 0, 1 };
 
 	string name_Audio = "NO FILE";
