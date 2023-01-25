@@ -377,6 +377,8 @@ private:
 		// Extra
 		params_Control.add(bGui_VuPlot);
 		params_Control.add(bHorizontal);
+		params_Control.add(VUPadding);
+		params_Control.add(VUDivisions);
 		params_Control.add(bGui_Vu);
 		params_Control.add(bGui_FFT);
 
@@ -603,9 +605,13 @@ private:
 	vector<float> historyVU;
 	//float historyVU[1024];
 
-	ofParameter<bool> bHorizontal{ "Horizontal", false };
 	ofParameter<bool> bGui_Vu{ "VU", false };
+	ofParameter<bool> bHorizontal{ "Horizontal", false };
+	ofParameter<int> VUPadding{ "Padding", 1, 0, 50 };
+	ofParameter<int> VUDivisions{ "Divisions", 20, 1, 100 };
+
 	ofParameter<bool> bGui_VuPlot{ "VU HISTORY", false };
+	
 	ofParameter<bool> bGui_FFT{ "FFT", false };
 
 	//--
@@ -1161,6 +1167,7 @@ private:
 					ui.AddSpacing();
 
 					ui.AddSpacingSeparated();
+					ImGui::Spacing();
 					ui.AddExtraToggle(false);
 					ImGui::Spacing();
 					if (ui.isExtraEnabled())
@@ -1185,11 +1192,16 @@ private:
 			{
 				ui.AddSpacingSeparated();
 
-				// Extras 
+				ui.AddLabelBig("EXTRA \nWIDGETS");
+				ui.AddSpacing();
+
 				ui.Add(bGui_Vu, OFX_IM_TOGGLE_ROUNDED_SMALL);
 				if (bGui_Vu) {
 					ui.Indent();
-					ui.Add(bHorizontal, OFX_IM_TOGGLE_ROUNDED_MINI);
+					ui.Add(VUPadding, OFX_IM_STEPPER);
+					ui.Add(VUDivisions, OFX_IM_STEPPER);
+					ofxImGuiSurfing::AddToggleNamed(bHorizontal, "Horizontal", "Vertical");
+					//ui.Add(bHorizontal, OFX_IM_TOGGLE_ROUNDED_MINI);
 					ui.Unindent();
 				}
 				ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
@@ -1251,7 +1263,7 @@ private:
 
 			//if (ui.isMaximized()) 
 			{
-				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue.get(), bHorizontal);
+				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
 
 				if (bGui_VuPlot) ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
 
@@ -1661,11 +1673,9 @@ public:
 
 		if (deviceIn_Enable.get())
 		{
-
 			// Convert Gain control to log scaled
 			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(deviceIn_Gain);
 			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
-
 
 			//TODO: FFT bands
 			{
