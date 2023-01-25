@@ -501,9 +501,20 @@ public:
 		return inStream;
 	}
 
+	//--
+
+	// Useful exposed vars to be used externally 
+	// as sensing rms and a threshold overpassed,
+	// to trig a bang
+
 	float getVumeterValue() const {
 		return deviceIn_vuValue.get();
 	}
+	float getThreshold() const {
+		return threshold.get();
+	}
+
+	//--
 
 public:
 
@@ -593,11 +604,15 @@ private:
 	ofParameter<string> deviceIn_ApiName;
 
 	// rms signal to use on VU
-	ofParameter<float> deviceIn_vuOffsetPow{ "Offset", 0, -1, 1 }; // Offset pow
+	ofParameter<float> deviceIn_vuOffsetPow{ "Pow", 0, -1, 1 }; // Offset pow
 	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 }; // to smooth the vu signal
 	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
 
 	float deviceIn_GainLog;//TODO: maybe useful to be public to apply gain on the parent class.
+
+public:
+
+	ofParameter<float> threshold{ "Thresh", 1, 0, 1 };
 
 private:
 
@@ -607,11 +622,11 @@ private:
 
 	ofParameter<bool> bGui_Vu{ "VU", false };
 	ofParameter<bool> bHorizontal{ "Horizontal", false };
-	ofParameter<int> VUPadding{ "Padding", 1, 0, 50 };
-	ofParameter<int> VUDivisions{ "Divisions", 20, 1, 100 };
+	ofParameter<int> VUPadding{ "Pad", 1, 0, 50 };
+	ofParameter<int> VUDivisions{ "Divs", 20, 1, 100 };
 
 	ofParameter<bool> bGui_VuPlot{ "VU HISTORY", false };
-	
+
 	ofParameter<bool> bGui_FFT{ "FFT", false };
 
 	//--
@@ -1128,6 +1143,10 @@ private:
 	//--------------------------------------------------------------
 	void drawImGuiIn()
 	{
+		//if (bGui_In) {
+		//	ImGui::SetNextWindowSizeConstraints(ImVec2{ 0,0 }, ImVec2{ 175,1080 });
+		//}
+
 		if (ui.BeginWindowSpecial(bGui_In))
 		{
 			ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
@@ -1150,6 +1169,8 @@ private:
 					//ui.AddSpacing();
 
 					const float amt = 3;
+					// NEW API: pass amount of widgets per row and the prc of size
+					// 3 widgets per row with a width of 1/3 of the total available window width
 					ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
 					ui.SameLine();
 					ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
@@ -1159,9 +1180,12 @@ private:
 
 					ui.AddSpacing();
 					if (ui.AddButton("RESET")) {
-						deviceIn_Gain = .5;
-						deviceIn_vuSmooth = .5;
-						deviceIn_vuOffsetPow = 0.f;
+						//deviceIn_Gain = .5;
+						//deviceIn_vuSmooth = .5;
+						//deviceIn_vuOffsetPow = 0.f;
+						deviceIn_Gain = .84;
+						deviceIn_vuSmooth = .84;
+						deviceIn_vuOffsetPow = 0.84f;
 					}
 
 					ui.AddSpacing();
@@ -1184,28 +1208,35 @@ private:
 			}
 
 			ui.AddSpacingSeparated();
-			//if (ui.isMinimized()) ui.AddSpacing();
+
 			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 			ui.AddTooltip("Real-time VU");
 
 			if (ui.isMaximized())
 			{
+
+				ui.Add(threshold, OFX_IM_HSLIDER_MINI);
+				//ui.Add(threshold, OFX_IM_STEPPER);
 				ui.AddSpacingSeparated();
 
-				ui.AddLabelBig("EXTRA \nWIDGETS");
-				ui.AddSpacing();
+				if (ui.BeginTree("EXTRA WIDGETS"))
+				{
+					ui.AddSpacing();
 
-				ui.Add(bGui_Vu, OFX_IM_TOGGLE_ROUNDED_SMALL);
-				if (bGui_Vu) {
-					ui.Indent();
-					ui.Add(VUPadding, OFX_IM_STEPPER);
-					ui.Add(VUDivisions, OFX_IM_STEPPER);
-					ofxImGuiSurfing::AddToggleNamed(bHorizontal, "Horizontal", "Vertical");
-					//ui.Add(bHorizontal, OFX_IM_TOGGLE_ROUNDED_MINI);
-					ui.Unindent();
+					ui.Add(bGui_Vu, OFX_IM_TOGGLE_ROUNDED_SMALL);
+					if (bGui_Vu) {
+						ui.Indent();
+						ui.Add(VUPadding, OFX_IM_STEPPER);
+						ui.Add(VUDivisions, OFX_IM_STEPPER);
+						ofxImGuiSurfing::AddToggleNamed(bHorizontal, "Horizontal", "Vertical");
+						//ui.Add(bHorizontal, OFX_IM_TOGGLE_ROUNDED_MINI);
+						ui.Unindent();
+					}
+					ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
+					ui.Add(bGui_FFT, OFX_IM_TOGGLE_ROUNDED_SMALL);
+
+					ui.EndTree();
 				}
-				ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
-				ui.Add(bGui_FFT, OFX_IM_TOGGLE_ROUNDED_SMALL);
 			}
 
 			//--
@@ -1226,7 +1257,7 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-		}
+}
 #endif
 	}
 
@@ -1674,11 +1705,14 @@ public:
 		if (deviceIn_Enable.get())
 		{
 			// Convert Gain control to log scaled
-			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(deviceIn_Gain);
+			float g = ofMap(deviceIn_Gain, 0, 1, 0, 0.95, true);
+			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(g);
 			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
 
 			//TODO: FFT bands
 			{
+				//TODO: notice that do not get signal from input,
+				// only from the player.
 				// (5) grab the fft, and put in into a "smoothed" array,
 				// by taking maximums, as peaks and then smoothing downward
 				float* val = ofSoundGetSpectrum(nBandsToGet); // request 128 values for fft
@@ -1777,7 +1811,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 				//--
 
@@ -1823,7 +1857,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+	}
 
 			//--
 
@@ -1851,12 +1885,16 @@ public:
 			//smooth = ofxSurfingHelpers::squaredFunction(smooth);
 			// 
 			// C. Better mapped
-			smooth = ofMap(smooth, 0.f, 1.0f, 0.f, 1.f, true);
-			//smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .66f, true);
+			//smooth = ofMap(smooth, 0.f, 1.0f, 0.f, 1.f, true);
+			smooth = ofMap(smooth, 0.f, 1.0f, 0.f, .95f, true);
 
 			float _vu = deviceIn_vuValue;
-			_vu *= smooth;
-			_vu += (1 - smooth) * _rms;
+
+			//_vu *= smooth;
+			//_vu += (1 - smooth) * _rms;
+
+			ofxSurfingHelpers::ofxKuValueSmooth(_vu, _rms, smooth);
+
 
 			//--
 
@@ -1920,7 +1958,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 			}
 		}

@@ -573,7 +573,7 @@ public:
 
 				// align right. 
 				// push left from right border
-				AddSpacingRightAlign(39);//ms
+				AddSpacingRightAlign(38);//ms
 				//AddSpacingRightAlign(21);
 				ui->AddLabel(s);
 			}
