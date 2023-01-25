@@ -407,6 +407,7 @@ private:
 		params_In.add(deviceIn_PortName);
 		params_In.add(deviceIn_Gain);
 		params_In.add(deviceIn_vuSmooth);
+		params_In.add(deviceIn_vuPow);
 		//params_In.add(deviceIn_Api);
 		//params_In.add(deviceIn_ApiName);//labels
 
@@ -570,6 +571,7 @@ private:
 	ofParameter<string> deviceIn_ApiName;
 
 	// rms signal to use on VU
+	ofParameter<float> deviceIn_vuPow{ "Pow", 0, -1, 1 }; // pow
 	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 }; // to smooth the vu signal
 	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
 
@@ -1104,9 +1106,12 @@ private:
 				ui.AddSpacing();
 				ui.AddLabelBig("VU");
 				ui.AddSpacing();
-				ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, 2, 1 / 2.f);
+				const float amt = 3;
+				ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
 				ui.SameLine();
-				ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_DOTKNOB, 2, 1 / 2.f);
+				ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
+				ui.SameLine();
+				ui.Add(deviceIn_vuPow, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
 				ui.AddSpacing();
 
 				ui.AddSpacingSeparated();
@@ -1187,9 +1192,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-}
+		}
 #endif
-}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGui()
@@ -1766,7 +1771,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-		}
+			}
 
 			//--
 
@@ -1791,10 +1796,11 @@ public:
 			float smooth = deviceIn_vuSmooth.get();
 
 			//// B. Expanded
-			//smooth = ofxSurfingHelpers::squaredFunction(smooth) / 10.f;
-
+			//smooth = ofxSurfingHelpers::squaredFunction(smooth);
+			// 
 			// C. Better mapped
-			smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .66f, true);
+			smooth = ofMap(smooth, 0.f, 1.0f, 0.1f, .9f, true);
+			//smooth = ofMap(smooth, 0.f, 1.0f, 0.3f, .66f, true);
 
 			float _vu = deviceIn_vuValue;
 			_vu *= smooth;
@@ -1807,9 +1813,19 @@ public:
 			// Use the control gain 
 			// but converted to log scale.
 			// then add an extra gain to the raw vu value.
-			float gainExtra = 2;
-			//float gainExtra = 1.75f;//tweak
-			//float gainExtra = 1.5f;//tweak
+			const float gFactor = 5.f;
+			float gainExtra;
+			if (deviceIn_vuPow.get() == 0) {
+				gainExtra = 1.f;
+			}
+			else if (deviceIn_vuPow < 0) {
+				float p = - ofxSurfingHelpers::squaredFunction(deviceIn_vuPow.get());
+				gainExtra = ofMap(p, -1.f, 0, 1.f / gFactor, 1.f, true);
+			}
+			else {
+				float p = ofxSurfingHelpers::squaredFunction(deviceIn_vuPow.get());
+				gainExtra = ofMap(p, 0, 1.f, 1.f, gFactor, true);
+			}
 
 			_vu = deviceIn_GainLog * _vu * gainExtra;
 
@@ -1832,7 +1848,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-	}
+		}
 
 		//----
 
@@ -1852,10 +1868,10 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
-#endif
-			}
 		}
+#endif
+	}
+}
 	}
 
 #ifdef USE_DEVICE_OUTPUT
