@@ -20,9 +20,10 @@ public:
 	int bufferSize;
 	int numBuffers;
 
+	ofParameter<bool> bScene{ "Scene", false };
 	ofParameter<bool> bFlip{ "Flip", true };
 	ofParameter<bool> bShape{ "Shape", true };
-	ofParameterGroup g{ "ofApp", bFlip, bShape };
+	ofParameterGroup g{ "ofApp", bFlip, bShape, bScene };
 
 	ofxWindowApp w;
 };

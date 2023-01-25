@@ -14,30 +14,34 @@ void ofApp::setup() {
 //--------------------------------------------------------------
 void ofApp::draw()
 {
-	//ofClear(255);
+	if (!bScene) ofClear(64);
+	else 
+	{
+		// Draws a scene 
+		// related to input vu meter
 
-	// Draws a scene 
-	// related to input vu meter
+		float v = audioDevices.getVumeterValue();
 
-	float v = audioDevices.getVumeterValue();
+		// Bg
+		if (bFlip) ofClear(v * 255);
+		else ofClear((1 - v) * 255);
 
-	// Bg
-	if (bFlip) ofClear(v * 255);
-	else ofClear((1 - v) * 255);
-
-	// rectangle
-	ofPushStyle();
-	ofSetCircleResolution(200);
-	ofRectangle r = ofGetCurrentViewport();
-	float h = ofGetHeight() * v;
-	r.setHeight(h);
-	r.setPosition(0, ofGetHeight() / 2 - h / 2);
-	ofFill();
-	if (bFlip) ofSetColor(255);
-	else ofSetColor(0);
-	if (bShape) ofDrawCircle(r.getCenter(), r.getHeight() / 2);
-	else ofDrawRectangle(r);
-	ofPopStyle();
+		// Shape
+		ofPushStyle();
+		ofSetCircleResolution(200);
+		ofRectangle r = ofGetCurrentViewport();
+		float h = ofGetHeight() * v;
+		r.setHeight(h);
+		r.setPosition(0, ofGetHeight() / 2 - h / 2);
+		ofFill();
+		if (bFlip) ofSetColor(255);
+		else ofSetColor(0);
+		// circle
+		if (bShape) ofDrawCircle(r.getCenter(), r.getHeight() / 2);
+		// rectangle
+		else ofDrawRectangle(r);
+		ofPopStyle();
+	}
 
 	//--
 
@@ -69,6 +73,7 @@ void ofApp::keyPressed(int key)
 {
 	if (key == 'g') audioDevices.setVisibleToggle();
 
+	if (key == 's') bScene = !bScene;
 	if (key == ' ') bFlip = !bFlip;
 	if (key == OF_KEY_RETURN) bShape = !bShape;
 }
