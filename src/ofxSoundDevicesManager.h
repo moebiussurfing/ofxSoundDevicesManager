@@ -356,6 +356,11 @@ private:
 		params_Control.add(apiIndex_Windows);
 		params_Control.add(params_Gui);
 
+		// Extra
+		params_Control.add(bGui_VuPlot);
+		params_Control.add(bHorizontal);
+		params_Control.add(bGui_Vu);
+
 		params_Control.add(ui.bMinimize);//to refresh help info
 
 		//-
@@ -437,6 +442,7 @@ private:
 #ifdef USE_DEVICE_OUTPUT
 		params_Settings.add(params_Out);
 #endif
+		//--
 
 		ofAddListener(params_Control.parameterChangedE(), this, &ofxSoundDevicesManager::Changed_params_Control);
 
@@ -478,10 +484,15 @@ public:
 		return deviceIn_vuValue.get();
 	}
 
-	const int MAX_HISTORY_VU = 1024;
-	//float historyVU[1024];
-	vector<float> historyVU;
+private:
 
+	const int MAX_HISTORY_VU = 1024;
+	vector<float> historyVU;
+	//float historyVU[1024];
+
+	ofParameter<bool> bHorizontal{ "Horizontal", false };
+	ofParameter<bool> bGui_Vu{ "VU", false };
+	ofParameter<bool> bGui_VuPlot{ "VU HISTORY", false };
 
 public:
 
@@ -669,7 +680,7 @@ private:
 
 			buildHelpInfo();
 		}
-	}
+}
 
 private:
 
@@ -811,7 +822,7 @@ private:
 		for (int d = 0; d < outDevices.size(); d++)
 		{
 			outDevicesNames[d] = outDevices[d].name;
-		}
+	}
 #endif
 
 		//--
@@ -1070,7 +1081,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1081,15 +1092,13 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
+				}
 			}
 		}
-	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
 	{
-		//if(bGui_In) IMGUI_SUGAR__WINDOWS_CONSTRAINTSW_SMALL;
-
 		if (ui.BeginWindowSpecial(bGui_In))
 		{
 			ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
@@ -1128,55 +1137,22 @@ private:
 			}
 
 			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+			ui.AddTooltip("Real-time VU");
+
+			ui.AddSpacingSeparated();
+
+			// Extras 
+			ui.Add(bGui_Vu, OFX_IM_TOGGLE_ROUNDED_SMALL);
+			if (bGui_Vu) {
+				ui.Indent();
+				ui.Add(bHorizontal, OFX_IM_TOGGLE_ROUNDED_MINI);
+				ui.Unindent();
+			}
+			ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
 
 			//--
 
 			ui.EndWindowSpecial();
-		}
-
-		//--
-
-		if (ui.BeginWindow("PLOT", ImGuiWindowFlags_None))
-		{
-
-			//if (ImPlot::BeginPlot("##Digital")) {
-			//	ImPlot::SetupAxisLimits(ImAxis_X1, t - 10.0, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-			//	ImPlot::SetupAxisLimits(ImAxis_Y1, -1, 1);
-			//	for (int i = 0; i < 2; ++i) {
-			//		if (showDigital[i] && dataDigital[i].Data.size() > 0) {
-			//			snprintf(label, sizeof(label), "digital_%d", i);
-			//			ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), 0, dataDigital[i].Offset, 2 * sizeof(float));
-			//		}
-			//	}
-			//	for (int i = 0; i < 2; ++i) {
-			//		if (showAnalog[i]) {
-			//			snprintf(label, sizeof(label), "analog_%d", i);
-			//			if (dataAnalog[i].Data.size() > 0)
-			//				ImPlot::PlotLine(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), 0, dataAnalog[i].Offset, 2 * sizeof(float));
-			//		}
-			//	}
-			//	ImPlot::EndPlot();
-			//}
-
-			//if (0)
-			{
-				float w = ofxImGuiSurfing::getWindowWidthAvail();
-				float h = ofxImGuiSurfing::getWindowHeightAvail();
-				//float h = ofxImGuiSurfing::getWidgetsHeightUnit() * 4;
-
-				//ofxImGuiSurfing::drawWaveform(
-				//	ImVec2{ w, h },
-				//	&historyVU[0],
-				//	//(float *)&historyVU,
-				//	MAX_HISTORY_VU, 
-				//	.5f,
-				//	ImGui::GetColorU32(ImGuiCol_PlotLines));
-
-				ImDrawList* drawList = ImGui::GetWindowDrawList();
-				ImGuiEx::VUMeter(drawList, w, h, deviceIn_vuValue.get(), false);
-			}
-
-			ui.EndWindow();
 		}
 	}
 
@@ -1192,7 +1168,7 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-		}
+	}
 #endif
 	}
 
@@ -1220,6 +1196,16 @@ private:
 			// Out
 
 			drawImGuiOut();
+
+			//--
+
+			// Extras
+
+			if (bGui_Vu)
+				ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue.get(), bHorizontal);
+
+			if (bGui_VuPlot)
+				ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
 
 			//--
 
@@ -1771,7 +1757,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+		}
 
 			//--
 
@@ -1819,7 +1805,7 @@ public:
 				gainExtra = 1.f;
 			}
 			else if (deviceIn_vuPow < 0) {
-				float p = - ofxSurfingHelpers::squaredFunction(deviceIn_vuPow.get());
+				float p = -ofxSurfingHelpers::squaredFunction(deviceIn_vuPow.get());
 				gainExtra = ofMap(p, -1.f, 0, 1.f / gFactor, 1.f, true);
 			}
 			else {
@@ -1848,7 +1834,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-		}
+	}
 
 		//----
 
@@ -1868,10 +1854,10 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
-	}
-}
+			}
+		}
 	}
 
 #ifdef USE_DEVICE_OUTPUT

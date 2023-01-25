@@ -12,7 +12,8 @@ Currently Input devices only.
 
 ## Screenshot
 
-![](/example/Capture.PNG)  
+![](/1-example_Basic/Capture.PNG)  
+![](/4-example_Player/Capture.PNG)  
 
 ## Features
 - **Select** Input and Output (WIP) **devices** using an **ImGui** based **GUI**.
@@ -32,7 +33,7 @@ ofxSoundDevicesManager audioDevices;
 ### ofApp.cpp
 ```.cpp
 void ofApp::setup(){
-	audioDevices.setup(44100, 512); // set samplerate and buffer size
+	audioDevices.setup(44100, 512); // Set samplerate and buffer size
 }
 
 void ofApp::draw(){

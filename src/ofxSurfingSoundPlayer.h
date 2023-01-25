@@ -575,7 +575,7 @@ public:
 				AddSpacingOffset(ImVec2{ 0,-13 });
 
 				// align right
-				AddSpacingRightAlign(35);//ms
+				AddSpacingRightAlign(40);//ms
 				//AddSpacingRightAlign(21);
 				ui->AddLabel(s);
 			}
