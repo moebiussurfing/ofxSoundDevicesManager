@@ -412,7 +412,7 @@ private:
 		params_In.add(deviceIn_PortName);
 		params_In.add(deviceIn_Gain);
 		params_In.add(deviceIn_vuSmooth);
-		params_In.add(deviceIn_vuPow);
+		params_In.add(deviceIn_vuOffsetPow);
 		//params_In.add(deviceIn_Api);
 		//params_In.add(deviceIn_ApiName);//labels
 
@@ -483,16 +483,6 @@ public:
 	float getVumeterValue() const {
 		return deviceIn_vuValue.get();
 	}
-
-private:
-
-	const int MAX_HISTORY_VU = 1024;
-	vector<float> historyVU;
-	//float historyVU[1024];
-
-	ofParameter<bool> bHorizontal{ "Horizontal", false };
-	ofParameter<bool> bGui_Vu{ "VU", false };
-	ofParameter<bool> bGui_VuPlot{ "VU HISTORY", false };
 
 public:
 
@@ -582,15 +572,27 @@ private:
 	ofParameter<string> deviceIn_ApiName;
 
 	// rms signal to use on VU
-	ofParameter<float> deviceIn_vuPow{ "Pow", 0, -1, 1 }; // pow
+	ofParameter<float> deviceIn_vuOffsetPow{ "Offset", 0, -1, 1 }; // Offset pow
 	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 }; // to smooth the vu signal
 	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
 
 	float deviceIn_GainLog;//TODO: maybe useful to be public to apply gain on the parent class.
 
+private:
+
+	const int MAX_HISTORY_VU = 1024;
+	vector<float> historyVU;
+	//float historyVU[1024];
+
+	ofParameter<bool> bHorizontal{ "Horizontal", false };
+	ofParameter<bool> bGui_Vu{ "VU", false };
+	ofParameter<bool> bGui_VuPlot{ "VU HISTORY", false };
+
 	//--
 
 	// Out
+
+private:
 
 #ifdef USE_DEVICE_OUTPUT
 	ofParameterGroup params_Out;
@@ -680,7 +682,7 @@ private:
 
 			buildHelpInfo();
 		}
-}
+	}
 
 private:
 
@@ -822,7 +824,7 @@ private:
 		for (int d = 0; d < outDevices.size(); d++)
 		{
 			outDevicesNames[d] = outDevices[d].name;
-	}
+		}
 #endif
 
 		//--
@@ -1035,6 +1037,7 @@ private:
 					}
 					if (!bGui_In)
 					{
+						ui.AddSpacingSeparated();
 						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 					}
 
@@ -1081,7 +1084,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1092,9 +1095,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-				}
 			}
 		}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1110,45 +1113,67 @@ private:
 			}
 			ui.AddCombo(deviceIn_Port, inDevicesNames);
 
-			if (!ui.bMinimize) {
+			if (!ui.bMinimize)
+			{
 				ui.AddSpacingSeparated();
-				ui.AddSpacing();
-				ui.AddLabelBig("VU");
-				ui.AddSpacing();
-				const float amt = 3;
-				ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
-				ui.SameLine();
-				ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
-				ui.SameLine();
-				ui.Add(deviceIn_vuPow, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
-				ui.AddSpacing();
 
-				ui.AddSpacingSeparated();
-				ui.AddExtraToggle(false);
-				ImGui::Spacing();
-				if (ui.isExtraEnabled())
+				if (ui.BeginTree("VU SETTINGS"))
 				{
-					ofxImGuiSurfing::AddPad2D(deviceIn_vuSmooth, deviceIn_Gain, ImVec2{ -1,-1 }, false, true);
-					ImGui::Spacing();
+					//ui.AddSpacing();
+					//ui.AddLabelBig("VU");
+					//ui.AddSpacing();
 
-					ofxImGuiSurfing::AddPlot(deviceIn_vuValue);
+					const float amt = 3;
+					ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
+					ui.SameLine();
+					ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
+					ui.SameLine();
+					ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
+					//ui.AddTooltip("Offset Gain");
+
+					ui.AddSpacing();
+					if (ui.AddButton("RESET")){
+						deviceIn_Gain = .5;
+						deviceIn_vuSmooth = .5;
+						deviceIn_vuOffsetPow = 0.f;
+					}
+
+					ui.AddSpacing();
+
+					ui.AddSpacingSeparated();
+					ui.AddExtraToggle(false);
+					ImGui::Spacing();
+					if (ui.isExtraEnabled())
+					{
+						ofxImGuiSurfing::AddPad2D(deviceIn_vuSmooth, deviceIn_Gain, ImVec2{ -1,-1 }, false, true);
+						ImGui::Spacing();
+
+						ofxImGuiSurfing::AddPlot(deviceIn_vuValue);
+					}
+
+					ui.EndTree();
 				}
-				ui.AddSpacingSeparated();
+				//ui.AddSpacingSeparated();
 			}
 
+			ui.AddSpacingSeparated();
+			//if (ui.isMinimized()) ui.AddSpacing();
 			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 			ui.AddTooltip("Real-time VU");
 
-			ui.AddSpacingSeparated();
+			if (ui.isMaximized())
+			{
+				ui.AddSpacingSeparated();
 
-			// Extras 
-			ui.Add(bGui_Vu, OFX_IM_TOGGLE_ROUNDED_SMALL);
-			if (bGui_Vu) {
-				ui.Indent();
-				ui.Add(bHorizontal, OFX_IM_TOGGLE_ROUNDED_MINI);
-				ui.Unindent();
+				// Extras 
+				ui.Add(bGui_Vu, OFX_IM_TOGGLE_ROUNDED_SMALL);
+				if (bGui_Vu) {
+					ui.Indent();
+					ui.Add(bHorizontal, OFX_IM_TOGGLE_ROUNDED_MINI);
+					ui.Unindent();
+				}
+				ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
 			}
-			ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
 
 			//--
 
@@ -1168,7 +1193,7 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-	}
+}
 #endif
 	}
 
@@ -1201,11 +1226,12 @@ private:
 
 			// Extras
 
-			if (bGui_Vu)
-				ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue.get(), bHorizontal);
+			//if (ui.isMaximized()) 
+			{
+				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue.get(), bHorizontal);
 
-			if (bGui_VuPlot)
-				ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
+				if (bGui_VuPlot) ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
+			}
 
 			//--
 
@@ -1711,7 +1737,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 				//--
 
@@ -1757,7 +1783,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-		}
+	}
 
 			//--
 
@@ -1799,17 +1825,18 @@ public:
 			// Use the control gain 
 			// but converted to log scale.
 			// then add an extra gain to the raw vu value.
-			const float gFactor = 5.f;
+			const float gFactor = 3.f;
+
 			float gainExtra;
-			if (deviceIn_vuPow.get() == 0) {
+			if (deviceIn_vuOffsetPow.get() == 0) {
 				gainExtra = 1.f;
 			}
-			else if (deviceIn_vuPow < 0) {
-				float p = -ofxSurfingHelpers::squaredFunction(deviceIn_vuPow.get());
+			else if (deviceIn_vuOffsetPow < 0) {
+				float p = -ofxSurfingHelpers::squaredFunction(deviceIn_vuOffsetPow.get());
 				gainExtra = ofMap(p, -1.f, 0, 1.f / gFactor, 1.f, true);
 			}
 			else {
-				float p = ofxSurfingHelpers::squaredFunction(deviceIn_vuPow.get());
+				float p = ofxSurfingHelpers::squaredFunction(deviceIn_vuOffsetPow.get());
 				gainExtra = ofMap(p, 0, 1.f, 1.f, gFactor, true);
 			}
 
@@ -1834,7 +1861,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-	}
+		}
 
 		//----
 
@@ -1854,7 +1881,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 			}
 		}
@@ -1897,7 +1924,7 @@ public:
 #endif
 			}
 		}
-	}
+		}
 #endif
 
 private:
