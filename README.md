@@ -4,10 +4,11 @@
 **openFrameworks** add-on to easily handle selected system sound devices.  
 Currently Input devices only.  
 
-**WORK IN PROGRESS**
+**WIP**
 - ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
 - USING MS DIRECTSHOW. ASIO OR WASAPI HAS NOT BEEN TESTED BUT SHOULD WORK.
 - CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED ON AN AUDIO ANALYZER.
+- DEVICES OUTPUT SELECTOR SEEMS NOT WORKING YET. USES THE DEFAULT DEVICE.
 - COMPATIBLE WITH ofxSurfingAudioPlots FOR STYLED WAVEFORM PLOT.
 
 ## Screenshot
@@ -16,10 +17,17 @@ Currently Input devices only.
 ![](/4-example_ExtrasDetector/Capture.PNG)  
 
 ## Features
-- **Select** Input and Output (WIP) **devices** using an **ImGui** based **GUI**.
-- Auto **Store/Recall settings** on startup/exit.
-- **Enable/Bypass** & available **Gain Sliders** (WIP).
-- Display **list devices** from all sound APIs: **DS/ASIO/WASAPI**. 
+- Device selector: 
+	- Input and Output (WIP) **devices**.
+	- All (Windows yet) sound APIs: **DS/ASIO/WASAPI**. 
+- **ImGui** based **GUI**.
+- Provide audio basics to any ofApp.
+- WIP Smoother module.
+- Intuitive VU / RMS.
+- Bangs detector using a threshold.
+- Gate with release timer.
+- New audio widgets.
+- Testing scene.
 
 ## Usage
  
@@ -58,9 +66,9 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 
 ### TODO / IDEAS
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible. (?)
-* Merge stuff from https://github.com/roymacdonald/ofxSoundDeviceManager. (?)
-* Test / Make it macOS compatible.
-* Improve settings using Port Name instead of Port Numbers.
+* Merge some stuff from https://github.com/roymacdonald/ofxSoundDeviceManager. (?)
+* Test and make it macOS-compatible.
+* Improve settings using Port names instead of Port Numbers.
 
 ### NOTES
 * Would crash when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app or by hardcoding devices. 

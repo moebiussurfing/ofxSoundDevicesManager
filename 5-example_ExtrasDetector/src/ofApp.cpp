@@ -8,6 +8,11 @@ void ofApp::setup() {
 
 	audioDevices.setup(sampleRate, bufferSize, numBuffers);
 
+	textBox.setFontSize(65);
+	textBox.setup();
+	textBox.setMode(TextBoxWidget::BOX_LAYOUT::CENTER);
+	textBox.setTheme(true);
+
 	ofxSurfingHelpers::load(g);
 }
 
@@ -39,9 +44,11 @@ void ofApp::draw()
 		float t_ = audioDevices.getThreshold();
 
 		//TODO: tween
-		static float t=0;
-		t = t_;
+		static float t = 0;
 		//t = (t_ - t) * 0.25;
+		//t = t_;
+		float diff = t_ - t;
+		t = t + diff * 0.5;
 
 		float x = ofGetWidth() / 2;
 		float y = ofGetHeight() / 2;
@@ -83,24 +90,19 @@ void ofApp::draw()
 		static int ic = 0;
 		static ofColor c = colors[ic];
 		static int count = 0;//bangs
-		
-		//cout << audioDevices.getGateProgress() << endl;
-
-		ofSetColor(c, 240 * (1.f - audioDevices.getGateProgress()));
-		//ofSetColor(c, 200 * ofxSurfingHelpers::getFadeBlink(0.40, 1.0, 0.15));
-
-		ofSetLineWidth(3);
+		static ofColor cPre;
 
 		// Bang!
 		static bool bDo = false;
 		if (audioDevices.getIsBang())
 		{
-			//bang flag only
+			// Get bang delta flag only!
 			if (!bDo) {
 				bDo = true;
-				count++;
+				count++;//count bangs
 
 				//switch color
+				cPre = c;
 				ic++;
 				if (ic == colors.size()) ic = 0;
 				c = colors[ic];
@@ -108,25 +110,41 @@ void ofApp::draw()
 
 			//--
 
+			// Fill flash!
+			ofSetColor(cPre, 255 * (audioDevices.getGateProgress()));
 			ofFill();
 			ofRectangle rBg = ofGetCurrentViewport();
 			ofDrawRectangle(rBg);
 
-			string s = "         \n";
-			s += "  BANG !  \n";
-			s += "  #" + ofToString(count) + "\n";
-			s += "         ";
-			static ofBitmapFont f;
-			float w = f.getBoundingBox(s, 0, 0).getWidth();
-			float h = f.getBoundingBox(s, 0, 0).getHeight();
-			float x = ofGetWidth() / 2 - w / 2;
-			float y = ofGetHeight() / 2 - h / 2;
-			////top center
-			//ofDrawBitmapStringHighlight(s, glm::vec2(x, 60));
-			//center 
-			ofDrawBitmapStringHighlight(s, glm::vec2(x, y));
+			//string s = "         \n";
+			//s += "  BANG !  \n";
+			//s += "  #" + ofToString(count) + "\n";
+			//s += "         ";
+			//static ofBitmapFont f;
+			//float w = f.getBoundingBox(s, 0, 0).getWidth();
+			//float h = f.getBoundingBox(s, 0, 0).getHeight();
+			//float x = ofGetWidth() / 2 - w / 2;
+			//float y = ofGetHeight() / 2 - h / 2;
+			//////top center
+			////ofDrawBitmapStringHighlight(s, glm::vec2(x, 60));
+			////center 
+			//ofDrawBitmapStringHighlight(s, glm::vec2(x, y));
+
+			// Draw
+			string s;
+			s += "\n";
+			s += "BANG!\n";
+			s += " #" + ofToString(count);
+			s += "\n";
+			textBox.setText(s);
+			textBox.draw();
 		}
 		else bDo = false;
+
+		//--
+
+		ofSetColor(c, 255);
+		ofSetLineWidth(3);
 
 		// circle
 		float radiusTh = rThreshold.getHeight() / 2;

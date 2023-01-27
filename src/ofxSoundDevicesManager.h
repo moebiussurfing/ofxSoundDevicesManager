@@ -60,6 +60,7 @@
 //TODO: split
 
 //#define USE_DEVICE_OUTPUT
+//TODO: WIP: not working yet... Do not take effect the device selector..
 //TODO: should add directive to exclude input..
 // Disables all Output management.
 // Input is always included!
@@ -185,6 +186,14 @@ public:
 		exit();
 
 		ofRemoveListener(ofEvents().update, this, &ofxSoundDevicesManager::update);
+	};
+
+	//--------------------------------------------------------------
+	void keyPressed(int key)
+	{
+#ifdef USE_SOUND_FILE_PLAYER
+		player.keyPressed(key);
+#endif
 	};
 
 	//--------------------------------------------------------------
@@ -697,8 +706,8 @@ private:
 	string devices_ApiName;
 
 	string nameLabel = "SoundDevices";
-	string pathGlobal = "SoundDevices";
-	string pathSettings = "SoundDevices_Settings.json";
+	string pathGlobal = "ofxSoundDevicesManager";
+	string pathSettings = "ofxSoundDevicesManager_Settings.json";
 
 	bool bApiConnected = false;
 
@@ -1153,9 +1162,9 @@ private:
 #endif
 			//--
 
-				}
+		}
 		ui.End();
-			}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiMain()
@@ -1179,7 +1188,7 @@ private:
 					{
 						ui.AddSpacing();
 						ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
-				}
+					}
 
 #ifdef USE_DEVICE_OUTPUT
 					ui.AddSpacingBigSeparated();
@@ -1206,11 +1215,11 @@ private:
 						// Pass the expected widget width divided by two
 						AddSpacingPad(w);
 						ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
-			}
+					}
 
 					//ui.Unindent();
 #endif
-		}
+				}
 				else // maximized
 				{
 					ui.AddLabelBig("API");
@@ -1282,7 +1291,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1293,9 +1302,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-				}
-	}
+			}
 		}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1441,7 +1450,7 @@ private:
 			ui.EndWindowSpecial();
 		}
 #endif
-		}
+	}
 
 public:
 
@@ -1485,7 +1494,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-		}
+	}
 
 private:
 
@@ -1967,7 +1976,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-		}
+			}
 
 			//--
 
@@ -2048,7 +2057,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_VU_Value);
-	}
+		}
 
 		//----
 
@@ -2111,8 +2120,8 @@ public:
 					indexOut = 0;
 				}
 #endif
-				}
-	}
+			}
+		}
 	}
 #endif
 
@@ -2266,6 +2275,7 @@ private:
 			return;
 		}
 
+		//TODO: WIP:
 		else if (name == deviceOut_Port.getName())
 		{
 			outStream.close();
@@ -2309,7 +2319,7 @@ private:
 	}
 	*/
 
-	};
+};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78

@@ -16,11 +16,6 @@ void ofApp::draw()
 }
 
 //--------------------------------------------------------------
-void ofApp::exit()
-{
-}
-
-//--------------------------------------------------------------
 void ofApp::audioIn(ofSoundBuffer& input) {
 	audioDevices.audioIn(input);
 }
@@ -32,4 +27,6 @@ void ofApp::keyPressed(int key)
 	if (audioDevices.getUiPtr()->isOverInputText()) return;
 
 	if (key == 'g') audioDevices.setVisibleToggle();
+	
+	audioDevices.keyPressed(key);
 }

@@ -12,6 +12,8 @@
 
 #define USE_EXTERNAL_DEVICE_OUT_MANAGER
 
+//#define USE_DEBUG_FADING // to debug start/stop fading engine
+
 //--
 
 #pragma once
@@ -95,6 +97,7 @@ private:
 	ofParameter<bool> bPlay{ "PLAY", false };
 	ofParameter<void> bStop{ "STOP" };
 	ofParameter<bool> bLoop{ "Loop", true };
+	ofParameter<bool> bScrub{ "Scrub", false };
 	ofParameter<float> position{ "Position", 0, 0, 1 };
 
 	string name_Audio = "NO FILE";
@@ -114,15 +117,18 @@ public:
 
 private:
 
+	bool bDoneStartup = false;
+
 	void startup()
 	{
 		ofLogNotice("ofxSurfingSoundPlayer") << ":" << (__FUNCTION__);
+
 		playerState = ofxSurfingSoundPlayer::PlayerState_STOPPED;
-		namePlayerState = "STOPPED";
-		fadeVal = 0;
-		playerAudio.setVolume(0);
+		updateStates();
 
 		ofxSurfingHelpers::loadGroup(params, path_GLOBAL + "/" + path_AppSettings);
+
+		bDoneStartup = true;
 	};
 
 	void setup_Audio()
@@ -136,6 +142,7 @@ private:
 		params_Audio.add(bPlay);
 		params_Audio.add(bStop);
 		params_Audio.add(bLoop);
+		params_Audio.add(bScrub);
 		params_Audio.add(position);
 		params_Audio.add(volume);
 
@@ -143,9 +150,9 @@ private:
 
 		params.add(params_Audio);
 
-		// to starts at zero always!
+		//// to starts at zero always!
 		//position.setSerializable(false);
-		bPlay.setSerializable(false);
+		//bPlay.setSerializable(false);
 
 		//--
 
@@ -191,13 +198,40 @@ public:
 
 			if (playerState != playerState_PRE)
 			{
-				playerState_PRE = playerState;
-
 				switch (playerState)
 				{
+
+				case ofxSurfingSoundPlayer::PlayerState_PLAY_IN: // begins play phase
+					namePlayerState = "PLAY_IN";
+					if (!bPlay) bPlay.setWithoutEventNotifications(true);
+					if (playerState_PRE == PlayerState_PAUSED) playerAudio.setPaused(false);
+					else playerAudio.play();
+					fadeVal = 0;
+					playerAudio.setVolume(0);
+					break;
+
+				case ofxSurfingSoundPlayer::PlayerState_PLAYING: // already playing
+					namePlayerState = "PLAYING";
+					if (!playerAudio.isPlaying()) playerAudio.play();
+					else if (playerState_PRE == PlayerState_PAUSED) playerAudio.setPaused(false);
+					break;
+
+				case ofxSurfingSoundPlayer::PlayerState_PLAY_TO_PAUSED: // begins pause phase
+					namePlayerState = "PLAY_TO_PAUSED";
+					playerAudio.setPaused(true);
+					break;
+
+				case ofxSurfingSoundPlayer::PlayerState_PAUSED: // just paused
+					namePlayerState = "PAUSED";
+					fadeVal = 0;
+					playerAudio.setVolume(0);
+					break;
+
 				case ofxSurfingSoundPlayer::PlayerState_PLAY_TO_STOP: // begins stop phase
 					namePlayerState = "PLAY_TO_STOP";
+					if (bPlay) bPlay.setWithoutEventNotifications(false);
 					break;
+
 				case ofxSurfingSoundPlayer::PlayerState_STOPPED: // just stopped
 					namePlayerState = "STOPPED";
 					if (bPlay) bPlay.setWithoutEventNotifications(false);
@@ -206,27 +240,9 @@ public:
 					fadeVal = 0;
 					playerAudio.setVolume(0);
 					break;
-				case ofxSurfingSoundPlayer::PlayerState_PLAY_IN: // begins play phase
-					namePlayerState = "PLAY_IN";
-					if (!bPlay) bPlay.setWithoutEventNotifications(true);
-					fadeVal = 0;
-					playerAudio.setVolume(0);
-					playerAudio.setPaused(false);
-					playerAudio.play();
-					break;
-				case ofxSurfingSoundPlayer::PlayerState_PLAYING: // already playing
-					namePlayerState = "PLAYING";
-					break;
-				case ofxSurfingSoundPlayer::PlayerState_PLAY_TO_PAUSED: // begins pause phase
-					namePlayerState = "PLAY_TO_PAUSED";
-					playerAudio.setPaused(true);
-					break;
-				case ofxSurfingSoundPlayer::PlayerState_PAUSED: // just paused
-					namePlayerState = "PAUSED";
-					fadeVal = 0;
-					playerAudio.setVolume(0);
-					break;
 				}
+
+				playerState_PRE = playerState;
 
 				ofLogNotice("ofxSurfingSoundPlayer") << "State Changed to " << namePlayerState;
 			}
@@ -237,27 +253,32 @@ public:
 
 			switch (playerState)
 			{
-			case ofxSurfingSoundPlayer::PlayerState_PLAY_TO_STOP:
-				fadeVal -= fadeStep;
-				fadeVal = ofClamp(fadeVal, 0, 1);
-				if (fadeVal == 0) playerState = PlayerState_STOPPED;
-				break;
-			case ofxSurfingSoundPlayer::PlayerState_STOPPED:
-				fadeVal = 0;
-				break;
 			case ofxSurfingSoundPlayer::PlayerState_PLAY_IN:
 				fadeVal += fadeStep;
-				fadeVal = ofClamp(fadeVal, 0, 1);
+				fadeVal = ofClamp(fadeVal, 0, 1.f);
 				if (fadeVal == 1.f) playerState = PlayerState_PLAYING;
 				break;
+
 			case ofxSurfingSoundPlayer::PlayerState_PLAYING:
 				break;
+
 			case ofxSurfingSoundPlayer::PlayerState_PLAY_TO_PAUSED:
 				fadeVal -= fadeStep;
-				fadeVal = ofClamp(fadeVal, 0, 1);
+				fadeVal = ofClamp(fadeVal, 0, 1.f);
 				if (fadeVal == 0) playerState = PlayerState_PAUSED;
 				break;
+
 			case ofxSurfingSoundPlayer::PlayerState_PAUSED:
+				break;
+
+			case ofxSurfingSoundPlayer::PlayerState_PLAY_TO_STOP:
+				fadeVal -= fadeStep;
+				fadeVal = ofClamp(fadeVal, 0, 1.f);
+				if (fadeVal == 0) playerState = PlayerState_STOPPED;
+				break;
+
+			case ofxSurfingSoundPlayer::PlayerState_STOPPED:
+				fadeVal = 0;
 				break;
 			}
 
@@ -265,11 +286,12 @@ public:
 
 			// 3. Set volume only if changed
 
-			if (fadeVal != fadeVal_PRE)
-			{
-				fadeVal_PRE = fadeVal;
-				playerAudio.setVolume(fadeVal * volume.get());
-			}
+			playerAudio.setVolume(fadeVal * volume.get());
+			//if (fadeVal != fadeVal_PRE)
+			//{
+			//	fadeVal_PRE = fadeVal;
+			//	playerAudio.setVolume(fadeVal * volume.get());
+			//}
 		}
 	};
 
@@ -281,12 +303,20 @@ public:
 
 		//--
 
-		if (position.get() != playerAudio.getPosition())
+		//if (position.get() != playerAudio.getPosition())
 		{
 			position.setWithoutEventNotifications(playerAudio.getPosition());
 		}
 
 		ofSoundUpdate();
+	};
+
+	void keyPressed(int key)
+	{
+		if (key == ' ') setTogglePlay();
+		if (key == OF_KEY_BACKSPACE) setStop();
+		if (key == OF_KEY_LEFT) setPositionLeft();
+		if (key == OF_KEY_RIGHT) setPositionRight();
 	};
 
 private:
@@ -301,18 +331,40 @@ private:
 
 		ofxSurfingHelpers::CheckFolder(path_GLOBAL);
 		ofxSurfingHelpers::saveGroup(params, path_GLOBAL + "/" + path_AppSettings);
-	};
+};
+
+	//--
+
+	// Setters
 
 	//--
 
 public:
 
-	// Setters
+	// Transport
 
+	void setTogglePlay() {
+		//playerState = PlayerState_PLAY_IN;
+		bPlay = !bPlay;
+	}
+	void setStop() {
+		//playerState = PlayerState_PLAY_TO_STOP;
+		bStop.trigger();
+	}
 	void setPaused(bool b) {
-		if (b) playerState = PlayerState_PLAY_TO_PAUSED;
-		else playerState = PlayerState_PLAY_IN;
+		if (b) { // do pause
+			if (playerState != PlayerState_PAUSED)
+				playerState = PlayerState_PLAY_TO_PAUSED;
+		}
+		else { // release pause
+			if (playerState == PlayerState_PAUSED)
+				playerState = PlayerState_PLAY_IN;
+		}
 	};
+
+	//--
+
+public:
 
 	void setPosition(float pos) {
 		playerAudio.setPosition(pos);
@@ -334,6 +386,15 @@ public:
 	void setVolumenDown()
 	{
 		volume = MAX(volume - 0.05f, 0);
+	};
+
+	void setPositionLeft()
+	{
+		position = MIN(position - 0.025f, 1);
+	};
+	void setPositionRight()
+	{
+		position = MIN(position + 0.025f, 1);
 	};
 
 	//--
@@ -366,70 +427,101 @@ private:
 	{
 		std::string name = e.getName();
 
+		if (0) {}
+
 		//--
 
 		// Play
 
-		if (name == bPlay.getName())
+		else if (name == bPlay.getName())
 		{
 			if (bPlay.get())
 			{
-				playerState == PlayerState_PLAY_IN;
-				updateStates();
+				if (playerState == PlayerState_PAUSED)
+				{
+					playerState = PlayerState_PLAY_IN;
+					updateStates();
+
+					return;
+				}
+
+				else if (playerState != PlayerState_PLAYING)
+				{
+					playerState = PlayerState_PLAY_IN;
+					updateStates();
+
+					return;
+				}
 			}
 			else
 			{
-				playerState == PlayerState_PLAY_TO_PAUSED;
-				updateStates();
+				if (playerState == PlayerState_PLAYING)
+				{
+					playerState = PlayerState_PLAY_TO_PAUSED;
+					updateStates();
+
+					return;
+				}
 			}
 
-			return;
 		}
 
 		//--
 
 		// Stop
 
-		if (name == bStop.getName())
+		else if (name == bStop.getName())
 		{
-			playerState = PlayerState_PLAY_TO_STOP;
-			updateStates();
+			//if (playerState != PlayerState_STOPPED)
+			{
+				playerState = PlayerState_PLAY_TO_STOP;
+				updateStates();
 
-			return;
+				return;
+			}
 		}
 
 		//--
 
 		// Position
 
-		if (name == position.getName())
+		else if (name == position.getName())
 		{
-			if (position.get() != playerAudio.getPosition()) 
+			if (playerAudio.getPosition() != position.get())
 			{
-				playerAudio.setPosition(position.get());
-				playerState = PlayerState_PLAY_IN;
-				updateStates();
-			}
+				//TODO: fix
+				//workflow: force play
+				if (bScrub)
+					if (bDoneStartup)
+					{
+						playerState = PlayerState_PLAY_IN;
+						updateStates();
+					}
 
-			return;
+				playerAudio.setPosition(position.get());
+
+				return;
+			}
 		}
 
 		//--
 
-		if (name == path.getName())
+		else if (name == path.getName())
 		{
 			this->load(path);
 
 			return;
 		}
-		if (name == volume.getName())
+
+		else if (name == volume.getName())
 		{
 			volume.setWithoutEventNotifications(ofClamp(volume, 0, 1));
 			playerAudio.setVolume(volume.get() * fadeVal);
 
 			return;
 		}
-		if (name == bLoop.getName())
+
+		else if (name == bLoop.getName())
 		{
 			playerAudio.setLoop(bLoop);
 
@@ -462,6 +554,9 @@ public:
 			ofLogNotice("ofxSurfingSoundPlayer") << "Path: " << path;
 
 			load(path);
+
+			//workflow
+			playerState = PlayerState_PLAY_IN;
 		}
 		else
 		{
@@ -539,11 +634,7 @@ public:
 			// Time label
 
 			// blink
-			bool b1 = (playerState != PlayerState_STOPPED) &&
-				(playerState == PlayerState_PLAYING ||
-					playerState == PlayerState_PLAY_IN ||
-					playerState == PlayerState_PLAY_TO_PAUSED ||
-					playerState == PlayerState_PLAY_TO_STOP);
+			bool b1 = playerState == PlayerState_PAUSED;
 
 			// dark
 			bool b2 = playerState == PlayerState_STOPPED;
@@ -593,6 +684,7 @@ public:
 			{
 				ui->AddSpacing();
 				ui->Add(bLoop, OFX_IM_TOGGLE_ROUNDED_SMALL);
+				ui->Add(bScrub, OFX_IM_TOGGLE_ROUNDED_MINI);
 				ui->AddSpacingSeparated();
 
 				//TODO:
@@ -610,6 +702,7 @@ public:
 
 			//--
 
+#ifdef USE_DEBUG_FADING
 			ui->AddSpacingSeparated();
 			ui->AddDebugToggle(false);
 			ui->AddSpacing();
@@ -619,15 +712,16 @@ public:
 
 				ui->Add(fadeStep, OFX_IM_STEPPER);
 				ofxImGuiSurfing::AddProgressBar(fadeVal);
-				string s = "FADE      " + ofToString(fadeVal, 3);
+				string s = "FADE " + ofToString(fadeVal, 3);
 				ui->AddLabel(s);
+				ui->AddLabel("> " + namePlayerState);
 
-				//bool b = bPlaying;
-				////bool b = playerAudio.isPlaying();
-				//if (PlayerState_PLAY_IN) {
-				//	s = "PLAYING   " + ofToString(b ? "+" : " ");
-				//	ui->AddLabel(s);
-				//}
+				bool b = playerAudio.isPlaying();
+				if (b) {
+					s = "isPlaying()";
+					ui->AddLabel(s);
+				}
+
 				//if (playerState == PlayerState_PAUSED) {
 				//	s = "PAUSED    " + ofToString(playerState == PlayerState_PAUSED ? "+" : " ");
 				//	ui->AddLabel(s);
@@ -637,11 +731,10 @@ public:
 				//ui->AddLabel(s);
 				//}
 
-				ui->AddLabel(namePlayerState);
-
 				ui->Unindent();
-			}
 		}
+#endif
+	}
 	};
 
 	void drawImGui()

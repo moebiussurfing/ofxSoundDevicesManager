@@ -4,6 +4,8 @@
 
 #include "ofxSoundDevicesManager.h"
 #include "ofxWindowApp.h"
+// .h
+#include "TextBoxWidget.h"
 
 class ofApp : public ofBaseApp
 {
@@ -28,4 +30,6 @@ public:
 	vector<ofColor> colors{ ofColor::red, ofColor::green, ofColor::blue, ofColor::yellow, ofColor::orange, ofColor::violet, ofColor::turquoise, ofColor::chocolate, ofColor::aquamarine };
 
 	ofxWindowApp w;
+
+	TextBoxWidget textBox;
 };
