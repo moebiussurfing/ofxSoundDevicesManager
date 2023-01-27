@@ -11,11 +11,12 @@ Currently Input devices only.
 - DEVICES OUTPUT SELECTOR SEEMS NOT WORKING YET. USES THE DEFAULT DEVICE.
 - COMPATIBLE WITH ofxSurfingAudioPlots FOR STYLED WAVEFORM PLOT.
 
-## Screenshot
+## Screenshots
 
 ![](/1-example_Basic/Capture.PNG)  
 ![](/4-example_Player/Capture.PNG)  
 ![](/5-example_ExtrasDetector/Capture.PNG)  
+![IG VIDEO](https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_link)
 
 ## Features
 - Device selector: 
