@@ -381,6 +381,11 @@ private:
 		params_Control.add(VUDivisions);
 		params_Control.add(bGui_Vu);
 		params_Control.add(bGui_FFT);
+		params_Control.add(bGui_BigVSlider);
+
+		// Detector
+		params_Control.add(threshold);
+		params_Control.add(tGateDur);
 
 		params_Control.add(ui.bMinimize);//to refresh help info
 
@@ -508,10 +513,16 @@ public:
 	// to trig a bang
 
 	float getVumeterValue() const {
-		return deviceIn_vuValue.get();
+		return deviceIn_VU_Value.get();
 	}
 	float getThreshold() const {
 		return threshold.get();
+	}
+	bool getIsBang() const {
+		return bBang.get();
+	}
+	float getGateProgress() const {
+		return remainGatePrc;
 	}
 
 	//--
@@ -606,13 +617,21 @@ private:
 	// rms signal to use on VU
 	ofParameter<float> deviceIn_vuOffsetPow{ "Pow", 0, -1, 1 }; // Offset pow
 	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 }; // to smooth the vu signal
-	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
+	ofParameter<float> deviceIn_VU_Value{ "RMS", 0, 0, 1 }; // to use into the vu
 
 	float deviceIn_GainLog;//TODO: maybe useful to be public to apply gain on the parent class.
 
+	// Detector
+	// threshold bang
+	uint64_t tBang = 0;
+	ofParameter<int> tGateDur{ "tGate", 1000, 10, 10000 };
+	bool bGateClosed = false;
+	float remainGatePrc = 0;
+
 public:
 
-	ofParameter<float> threshold{ "Thresh", 1, 0, 1 };
+	ofParameter<bool> bBang{ "BANG", false };
+	ofParameter<float> threshold{ "ThreshOLD", 1, 0, 1 };
 
 private:
 
@@ -628,6 +647,7 @@ private:
 	ofParameter<bool> bGui_VuPlot{ "VU HISTORY", false };
 
 	ofParameter<bool> bGui_FFT{ "FFT", false };
+	ofParameter<bool> bGui_BigVSlider{ "Big Slider", false };
 
 	//--
 
@@ -723,6 +743,43 @@ private:
 
 			buildHelpInfo();
 		}
+
+		// Bang
+		uint64_t tElapsed = 0;
+		if (!bGateClosed)//if gate open
+		{
+			if (getVumeterValue() > getThreshold())
+			{
+				bBang = true;
+				bGateClosed = true;
+				tBang = ofGetElapsedTimeMillis();
+			}
+		}
+		else
+		{
+			uint64_t t = ofGetElapsedTimeMillis();
+			tElapsed = (t - tBang);
+
+			remainGatePrc = ofMap(tElapsed, 0, tGateDur, 1.0f, 0.f, true);
+
+			//gate being closed
+			if (tElapsed > tGateDur)
+			{
+				bGateClosed = false;//open gate
+				bBang = false;//release boolean bang
+			}
+		}
+
+		if (!bGateClosed) {
+			remainGatePrc = 0;
+		}
+
+		//if (!bGateClosed) {
+		//	remainGatePrc = ofMap(tElapsed, 0, tGateDur, 0, 1.f, true);
+		//}
+		//else {
+		//	remainGatePrc = 0;
+		//}
 	}
 
 private:
@@ -999,7 +1056,106 @@ private:
 		bUpdateHelp = true;
 	}
 
+	//--
+
 private:
+
+	//--------------------------------------------------------------
+	void drawImGui()
+	{
+		ofScopedLock waveformLock(waveformMutex);
+
+		//if (!bGui) return;
+
+		ui.Begin();
+		{
+			//--
+
+			// Main
+
+			drawImGuiMain();
+
+			//--
+
+			// Input
+
+			drawImGuiIn();
+
+			//--
+
+			// Out
+
+			drawImGuiOut();
+
+			//--
+
+			// Extras
+
+			//if (ui.isMaximized()) 
+			{
+				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_VU_Value, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
+
+				if (bGui_VuPlot) ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
+
+				//TODO: FFT bands
+				if (bGui_FFT) ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f);
+
+				// Big Floating Slider
+				if (bGui_BigVSlider)
+				{
+					//ofColor colorGrab = ofColor::pink;
+
+					vector<SliderMarks> marks;
+					SliderMarks m1;
+					m1.color = ofColor(ofColor::yellow, 96);
+					m1.value = deviceIn_VU_Value;
+					marks.push_back(m1);
+					//SliderMarks m2;
+					//m2.color = ofColor::orange;
+					//m2.value = ofMap(glm::cos(ofGetElapsedTimef()), -1, 1, 0, 1, true);
+					//marks.push_back(m2);
+
+					//ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, &colorGrab, &marks);
+
+					ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, nullptr, &marks);
+
+					//TODO: do not works. maybe bc windowed?
+					//ofxImGuiSurfing::AddMouseWheel(p);
+					ofxImGuiSurfing::AddMouseWheel(threshold, false);
+					ofxImGuiSurfing::AddMouseClickRightReset(threshold);
+				}
+			}
+
+			//--
+
+			// Wave plot
+
+#ifdef USE_WAVEFORM_PLOTS
+			waveformPlot.drawImGui(false);
+#endif
+			//--
+
+			//TODO:
+			// Alternative to box with ImGui native
+			//ofxImGuiSurfing::AddTextBoxWindow(boxHelpInfo.bGui.getName(), helpInfo);
+
+			////TODO:
+			//static ofRectangle r{ 100,100,100,100 };
+			//static ImVec2 pos{ 100,100 };
+			//string t1 = boxHelpInfo.bGui.getName();
+			//auto t2 = helpInfo.c_str();
+			//ofxImGuiSurfing::AddTooltipPinned(t1.c_str(), pos, &r, t2);
+
+			//--
+
+#ifdef USE_SOUND_FILE_PLAYER
+			player.drawImGui();
+#endif
+			//--
+
+				}
+		ui.End();
+			}
 
 	//--------------------------------------------------------------
 	void drawImGuiMain()
@@ -1022,8 +1178,8 @@ private:
 					if (!bGui_In)
 					{
 						ui.AddSpacing();
-						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
-					}
+						ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
+				}
 
 #ifdef USE_DEVICE_OUTPUT
 					ui.AddSpacingBigSeparated();
@@ -1050,16 +1206,17 @@ private:
 						// Pass the expected widget width divided by two
 						AddSpacingPad(w);
 						ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
-					}
+			}
 
 					//ui.Unindent();
 #endif
-				}
+		}
 				else // maximized
 				{
 					ui.AddLabelBig("API");
 					ui.AddSpacing();
 					ui.AddCombo(apiIndex_Windows, ApiNames);
+					ui.AddSpacing();
 					ui.Add(bEnableAudio, OFX_IM_TOGGLE);
 					ui.AddSpacingSeparated();
 
@@ -1072,14 +1229,14 @@ private:
 					if (!bGui_In)
 					{
 						ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
-						//ui.AddSpacing();
+						ui.AddSpacing();
 						//ui.AddLabelBig("IN");
 						ui.AddCombo(deviceIn_Port, inDevicesNames);
 					}
 					if (!bGui_In)
 					{
 						ui.AddSpacingSeparated();
-						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+						ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
 					}
 
 					//--
@@ -1125,7 +1282,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1136,9 +1293,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-			}
-		}
+				}
 	}
+		}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1149,20 +1306,26 @@ private:
 
 		if (ui.BeginWindowSpecial(bGui_In))
 		{
-			ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
-			ui.AddSpacing();
-
 			if (!ui.bMinimize) {
 				ui.AddLabelBig("DEVICE");
 				ui.AddSpacing();
 			}
+
+			ui.Add(deviceIn_Enable, OFX_IM_TOGGLE);
+			ui.AddSpacing();
+
 			ui.AddCombo(deviceIn_Port, inDevicesNames);
+
+			ui.AddSpacingSeparated();
+
+			ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
+			ui.AddTooltip("Real-time VU");
 
 			if (!ui.bMinimize)
 			{
 				ui.AddSpacingSeparated();
 
-				if (ui.BeginTree("VU SETTINGS"))
+				if (ui.BeginTree("VU SMOOTH"))
 				{
 					//ui.AddSpacing();
 					//ui.AddLabelBig("VU");
@@ -1187,6 +1350,9 @@ private:
 						deviceIn_vuSmooth = .84;
 						deviceIn_vuOffsetPow = 0.84f;
 					}
+					string s = "Note that \nthis Real-time VU value \nis not necessarily correlated \nto RMS/dB exact values.\n";
+					s += "Instead of that, is a WIP \nmore usable intuitive value.\nA personal engine \nthat needs more tweaking.";
+					ui.AddTooltip(s);
 
 					ui.AddSpacing();
 
@@ -1199,24 +1365,38 @@ private:
 						ofxImGuiSurfing::AddPad2D(deviceIn_vuSmooth, deviceIn_Gain, ImVec2{ -1,-1 }, false, true);
 						ImGui::Spacing();
 
-						ofxImGuiSurfing::AddPlot(deviceIn_vuValue);
+						ofxImGuiSurfing::AddPlot(deviceIn_VU_Value);
 					}
 
 					ui.EndTree();
 				}
-				//ui.AddSpacingSeparated();
 			}
-
-			ui.AddSpacingSeparated();
-
-			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
-			ui.AddTooltip("Real-time VU");
 
 			if (ui.isMaximized())
 			{
+				ui.AddSpacingSeparated();
 
-				ui.Add(threshold, OFX_IM_HSLIDER_MINI);
-				//ui.Add(threshold, OFX_IM_STEPPER);
+				if (ui.BeginTree("DETECTOR"))
+				{
+					string s;
+					ui.Add(threshold, OFX_IM_HSLIDER_MINI);
+					s = "Threshold level limit to consider \nthe VU level as \na Bang. Occurred when passed!";
+					ui.AddTooltip(s);
+					ui.Add(bGui_BigVSlider, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					s = "Big and floating widget \nfor the Threshold.";
+					ui.AddTooltip(s);
+					ui.Add(tGateDur, OFX_IM_STEPPER);
+					s = "Gated time in ms \nafter a Bang trig.";
+					ui.AddTooltip(s);
+					ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
+					s = "Boolean Bang enabled \nduring gated time.";
+					s = "Consider linking a callback \nto be notified \nwhen delta/trig happens.";
+					ui.AddTooltip(s);
+					///*if (bBang) */ofxImGuiSurfing::AddProgressBar(1 - remainGatePrc);
+					ofxImGuiSurfing::AddProgressBar(remainGatePrc);
+					ui.EndTree();
+				}
+
 				ui.AddSpacingSeparated();
 
 				if (ui.BeginTree("EXTRA WIDGETS"))
@@ -1232,7 +1412,9 @@ private:
 						//ui.Add(bHorizontal, OFX_IM_TOGGLE_ROUNDED_MINI);
 						ui.Unindent();
 					}
+					ui.AddSpacingSeparated();
 					ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
+					ui.AddSpacingSeparated();
 					ui.Add(bGui_FFT, OFX_IM_TOGGLE_ROUNDED_SMALL);
 
 					ui.EndTree();
@@ -1257,81 +1439,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-}
-#endif
-	}
-
-	//--------------------------------------------------------------
-	void drawImGui()
-	{
-		ofScopedLock waveformLock(waveformMutex);
-
-		//if (!bGui) return;
-
-		ui.Begin();
-		{
-			//--
-
-			// Main
-
-			drawImGuiMain();
-
-			//--
-
-			// Input
-
-			drawImGuiIn();
-
-			//--
-
-			// Out
-
-			drawImGuiOut();
-
-			//--
-
-			// Extras
-
-			//if (ui.isMaximized()) 
-			{
-				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
-
-				if (bGui_VuPlot) ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
-
-				//TODO: FFT bands
-				if (bGui_FFT) ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f);
-			}
-
-			//--
-
-			// Wave plot
-
-#ifdef USE_WAVEFORM_PLOTS
-			waveformPlot.drawImGui(false);
-#endif
-			//--
-
-			//TODO:
-			// Alternative to box with ImGui native
-			//ofxImGuiSurfing::AddTextBoxWindow(boxHelpInfo.bGui.getName(), helpInfo);
-
-			////TODO:
-			//static ofRectangle r{ 100,100,100,100 };
-			//static ImVec2 pos{ 100,100 };
-			//string t1 = boxHelpInfo.bGui.getName();
-			//auto t2 = helpInfo.c_str();
-			//ofxImGuiSurfing::AddTooltipPinned(t1.c_str(), pos, &r, t2);
-
-			//--
-
-#ifdef USE_SOUND_FILE_PLAYER
-			player.drawImGui();
-#endif
-			//--
-
 		}
-		ui.End();
-	}
+#endif
+		}
 
 public:
 
@@ -1375,7 +1485,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-	}
+		}
 
 private:
 
@@ -1622,8 +1732,8 @@ private:
 #endif
 
 #ifdef USE_SOUND_FILE_PLAYER
-		player.setup();
 		player.setUiPtr(&ui);
+		player.setup();
 		ui.addWindowSpecial(player.bGui);
 #endif
 
@@ -1811,7 +1921,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 				//--
 
@@ -1857,7 +1967,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-	}
+		}
 
 			//--
 
@@ -1869,8 +1979,8 @@ public:
 			_rms = ofClamp(_rms, 0, 1);
 
 			// Alternative
-			//deviceIn_vuValue *= 0.93;
-			//deviceIn_vuValue += 0.07 * _rms;
+			//deviceIn_VU_Value *= 0.93;
+			//deviceIn_VU_Value += 0.07 * _rms;
 
 			//--
 
@@ -1888,7 +1998,7 @@ public:
 			//smooth = ofMap(smooth, 0.f, 1.0f, 0.f, 1.f, true);
 			smooth = ofMap(smooth, 0.f, 1.0f, 0.f, .95f, true);
 
-			float _vu = deviceIn_vuValue;
+			float _vu = deviceIn_VU_Value;
 
 			//_vu *= smooth;
 			//_vu += (1 - smooth) * _rms;
@@ -1922,13 +2032,13 @@ public:
 			//--
 
 			// Clamp
-			deviceIn_vuValue = ofClamp(_vu, 0, 1.f);
+			deviceIn_VU_Value = ofClamp(_vu, 0, 1.f);
 
 			//--
 
 			// Plot
 
-			historyVU.push_back(deviceIn_vuValue.get());
+			historyVU.push_back(deviceIn_VU_Value.get());
 
 			// refresh
 			if (historyVU.size() >= MAX_HISTORY_VU) {
@@ -1937,8 +2047,8 @@ public:
 
 			//--
 
-			//DebugCoutParam(deviceIn_vuValue);
-		}
+			//DebugCoutParam(deviceIn_VU_Value);
+	}
 
 		//----
 
@@ -1958,7 +2068,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 			}
 		}
@@ -2001,8 +2111,8 @@ public:
 					indexOut = 0;
 				}
 #endif
-			}
-		}
+				}
+	}
 	}
 #endif
 

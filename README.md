@@ -13,7 +13,7 @@ Currently Input devices only.
 ## Screenshot
 
 ![](/1-example_Basic/Capture.PNG)  
-![](/4-example_Player/Capture.PNG)  
+![](/4-example_ExtrasDetector/Capture.PNG)  
 
 ## Features
 - **Select** Input and Output (WIP) **devices** using an **ImGui** based **GUI**.
