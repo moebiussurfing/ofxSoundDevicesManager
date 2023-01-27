@@ -7,6 +7,10 @@ void ofApp::setup() {
 	numBuffers = 4;
 
 	audioDevices.setup(sampleRate, bufferSize, numBuffers);
+	
+	// Log
+	audioDevices.getUiPtr()->ClearLogDefaultTags();
+	audioDevices.getUiPtr()->AddLogTag("BANG", ofColor::green);
 
 	textBox.setFontSize(65);
 	textBox.setup();
@@ -43,12 +47,12 @@ void ofApp::draw()
 		float v = audioDevices.getVumeterValue();
 		float t_ = audioDevices.getThreshold();
 
-		//TODO: tween
+		//TODO: tween threshold
 		static float t = 0;
 		//t = (t_ - t) * 0.25;
 		//t = t_;
 		float diff = t_ - t;
-		t = t + diff * 0.5;
+		t = t + diff * 0.1;
 
 		float x = ofGetWidth() / 2;
 		float y = ofGetHeight() / 2;
@@ -101,11 +105,16 @@ void ofApp::draw()
 				bDo = true;
 				count++;//count bangs
 
-				//switch color
+				// Switch color
 				cPre = c;
 				ic++;
 				if (ic == colors.size()) ic = 0;
 				c = colors[ic];
+
+				// Log
+				string s;
+				s += "#" + ofToString(count);
+				audioDevices.getUiPtr()->AddToLog(s, "BANG");
 			}
 
 			//--
@@ -132,10 +141,8 @@ void ofApp::draw()
 
 			// Draw
 			string s;
-			s += "\n";
 			s += "BANG!\n";
 			s += " #" + ofToString(count);
-			s += "\n";
 			textBox.setText(s);
 			textBox.draw();
 		}
@@ -143,6 +150,7 @@ void ofApp::draw()
 
 		//--
 
+		// Anticipate next flash color!
 		ofSetColor(c, 255);
 		ofSetLineWidth(3);
 

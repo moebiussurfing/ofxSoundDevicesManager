@@ -640,7 +640,7 @@ private:
 public:
 
 	ofParameter<bool> bBang{ "BANG", false };
-	ofParameter<float> threshold{ "ThreshOLD", 1, 0, 1 };
+	ofParameter<float> threshold{ "Threshold", 1, 0, 1 };
 
 private:
 
@@ -656,6 +656,9 @@ private:
 	ofParameter<bool> bGui_VuPlot{ "VU HISTORY", false };
 
 	ofParameter<bool> bGui_FFT{ "FFT", false };
+	ofParameter<float> fftStart{ "Start", 0, 0, 1 };
+	ofParameter<float> fftEnd{ "End", 1, 0, 1};
+
 	ofParameter<bool> bGui_BigVSlider{ "Big Slider", false };
 
 	//--
@@ -1107,7 +1110,13 @@ private:
 				if (bGui_VuPlot) ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
 
 				//TODO: FFT bands
-				if (bGui_FFT) ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f);
+				bool bWindowed = true;
+				ImVec2 sz = ImVec2(-1, -1);
+				bool bNoHeader = false;
+				float start = fftStart;
+				float end = fftEnd;
+
+				if (bGui_FFT) ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f, bWindowed, ImVec2(-1, -1), bNoHeader, start, end);
 
 				// Big Floating Slider
 				if (bGui_BigVSlider)
@@ -1162,9 +1171,9 @@ private:
 #endif
 			//--
 
-		}
+			}
 		ui.End();
-	}
+		}
 
 	//--------------------------------------------------------------
 	void drawImGuiMain()
@@ -1176,6 +1185,7 @@ private:
 			if (ui.BeginWindowSpecial(bGui_Main))
 			{
 				ui.AddMinimizerToggle();
+				ui.AddLogToggle();
 
 				//--
 
@@ -1188,7 +1198,7 @@ private:
 					{
 						ui.AddSpacing();
 						ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
-					}
+				}
 
 #ifdef USE_DEVICE_OUTPUT
 					ui.AddSpacingBigSeparated();
@@ -1215,11 +1225,11 @@ private:
 						// Pass the expected widget width divided by two
 						AddSpacingPad(w);
 						ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
-					}
+			}
 
 					//ui.Unindent();
 #endif
-				}
+		}
 				else // maximized
 				{
 					ui.AddLabelBig("API");
@@ -1302,9 +1312,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-			}
-		}
 	}
+	}
+}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1422,9 +1432,17 @@ private:
 						ui.Unindent();
 					}
 					ui.AddSpacingSeparated();
+
 					ui.Add(bGui_VuPlot, OFX_IM_TOGGLE_ROUNDED_SMALL);
 					ui.AddSpacingSeparated();
+
 					ui.Add(bGui_FFT, OFX_IM_TOGGLE_ROUNDED_SMALL);
+					if (bGui_FFT) {
+						ui.Indent();
+						ui.Add(fftStart, OFX_IM_HSLIDER_MINI_NO_LABELS);
+						ui.Add(fftEnd, OFX_IM_HSLIDER_MINI_NO_LABELS);
+						ui.Unindent();
+					}
 
 					ui.EndTree();
 				}
@@ -1494,7 +1512,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-	}
+		}
 
 private:
 
@@ -1926,7 +1944,7 @@ public:
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
-				}
+		}
 				else
 				{
 					indexIn = 0;
@@ -1976,7 +1994,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+	}
 
 			//--
 
