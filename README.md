@@ -14,7 +14,8 @@ Currently Input devices only.
 ## Screenshot
 
 ![](/1-example_Basic/Capture.PNG)  
-![](/4-example_ExtrasDetector/Capture.PNG)  
+![](/4-example_Player/Capture.PNG)  
+![](/5-example_ExtrasDetector/Capture.PNG)  
 
 ## Features
 - Device selector: 
