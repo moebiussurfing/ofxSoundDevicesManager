@@ -459,6 +459,9 @@ private:
 		params_In.add(deviceIn_vuGainBoost);
 		params_In.add(powerSmoothAvg);
 		params_In.add(bEnable_SmoothAvg);
+		params_In.add(deviceIn_vuAwengine);
+		params_In.add(timeAwengine);
+
 		//params_In.add(deviceIn_Api);
 		//params_In.add(deviceIn_ApiName);//labels
 
@@ -533,7 +536,7 @@ public:
 	// to trig a bang
 
 	float getVumeterValue() const {
-		return deviceIn_VU_Value.get();
+		return deviceIn_vuValue.get();
 	}
 	float getThreshold() const {
 		return threshold.get();
@@ -639,8 +642,12 @@ private:
 	// rms signal to use on VU
 	ofParameter<float> deviceIn_vuOffsetPow{ "Pow", 0, -1, 1 }; // Offset pow
 	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 }; // to smooth the vu signal
-	ofParameter<float> deviceIn_VU_Value{ "RMS", 0, 0, 1 }; // to use into the vu
+	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
 
+	ofParameter<bool> deviceIn_vuAwengine{ "AWENGINE", false };
+	ofParameter<int> timeAwengine{ "Patience", 4, 1, 10 };
+	float deviceIn_VuMax = 0;
+	uint32_t timeLastAwengine = 0;
 	float deviceIn_GainLog;//TODO: maybe useful to be public to apply gain on the parent class.
 
 	// Detector
@@ -815,6 +822,8 @@ private:
 		waveformPlot.update();
 #endif
 
+		//--
+
 #ifdef USE_SOUND_FILE_PLAYER
 		player.update();
 #endif
@@ -827,6 +836,8 @@ private:
 
 			buildHelpInfo();
 		}
+
+		//--
 
 		// Bang
 		uint64_t tElapsed = 0;
@@ -858,12 +869,21 @@ private:
 			remainGatePrc = 0;
 		}
 
-		//if (!bGateClosed) {
-		//	remainGatePrc = ofMap(tElapsed, 0, tGateDur, 0, 1.f, true);
-		//}
-		//else {
-		//	remainGatePrc = 0;
-		//}
+		//--
+
+		// Peak memo
+		//refresh max every timeAwengine seconds
+		if (deviceIn_vuValue > deviceIn_VuMax) deviceIn_VuMax = deviceIn_vuValue;
+		if (ofGetFrameNum() % int(timeAwengine * 60) == 0)
+		{
+			// Awengine!
+			if (deviceIn_vuAwengine)
+			{
+				doRunAwengine();
+			}
+
+			deviceIn_VuMax = 0;
+		}
 	}
 
 private:
@@ -1177,7 +1197,7 @@ private:
 
 			//if (ui.isMaximized()) 
 			{
-				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_VU_Value, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
+				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
 
 				if (bGui_VuPlot)
 				{
@@ -1212,23 +1232,15 @@ private:
 
 					// vu
 					SliderMarks m1;
-					m1.value = deviceIn_VU_Value;
+					m1.value = deviceIn_vuValue;
 					m1.pad = ImGui::GetStyle().ItemSpacing.x;
 					m1.thick = 6;
 					m1.color = ofColor(ofColor::black, 96);
 					marks.push_back(m1);
 
-					// peak mem
-					float tBuff = 2.f;
-					static float maxVu = 0;
-					//refresh max every tBuff seconds
-					if (deviceIn_VU_Value > maxVu) maxVu = deviceIn_VU_Value;
-					if (ofGetFrameNum() % int(tBuff * 60) == 0)
-					{
-						maxVu = 0;
-					}
+					// peak memo
 					SliderMarks m2;
-					m2.value = maxVu;
+					m2.value = deviceIn_VuMax;
 					m2.pad = 0;
 					m2.thick = 2;
 					if (colorGrab != nullptr) m2.color = ofColor(ofColor(*colorGrab), 128);
@@ -1300,7 +1312,7 @@ private:
 					if (!bGui_In)
 					{
 						ui.AddSpacing();
-						ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
+						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 					}
 
 #ifdef USE_DEVICE_OUTPUT
@@ -1358,7 +1370,7 @@ private:
 					if (!bGui_In)
 					{
 						ui.AddSpacingSeparated();
-						ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
+						ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 					}
 
 					//--
@@ -1404,7 +1416,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1415,9 +1427,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-				}
 			}
 		}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1440,7 +1452,7 @@ private:
 
 			ui.AddSpacingSeparated();
 
-			ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
+			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 			ui.AddTooltip("Real-time VU");
 
 			if (!ui.bMinimize)
@@ -1517,7 +1529,7 @@ private:
 						ofxImGuiSurfing::AddPad2D(deviceIn_vuSmooth, deviceIn_Gain, ImVec2{ -1,-1 }, false, true);
 						ImGui::Spacing();
 
-						ofxImGuiSurfing::AddPlot(deviceIn_VU_Value, ImVec2{ -1,-1 }, nullptr);
+						ofxImGuiSurfing::AddPlot(deviceIn_vuValue, ImVec2{ -1,-1 }, nullptr);
 					}
 
 					ui.EndTree();
@@ -1606,6 +1618,8 @@ private:
 						ui.Add(powerSmoothAvg, OFX_IM_KNOB_DOTKNOB, 2, flags);
 					}
 
+					ui.AddSpacing();
+
 					ImVec2 sz{ ui.getWidgetsWidth(2) , ui.getWidgetsHeightUnit() };
 					ofxImGuiSurfing::AddSpacingPad(wk);
 					if (ui.AddButton("RESET", sz))
@@ -1613,7 +1627,7 @@ private:
 						doResetVuSmooth();
 					}
 
-					ImGui::Spacing();
+					ui.AddSpacingSeparated();
 
 					{
 						// mark threshold
@@ -1624,7 +1638,7 @@ private:
 						m1.thick = 2;
 						m1.color = ofColor(ofColor::yellow, 96);
 						marks.push_back(m1);
-						ofxImGuiSurfing::AddPlot(deviceIn_VU_Value, &marks, true);
+						ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true);
 					}
 
 					ImGui::Spacing();
@@ -1633,6 +1647,14 @@ private:
 					ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
 					ofxImGuiSurfing::AddProgressBar(remainGatePrc);
 
+					ui.AddSpacingSeparated();
+
+					ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
+					if (deviceIn_vuAwengine) {
+						ui.Add(timeAwengine, OFX_IM_DRAG);
+						float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine, 0, timeAwengine * 1000, 0, 1);
+						ofxImGuiSurfing::AddProgressBar(v);
+					}
 					//ui.EndTree();
 				}
 
@@ -1656,9 +1678,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-	}
+		}
 #endif
-}
+	}
 
 public:
 
@@ -2142,7 +2164,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 				//--
 
@@ -2188,7 +2210,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-	}
+			}
 
 			//--
 
@@ -2200,8 +2222,8 @@ public:
 			_rms = ofClamp(_rms, 0, 1);
 
 			// Alternative
-			//deviceIn_VU_Value *= 0.93;
-			//deviceIn_VU_Value += 0.07 * _rms;
+			//deviceIn_vuValue *= 0.93;
+			//deviceIn_vuValue += 0.07 * _rms;
 
 			//--
 
@@ -2219,7 +2241,7 @@ public:
 			//smooth = ofMap(smooth, 0.f, 1.0f, 0.f, 1.f, true);
 			smooth = ofMap(smooth, 0.f, 1.0f, 0.f, .95f, true);
 
-			float _vu = deviceIn_VU_Value;
+			float _vu = deviceIn_vuValue;
 
 			//_vu *= smooth;
 			//_vu += (1 - smooth) * _rms;
@@ -2261,13 +2283,13 @@ public:
 			//--
 
 			// Clamp
-			deviceIn_VU_Value = ofClamp(_vu, 0, 1.f);
+			deviceIn_vuValue = ofClamp(_vu, 0, 1.f);
 
 			//--
 
 			// Plot
 
-			historyVU.push_back(deviceIn_VU_Value.get());
+			historyVU.push_back(deviceIn_vuValue.get());
 
 			// refresh
 			if (historyVU.size() >= MAX_HISTORY_VU) {
@@ -2276,7 +2298,7 @@ public:
 
 			//--
 
-			//DebugCoutParam(deviceIn_VU_Value);
+			//DebugCoutParam(deviceIn_vuValue);
 		}
 
 		//----
@@ -2297,7 +2319,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 			}
 		}
@@ -2475,6 +2497,29 @@ private:
 		}
 	}
 
+	bool bFlagDoneAwengine = false;
+
+public:
+	
+	//--------------------------------------------------------------
+	const bool isDoneAwengine() {
+		if (bFlagDoneAwengine) {
+			bFlagDoneAwengine = false;
+			return true;
+		}
+		else return false;
+	}
+
+private:
+
+	//--------------------------------------------------------------
+	void doRunAwengine()
+	{
+		threshold = deviceIn_VuMax;
+		bFlagDoneAwengine = true;
+		timeLastAwengine = ofGetElapsedTimeMillis();
+	}
+
 	//--------------------------------------------------------------
 	void doResetVuSmooth()
 	{
@@ -2486,6 +2531,8 @@ private:
 		bEnable_SmoothAvg = true;
 		powerSmoothAvg = 0.5;
 	}
+
+	//--
 
 #ifdef USE_DEVICE_OUTPUT
 	//--------------------------------------------------------------

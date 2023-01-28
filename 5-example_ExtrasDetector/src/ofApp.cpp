@@ -15,11 +15,11 @@ void ofApp::setup()
 
 	// Notifier
 	string path = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
-	float sz = 32;
-	float round = 8;
+	float sz = 37;
+	float round = 15;
 	//float round = 40;
 	notifier.setup(path, sz, round);
-	notifier.setMessagesLifeTime(2000);
+	//notifier.setMessagesLifeTime(4000);
 
 	// Align
 	//notifier.setAlignment(surfingNotify::AlignNote_LEFT);
@@ -43,9 +43,9 @@ void ofApp::draw()
 	else
 	{
 		// Bg
-		
+
 		//ofClear(61);
-		
+
 		//if (bFlipScene) ofClear(v * 255);
 		//else ofClear((1 - v) * 255);
 
@@ -150,6 +150,15 @@ void ofApp::draw()
 			ofDrawRectangle(rBg);
 		}
 		else bDo = false;
+
+		// Awengine 
+		// Get notified when Awengine done!
+		if (audioDevices.isDoneAwengine())
+		{
+			// Notify
+			string s = "AWE! THR>" + ofToString(audioDevices.getThreshold(), 1);
+			notifier.addNotification(s, 255, ofColor(0));
+		}
 
 		//--
 
