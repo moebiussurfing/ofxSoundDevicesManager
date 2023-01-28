@@ -28,7 +28,7 @@ public:
 
 	vector<ofColor> colors{ ofColor::red, ofColor::green, ofColor::blue, ofColor::yellow, ofColor::orange, ofColor::violet, ofColor::turquoise, ofColor::chocolate, ofColor::aquamarine };
 
-	ofxWindowApp w;
-
 	surfingNotify notifier;
+
+	ofxWindowApp w;
 };

@@ -1,7 +1,8 @@
 #include "ofApp.h"
 
 //--------------------------------------------------------------
-void ofApp::setup() {
+void ofApp::setup()
+{
 	sampleRate = 48000;
 	bufferSize = 512;
 	numBuffers = 4;
@@ -12,13 +13,16 @@ void ofApp::setup() {
 	audioDevices.getUiPtr()->ClearLogDefaultTags();
 	audioDevices.getUiPtr()->AddLogTag("BANG", ofColor::green);
 
+	// Notifier
 	string path = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
-	notifier.setup(path, 30);
-
+	float sz = 20;
+	notifier.setup(path, sz, 20);
+	// align
 	//notifier.setAlignment(surfingNotify::AlignNote_LEFT);
 	notifier.setAlignment(surfingNotify::AlignNote_CENTER);
 	//notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
 
+	// Settings
 	ofxSurfingHelpers::load(g);
 }
 
@@ -35,11 +39,15 @@ void ofApp::draw()
 	else
 	{
 		// Bg
-		ofClear(61);
+		
+		//ofClear(61);
+		
 		//if (bFlipScene) ofClear(v * 255);
 		//else ofClear((1 - v) * 255);
-		//if (!bFlipScene) ofClear(255);
-		//else ofClear(0);
+
+		float gap = 32;
+		if (!bFlipScene) ofClear(255 - gap);
+		else ofClear(0 + gap);
 
 		//--
 
@@ -94,7 +102,7 @@ void ofApp::draw()
 		// Threshold
 
 		static int ic = 0;
-		static ofColor c = colors[ic];
+		static ofColor cNew = colors[ic];
 		static int count = 0;//bangs
 		static ofColor cPre;
 
@@ -108,19 +116,19 @@ void ofApp::draw()
 				count++;//count bangs
 
 				// Switch color
-				cPre = c;
+				cPre = cNew;
 				ic++;
 				if (ic == colors.size()) ic = 0;
-				c = colors[ic];
+				cNew = colors[ic];
 
 				// Log
 				string s;
 				s += "#" + ofToString(count);
 				audioDevices.getUiPtr()->AddToLog(s, "BANG");
 
+				// Notify
 				s = "BANG #" + ofToString(count);
-				notifier.addNotification(s);
-				//notifier.setColorText(c);
+				notifier.addNotification(s, cPre, ofColor(0));
 			}
 
 			//--
@@ -136,7 +144,7 @@ void ofApp::draw()
 		//--
 
 		// Anticipate next flash color!
-		ofSetColor(c, 255 * ofxSurfingHelpers::getFadeBlink(0.30, 1.0, 0.3));
+		ofSetColor(cNew, 255 * ofxSurfingHelpers::getFadeBlink(0.30, 1.0, 0.3));
 		ofSetLineWidth(3);
 
 		// circle
@@ -160,12 +168,6 @@ void ofApp::draw()
 }
 
 //--------------------------------------------------------------
-void ofApp::exit()
-{
-	ofxSurfingHelpers::save(g);
-}
-
-//--------------------------------------------------------------
 void ofApp::audioIn(ofSoundBuffer& input) {
 	audioDevices.audioIn(input);
 }
@@ -173,23 +175,61 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key)
 {
-	// disable keyboard when typing 
+	// Disable keyboard 
+	// when typing into any ui widget.
 	if (audioDevices.getUiPtr()->isOverInputText()) return;
 
-	if (key == 'g') audioDevices.setVisibleToggle();
+	if (key == 'g') {
+		audioDevices.setVisibleToggle();
 
-	if (key == 's') bScene = !bScene;
+		// Notify
+		string s = "GUI : " + ofToString(audioDevices.getIsVisibleGui() ? "ON" : "OFF");
+		notifier.addNotification(s);
+	}
+	if (key == 's') {
+		bScene = !bScene;
 
-	if (key == ' ') bFlipScene = !bFlipScene;
+		// Notify
+		string s = "DRAW SCENE : " + ofToString(bScene ? "ON" : "OFF");
+		notifier.addNotification(s);
+	}
 
-	if (key == OF_KEY_RETURN) bShape = !bShape;
+	if (key == ' ') {
+		bFlipScene = !bFlipScene;
+
+		// Notify
+		string s = "SCENE COLORS : " + ofToString(bFlipScene ? "BLACK/WHITE" : "BLACK/WHITE");
+		notifier.addNotification(s);
+	}
+
+	if (key == OF_KEY_RETURN) {
+		bShape = !bShape;
+
+		// Notify
+		string s = "SCENE SHAPE : " + ofToString(bShape ? "CIRCLE" : "RECTANGLE");
+		notifier.addNotification(s);
+	}
 
 	if (key == OF_KEY_DOWN) {
 		audioDevices.threshold -= 0.02;
 		ofClamp(audioDevices.threshold, 0, 1);
+
+		// Notify
+		string s = "THRESHOLD : " + ofToString(audioDevices.threshold.get(), 2);
+		notifier.addNotification(s);
 	}
 	if (key == OF_KEY_UP) {
 		audioDevices.threshold += 0.02;
 		ofClamp(audioDevices.threshold, 0, 1);
+
+		// Notify
+		string s = "THRESHOLD : " + ofToString(audioDevices.threshold.get(), 2);
+		notifier.addNotification(s);
 	}
+}
+
+//--------------------------------------------------------------
+void ofApp::exit()
+{
+	ofxSurfingHelpers::save(g);
 }
