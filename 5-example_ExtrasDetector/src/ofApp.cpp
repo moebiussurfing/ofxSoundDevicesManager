@@ -15,13 +15,16 @@ void ofApp::setup()
 
 	// Notifier
 	string path = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
-	float sz = 30;
-	notifier.setup(path, sz, 20);
+	float sz = 32;
+	float round = 0;
+	//float round = 40;
+	notifier.setup(path, sz, round);
+	notifier.setMessagesLifeTime(1000);
 
-	// align
+	// Align
 	//notifier.setAlignment(surfingNotify::AlignNote_LEFT);
-	//notifier.setAlignment(surfingNotify::AlignNote_CENTER);
-	notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
+	notifier.setAlignment(surfingNotify::AlignNote_CENTER);
+	//notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
 
 	// Settings
 	ofxSurfingHelpers::load(g);
@@ -46,7 +49,7 @@ void ofApp::draw()
 		//if (bFlipScene) ofClear(v * 255);
 		//else ofClear((1 - v) * 255);
 
-		float gap = 32;
+		float gap = 48;
 		if (!bFlipScene) ofClear(255 - gap);
 		else ofClear(0 + gap);
 
@@ -109,7 +112,7 @@ void ofApp::draw()
 
 		// Bang!
 		static bool bDo = false;
-		if (audioDevices.getIsBang())
+		if (audioDevices.getIsBang())//will be true until gate is closed!
 		{
 			// Get bang delta flag only!
 			if (!bDo) {
@@ -137,7 +140,11 @@ void ofApp::draw()
 			//--
 
 			// Fill flash!
-			ofSetColor(cPre, 255 * (audioDevices.getGateProgress()));
+			float a = (audioDevices.getGateProgress());
+			// log
+			a = ofxSurfingHelpers::reversedExponentialFunction(a * 10.f);//slower
+			//a = ofxSurfingHelpers::squaredFunction(a);//faster
+			ofSetColor(cPre, 255 * a);
 			ofFill();
 			ofRectangle rBg = ofGetCurrentViewport();
 			ofDrawRectangle(rBg);

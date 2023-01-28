@@ -4,6 +4,8 @@
 
 	TODO:
 
+	+	add threshold line to waveform plot
+
 	+	WIP: Enable toggles not working
 
 		Out not working as player can't pick which output devide to use!
@@ -100,7 +102,7 @@
 #include "ofxSurfingSoundPlayer.h"
 #endif
 
-#define MAX_GAIN_BOOST 2.f
+//#define MAX_GAIN_BOOST 2.f
 
 //--
 
@@ -330,6 +332,11 @@ public:
 
 		//--
 
+		//TODO:
+		setupSmoothAvg(historySmoothAvgMax);
+
+		//--
+
 		bDISABLE_CALBACKS = false;
 
 		//----
@@ -448,6 +455,10 @@ private:
 		params_In.add(deviceIn_Gain);
 		params_In.add(deviceIn_vuSmooth);
 		params_In.add(deviceIn_vuOffsetPow);
+		// smooth2
+		params_In.add(MAX_GAIN_BOOST);
+		params_In.add(powerSmoothAvg);
+		params_In.add(bEnable_SmoothAvg);
 		//params_In.add(deviceIn_Api);
 		//params_In.add(deviceIn_ApiName);//labels
 
@@ -623,6 +634,8 @@ private:
 	ofParameter<int> deviceIn_Api;
 	ofParameter<string> deviceIn_ApiName;
 
+	ofParameter<int> MAX_GAIN_BOOST{ "Boost", 2, 0, 10 };
+
 	// rms signal to use on VU
 	ofParameter<float> deviceIn_vuOffsetPow{ "Pow", 0, -1, 1 }; // Offset pow
 	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 }; // to smooth the vu signal
@@ -657,17 +670,17 @@ private:
 
 	ofParameter<bool> bGui_FFT{ "FFT", false };
 	ofParameter<float> fftStart{ "Start", 0, 0, 1 };
-	ofParameter<float> fftEnd{ "End", 1, 0, 1};
+	ofParameter<float> fftEnd{ "End", 1, 0, 1 };
 
 	ofParameter<bool> bGui_BigVSlider{ "Big Slider", false };
-	
+
 	ofColor* colorGrab = nullptr;
 public:
 
 	void setColorSliderGrab(ofColor* color) {
 		colorGrab = color;
 	}
-	
+
 	//--
 
 	// Out
@@ -747,7 +760,53 @@ public:
 		if (bGui_Main != bGui) bGui_Main = bGui;
 	}
 
+	//--
+
 private:
+
+	int historySmoothAvgMax = 15;//that's the slower value. hardcoded!
+	float valueSmoothedAvg = 0.0;
+	ofParameter<bool> bEnable_SmoothAvg{ "AVG", false };
+	ofParameter<float> powerSmoothAvg{ "Smooth2", 0.5f, 0, 1 };
+	vector<float> historySmoothAvg;
+	int ioffset = 0;
+	int ioffsetEnd = historySmoothAvgMax;
+	void setupSmoothAvg(int sz = 60)
+	{
+		historySmoothAvgMax = sz;
+
+		historySmoothAvg.clear();
+		historySmoothAvg.assign(sz, 0.0f);
+	};
+	void setSmoothAvgPow(float prc)
+	{
+		int sz = MAX(1, prc * historySmoothAvgMax);
+		ioffsetEnd = sz;
+	};
+	void updateSmoothAvg()
+	{
+		int sz = ioffsetEnd;
+
+		valueSmoothedAvg = 0;
+		for (int i = 0; i < sz; i++)
+		{
+			valueSmoothedAvg += historySmoothAvg[i];
+		}
+		valueSmoothedAvg /= sz;
+
+		ioffset++;
+		ioffset = ioffset % sz;
+	};
+	void addValueSmoothAvg(float value)
+	{
+		historySmoothAvg[ioffset] = value;
+	};
+	const float getValueSmoothAvg()
+	{
+		return valueSmoothedAvg;
+	};
+
+	//--
 
 	//--------------------------------------------------------------
 	void update(ofEventArgs& args)
@@ -1120,7 +1179,19 @@ private:
 			{
 				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_VU_Value, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
 
-				if (bGui_VuPlot) ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU);
+				if (bGui_VuPlot) 
+				{
+					// mark threshold
+					vector<SliderMarks> marks;
+					SliderMarks m1;
+					m1.pad = -1;
+					m1.thick = 2;
+					m1.color = ofColor(ofColor::yellow, 96);
+					m1.value = threshold;
+					marks.push_back(m1);
+
+					ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU, true, ImVec2(-1, -1), false, &marks);
+				}
 
 				//TODO: FFT bands
 				bool bWindowed = true;
@@ -1138,19 +1209,33 @@ private:
 					//ofColor colorGrab = ofColor::pink;
 
 					vector<SliderMarks> marks;
+
 					// vu
 					SliderMarks m1;
+					m1.pad = ImGui::GetStyle().ItemSpacing.x;
+					m1.thick = 6;
 					m1.color = ofColor(ofColor::black, 96);
-					//m1.color = ofColor(ofColor::yellow, 96);
 					m1.value = deviceIn_VU_Value;
 					marks.push_back(m1);
-					// test
-					//SliderMarks m2;
-					//m2.color = ofColor::orange;
-					//m2.value = ofMap(glm::cos(ofGetElapsedTimef()), -1, 1, 0, 1, true);
-					//marks.push_back(m2);
+
+					// peak mem
+					float tBuff = 2.f;
+					static float maxVu = 0;
+					//refresh every tBuff seconds
+					if (deviceIn_VU_Value > maxVu) maxVu = deviceIn_VU_Value;
+					if (ofGetFrameNum() % int(tBuff * 60) == 0)
+					{
+						maxVu = 0;
+					}
+					SliderMarks m2;
+					m2.pad = 0;
+					m2.thick = 1;
+					m2.color = ofColor(ofColor::yellow, 96);
+					m2.value = maxVu;
+					marks.push_back(m2);
 
 					ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, colorGrab, &marks);
+
 					//ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, nullptr, &marks);
 
 					//TODO: do not works. maybe bc windowed?
@@ -1187,9 +1272,9 @@ private:
 #endif
 			//--
 
-			}
-		ui.End();
 		}
+		ui.End();
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiMain()
@@ -1214,7 +1299,7 @@ private:
 					{
 						ui.AddSpacing();
 						ui.Add(deviceIn_VU_Value, OFX_IM_PROGRESS_BAR_NO_TEXT);
-				}
+					}
 
 #ifdef USE_DEVICE_OUTPUT
 					ui.AddSpacingBigSeparated();
@@ -1241,11 +1326,11 @@ private:
 						// Pass the expected widget width divided by two
 						AddSpacingPad(w);
 						ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
-			}
+					}
 
 					//ui.Unindent();
 #endif
-		}
+				}
 				else // maximized
 				{
 					ui.AddLabelBig("API");
@@ -1328,9 +1413,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
+			}
+		}
 	}
-	}
-}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1366,32 +1451,62 @@ private:
 					//ui.AddLabelBig("VU");
 					//ui.AddSpacing();
 
-					const float amt = 3;
-					// NEW API: pass amount of widgets per row and the prc of size
-					// 3 widgets per row with a width of 1/3 of the total available window width
-					ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
-					ui.SameLine();
-					ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
-					ui.SameLine();
-					ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
-					//ui.AddTooltip("Offset Gain");
+					//const float amt = 3;
+					//// NEW API: pass amount of widgets per row and the prc of size
+					//// 3 widgets per row with a width of 1/3 of the total available window width
+					//ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
+					//ui.SameLine();
+					//ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
+					//ui.SameLine();
+					//ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
+					////ui.AddTooltip("Offset Gain");
+					{
+						const float amt = 2;
+						// NEW API: pass amount of widgets per row and the prc of size
+						// 3 widgets per row with a width of 1/3 of the total available window width
+						ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
+						ui.SameLine();
+						ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
 
-					ui.AddSpacing();
-					if (ui.AddButton("RESET")) {
-						//deviceIn_Gain = .5;
-						//deviceIn_vuSmooth = .5;
-						//deviceIn_vuOffsetPow = 0.f;
-						deviceIn_Gain = .84;
-						deviceIn_vuSmooth = .84;
-						deviceIn_vuOffsetPow = 0.84f;
+						ui.Add(MAX_GAIN_BOOST, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
+						ui.SameLine();
+						ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt);
+					}
+
+					ui.AddSpacingSeparated();
+
+					//TODO:
+					{
+						ui.Add(bEnable_SmoothAvg, OFX_IM_TOGGLE);
+						{
+							if (bEnable_SmoothAvg) {
+								float wk = ui.getWidgetsWidth(2) / 2 - ui.getWidgetsSpacingX();
+								ofxImGuiSurfing::AddSpacingPad(wk);
+								SurfingGuiFlags_ flags = SurfingGuiFlags_NoInput;
+								ui.Add(powerSmoothAvg, OFX_IM_KNOB_TICKKNOB, 2, flags);
+							}
+
+							//string s;
+							//s = "ioffset: " + ofToString(ioffset);
+							//ui.AddLabel(s);
+							//s = "ioffsetEnd: " + ofToString(ioffsetEnd);
+							//ui.AddLabel(s);
+						}
+					}
+
+					ui.AddSpacingSeparated();
+
+					if (ui.AddButton("RESET"))
+					{
+						doResetVuSmooth();
 					}
 					string s = "Note that \nthis Real-time VU value \nis not necessarily correlated \nto RMS/dB exact values.\n";
 					s += "Instead of that, is a WIP \nmore usable intuitive value.\nA personal engine \nthat needs more tweaking.";
 					ui.AddTooltip(s);
 
-					ui.AddSpacing();
-
+					//ui.AddSpacing();
 					ui.AddSpacingSeparated();
+
 					ImGui::Spacing();
 					ui.AddExtraToggle(false);
 					ImGui::Spacing();
@@ -1400,7 +1515,7 @@ private:
 						ofxImGuiSurfing::AddPad2D(deviceIn_vuSmooth, deviceIn_Gain, ImVec2{ -1,-1 }, false, true);
 						ImGui::Spacing();
 
-						ofxImGuiSurfing::AddPlot(deviceIn_VU_Value);
+						ofxImGuiSurfing::AddPlot(deviceIn_VU_Value, ImVec2{ -1,-1 }, nullptr);
 					}
 
 					ui.EndTree();
@@ -1462,6 +1577,64 @@ private:
 
 					ui.EndTree();
 				}
+			}
+
+			//--
+
+			if (ui.isMinimized())
+			{
+				ui.AddSpacingSeparated();
+
+				//if (ui.BeginTree("VU SMOOTH"))
+				{
+					float wk = ui.getWidgetsWidth(2) / 2 /*- ui.getWidgetsSpacingX()*/;
+					SurfingGuiFlags_ flags = SurfingGuiFlags_NoInput;
+
+					{
+						ofxImGuiSurfing::AddSpacingPad(wk);
+						ui.Add(deviceIn_Gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
+
+						ofxImGuiSurfing::AddSpacingPad(wk);
+						ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, 2, flags);
+					}
+
+					if (bEnable_SmoothAvg)
+					{
+						ofxImGuiSurfing::AddSpacingPad(wk);
+						ui.Add(powerSmoothAvg, OFX_IM_KNOB_DOTKNOB, 2, flags);
+					}
+
+					ImVec2 sz{ ui.getWidgetsWidth(2) , ui.getWidgetsHeightUnit() };
+					ofxImGuiSurfing::AddSpacingPad(wk);
+					if (ui.AddButton("RESET", sz))
+					{
+						doResetVuSmooth();
+					}
+
+					ImGui::Spacing();
+
+					{
+						// mark threshold
+						vector<SliderMarks> marks;
+						SliderMarks m1;
+						m1.pad = -1;
+						//m1.pad = ImGui::GetStyle().ItemSpacing.x;
+						m1.thick = 2;
+						m1.color = ofColor(ofColor::yellow, 96);
+						m1.value = threshold;
+						marks.push_back(m1);
+						ofxImGuiSurfing::AddPlot(deviceIn_VU_Value, &marks, true);
+					}
+
+					ImGui::Spacing();
+					ui.Add(threshold, OFX_IM_VSLIDER_NO_LABELS);
+					ImGui::Spacing();
+					ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
+					ofxImGuiSurfing::AddProgressBar(remainGatePrc);
+
+					//ui.EndTree();
+				}
+
 			}
 
 			//--
@@ -1528,7 +1701,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-		}
+	}
 
 private:
 
@@ -1960,7 +2133,7 @@ public:
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
-		}
+				}
 				else
 				{
 					indexIn = 0;
@@ -2010,7 +2183,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-	}
+			}
 
 			//--
 
@@ -2048,6 +2221,14 @@ public:
 
 			ofxSurfingHelpers::ofxKuValueSmooth(_vu, _rms, smooth);
 
+			//--
+
+			//TODO:
+			if (bEnable_SmoothAvg) {
+				updateSmoothAvg();
+				addValueSmoothAvg(_vu);
+				_vu = getValueSmoothAvg();
+			}
 
 			//--
 
@@ -2063,11 +2244,11 @@ public:
 			}
 			else if (deviceIn_vuOffsetPow < 0) {
 				float p = -ofxSurfingHelpers::squaredFunction(deviceIn_vuOffsetPow.get());
-				gainExtra = ofMap(p, -1.f, 0, 1.f / MAX_GAIN_BOOST, 1.f, true);
+				gainExtra = ofMap(p, -1.f, 0, 1.f / (float)MAX_GAIN_BOOST, 1.f, true);
 			}
 			else {
 				float p = ofxSurfingHelpers::squaredFunction(deviceIn_vuOffsetPow.get());
-				gainExtra = ofMap(p, 0, 1.f, 1.f, MAX_GAIN_BOOST, true);
+				gainExtra = ofMap(p, 0, 1.f, 1.f, (float)MAX_GAIN_BOOST, true);
 			}
 
 			_vu = deviceIn_GainLog * _vu * gainExtra;
@@ -2249,6 +2430,11 @@ private:
 
 		if (0) {}
 
+		else if (name == powerSmoothAvg.getName())
+		{
+			setSmoothAvgPow(powerSmoothAvg.get());
+		}
+
 		else if (name == deviceIn_Enable.getName())
 		{
 			if (deviceIn_Enable)
@@ -2283,6 +2469,19 @@ private:
 			return;
 		}
 	}
+
+	//--------------------------------------------------------------
+	void doResetVuSmooth()
+	{
+		deviceIn_Gain = .84;
+		deviceIn_vuSmooth = .84;
+		deviceIn_vuOffsetPow = 0.84f;
+		MAX_GAIN_BOOST = 2;
+
+		bEnable_SmoothAvg = true;
+		powerSmoothAvg = 0.5;
+	}
+
 #ifdef USE_DEVICE_OUTPUT
 	//--------------------------------------------------------------
 	void Changed_params_Out(ofAbstractParameter& e)
