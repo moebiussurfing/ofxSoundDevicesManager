@@ -11,15 +11,15 @@ void ofApp::setup()
 
 	// Log
 	audioDevices.getUiPtr()->ClearLogDefaultTags();
-	audioDevices.getUiPtr()->AddLogTag("BANG", ofColor::green);
+	audioDevices.getUiPtr()->AddLogTag("BANG", ofColor::white);
 
 	// Notifier
 	string path = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
 	float sz = 32;
-	float round = 0;
+	float round = 8;
 	//float round = 40;
 	notifier.setup(path, sz, round);
-	notifier.setMessagesLifeTime(1000);
+	notifier.setMessagesLifeTime(2000);
 
 	// Align
 	//notifier.setAlignment(surfingNotify::AlignNote_LEFT);
@@ -49,9 +49,11 @@ void ofApp::draw()
 		//if (bFlipScene) ofClear(v * 255);
 		//else ofClear((1 - v) * 255);
 
-		float gap = 48;
-		if (!bFlipScene) ofClear(255 - gap);
-		else ofClear(0 + gap);
+		float gap = 32;
+		ofColor c1 = 255 - gap;//white
+		ofColor c2 = 0 + gap + 48;//black
+		if (!bFlipScene) ofClear(c1);
+		else ofClear(c2);
 
 		//--
 
@@ -61,10 +63,8 @@ void ofApp::draw()
 		float v = audioDevices.getVumeterValue();
 		float t_ = audioDevices.getThreshold();
 
-		//TODO: tween threshold
+		//TODO: tween threshold circle
 		static float t = 0;
-		//t = (t_ - t) * 0.25;
-		//t = t_;
 		float diff = t_ - t;
 		t = t + diff * 0.1;
 
@@ -85,8 +85,8 @@ void ofApp::draw()
 		rThreshold.setHeight(ht);
 		rThreshold.setPosition(0, y - ht / 2);
 
-		if (bFlipScene) ofSetColor(255);
-		else ofSetColor(0);
+		if (bFlipScene) ofSetColor(c1);
+		else ofSetColor(c2);
 
 		// circle
 		float radius = r.getHeight() / 2;

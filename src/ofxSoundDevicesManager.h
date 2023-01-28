@@ -102,7 +102,7 @@
 #include "ofxSurfingSoundPlayer.h"
 #endif
 
-//#define MAX_GAIN_BOOST 2.f
+//#define deviceIn_vuGainBoost 2.f
 
 //--
 
@@ -456,7 +456,7 @@ private:
 		params_In.add(deviceIn_vuSmooth);
 		params_In.add(deviceIn_vuOffsetPow);
 		// smooth2
-		params_In.add(MAX_GAIN_BOOST);
+		params_In.add(deviceIn_vuGainBoost);
 		params_In.add(powerSmoothAvg);
 		params_In.add(bEnable_SmoothAvg);
 		//params_In.add(deviceIn_Api);
@@ -634,7 +634,7 @@ private:
 	ofParameter<int> deviceIn_Api;
 	ofParameter<string> deviceIn_ApiName;
 
-	ofParameter<int> MAX_GAIN_BOOST{ "Boost", 2, 0, 10 };
+	ofParameter<int> deviceIn_vuGainBoost{ "Boost", 2, 0, 10 };
 
 	// rms signal to use on VU
 	ofParameter<float> deviceIn_vuOffsetPow{ "Pow", 0, -1, 1 }; // Offset pow
@@ -1179,15 +1179,15 @@ private:
 			{
 				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_VU_Value, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
 
-				if (bGui_VuPlot) 
+				if (bGui_VuPlot)
 				{
 					// mark threshold
 					vector<SliderMarks> marks;
 					SliderMarks m1;
+					m1.value = threshold;
 					m1.pad = -1;
 					m1.thick = 2;
 					m1.color = ofColor(ofColor::yellow, 96);
-					m1.value = threshold;
 					marks.push_back(m1);
 
 					ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU, true, ImVec2(-1, -1), false, &marks);
@@ -1212,26 +1212,27 @@ private:
 
 					// vu
 					SliderMarks m1;
+					m1.value = deviceIn_VU_Value;
 					m1.pad = ImGui::GetStyle().ItemSpacing.x;
 					m1.thick = 6;
 					m1.color = ofColor(ofColor::black, 96);
-					m1.value = deviceIn_VU_Value;
 					marks.push_back(m1);
 
 					// peak mem
 					float tBuff = 2.f;
 					static float maxVu = 0;
-					//refresh every tBuff seconds
+					//refresh max every tBuff seconds
 					if (deviceIn_VU_Value > maxVu) maxVu = deviceIn_VU_Value;
 					if (ofGetFrameNum() % int(tBuff * 60) == 0)
 					{
 						maxVu = 0;
 					}
 					SliderMarks m2;
-					m2.pad = 0;
-					m2.thick = 1;
-					m2.color = ofColor(ofColor::yellow, 96);
 					m2.value = maxVu;
+					m2.pad = 0;
+					m2.thick = 2;
+					if (colorGrab != nullptr) m2.color = ofColor(ofColor(*colorGrab), 128);
+					else m2.color = ofColor(ofColor::yellow, 200);
 					marks.push_back(m2);
 
 					ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, colorGrab, &marks);
@@ -1286,7 +1287,8 @@ private:
 			if (ui.BeginWindowSpecial(bGui_Main))
 			{
 				ui.AddMinimizerToggle();
-				ui.AddLogToggle();
+				if (ui.isMaximized()) ui.AddLogToggle();
+				ui.AddSpacingSeparated();
 
 				//--
 
@@ -1402,7 +1404,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1413,9 +1415,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
+				}
 			}
 		}
-	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1468,7 +1470,7 @@ private:
 						ui.SameLine();
 						ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
 
-						ui.Add(MAX_GAIN_BOOST, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
+						ui.Add(deviceIn_vuGainBoost, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
 						ui.SameLine();
 						ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt);
 					}
@@ -1617,11 +1619,10 @@ private:
 						// mark threshold
 						vector<SliderMarks> marks;
 						SliderMarks m1;
+						m1.value = threshold;
 						m1.pad = -1;
-						//m1.pad = ImGui::GetStyle().ItemSpacing.x;
 						m1.thick = 2;
 						m1.color = ofColor(ofColor::yellow, 96);
-						m1.value = threshold;
 						marks.push_back(m1);
 						ofxImGuiSurfing::AddPlot(deviceIn_VU_Value, &marks, true);
 					}
@@ -1655,9 +1656,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-		}
-#endif
 	}
+#endif
+}
 
 public:
 
@@ -2031,9 +2032,13 @@ public:
 		if (deviceIn_Enable.get())
 		{
 			// Convert Gain control to log scaled
-			float g = ofMap(deviceIn_Gain, 0, 1, 0, 0.95, true);
+			float g = ofMap(deviceIn_Gain, 0, 1, 0.3, 0.85, true);
+			//float g = ofMap(deviceIn_Gain, 0, 1, 0.1, 0.9, true);
 			deviceIn_GainLog = ofxSurfingHelpers::squaredFunction(g);
-			//deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
+			////deviceIn_GainLog = ofxSurfingHelpers::reversedExponentialFunction(deviceIn_Gain * 10.f);
+			//deviceIn_GainLog = ofMap(deviceIn_Gain, 0, 1, 0.3, 0.85, true);
+
+			//--
 
 			//TODO: FFT bands
 			{
@@ -2137,7 +2142,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 				//--
 
@@ -2183,7 +2188,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+	}
 
 			//--
 
@@ -2244,11 +2249,11 @@ public:
 			}
 			else if (deviceIn_vuOffsetPow < 0) {
 				float p = -ofxSurfingHelpers::squaredFunction(deviceIn_vuOffsetPow.get());
-				gainExtra = ofMap(p, -1.f, 0, 1.f / (float)MAX_GAIN_BOOST, 1.f, true);
+				gainExtra = ofMap(p, -1.f, 0, 1.f / (float)deviceIn_vuGainBoost, 1.f, true);
 			}
 			else {
 				float p = ofxSurfingHelpers::squaredFunction(deviceIn_vuOffsetPow.get());
-				gainExtra = ofMap(p, 0, 1.f, 1.f, (float)MAX_GAIN_BOOST, true);
+				gainExtra = ofMap(p, 0, 1.f, 1.f, (float)deviceIn_vuGainBoost, true);
 			}
 
 			_vu = deviceIn_GainLog * _vu * gainExtra;
@@ -2292,7 +2297,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 			}
 		}
@@ -2475,8 +2480,8 @@ private:
 	{
 		deviceIn_Gain = .84;
 		deviceIn_vuSmooth = .84;
-		deviceIn_vuOffsetPow = 0.84f;
-		MAX_GAIN_BOOST = 2;
+		deviceIn_vuGainBoost = 3;
+		deviceIn_vuOffsetPow = 0.7f;
 
 		bEnable_SmoothAvg = true;
 		powerSmoothAvg = 0.5;
