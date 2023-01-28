@@ -42,6 +42,10 @@ void ofApp::draw()
 	if (!bScene) ofClear(64);
 	else
 	{
+		static int ic = 0;
+		static ofColor cNew = colors[ic];
+		static ofColor cPre;
+
 		// Bg
 
 		//ofClear(61);
@@ -66,7 +70,9 @@ void ofApp::draw()
 		//TODO: tween threshold circle
 		static float t = 0;
 		float diff = t_ - t;
-		t = t + diff * 0.1;
+		bool bIsShapeChanging = (abs(diff) > 0.01f);
+		//cout << bIsShapeChanging << ":" << diff << endl;
+		t = t + diff * 0.05;
 
 		float x = ofGetWidth() / 2;
 		float y = ofGetHeight() / 2;
@@ -85,8 +91,10 @@ void ofApp::draw()
 		rThreshold.setHeight(ht);
 		rThreshold.setPosition(0, y - ht / 2);
 
+		// B&W
 		if (bFlipScene) ofSetColor(c1);
 		else ofSetColor(c2);
+		ofSetColor(cPre);
 
 		// circle
 		float radius = r.getHeight() / 2;
@@ -105,13 +113,9 @@ void ofApp::draw()
 		// Detector
 		// Threshold
 
-		static int ic = 0;
-		static ofColor cNew = colors[ic];
-		static int count = 0;//bangs
-		static ofColor cPre;
-
 		// Bang!
 		static bool bDo = false;
+		static int count = 0;//bangs
 		if (audioDevices.getIsBang())//will be true until gate is closed!
 		{
 			// Get bang delta flag only!
@@ -151,14 +155,16 @@ void ofApp::draw()
 		}
 		else bDo = false;
 
-		// Awengine 
-		// Get notified when Awengine done!
-		if (audioDevices.isDoneAwengine())
-		{
-			// Notify
-			string s = "AWE! THR>" + ofToString(audioDevices.getThreshold(), 1);
-			notifier.addNotification(s, 255, ofColor(0));
-		}
+		//--
+
+		//// Awengine 
+		//// Get notified when Awengine done!
+		//if (audioDevices.isDoneAwengine())
+		//{
+		//	// Notify
+		//	string s = "AWE! THR>" + ofToString(audioDevices.getThreshold(), 1);
+		//	notifier.addNotification(s, 255, ofColor(0));
+		//}
 
 		//--
 
@@ -166,18 +172,19 @@ void ofApp::draw()
 		//ofColor c = cNew;
 		// Use same color
 		ofColor c = cPre;
-		ofSetColor(ofColor(c, 255 * ofxSurfingHelpers::getFadeBlink(0.30, 1.0, 0.3)));
-		ofSetLineWidth(3);
+		float a = 1;
+		if (bIsShapeChanging) a = ofxSurfingHelpers::getFadeBlink(0.0, 1.0, 0.5);
+		ofSetColor(ofColor(c, 255 * a));
+		ofSetLineWidth(2.f);
+			ofNoFill();
 
 		// circle
 		float radiusTh = rThreshold.getHeight() / 2;
 		if (bShape) {
-			ofNoFill();
 			ofDrawCircle(rThreshold.getCenter(), radiusTh);
 		}
 		// rectangle
 		else {
-			ofNoFill();
 			ofDrawRectangle(rThreshold);
 		}
 

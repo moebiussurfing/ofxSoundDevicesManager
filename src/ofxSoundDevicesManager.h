@@ -648,11 +648,13 @@ private:
 	ofParameter<int> timeAwengine{ "Patience", 4, 1, 10 };
 	float deviceIn_VuMax = 0;
 	uint32_t timeLastAwengine = 0;
+
 	float deviceIn_GainLog;//TODO: maybe useful to be public to apply gain on the parent class.
 
 	// Detector
 	// threshold bang
-	uint64_t tBang = 0;
+	uint64_t timeLastBang = 0;
+	float thresholdLastBang;
 	ofParameter<int> tGateDur{ "tGate", 1000, 10, 10000 };
 	bool bGateClosed = false;
 	float remainGatePrc = 0;
@@ -843,17 +845,19 @@ private:
 		uint64_t tElapsed = 0;
 		if (!bGateClosed)//if gate open
 		{
-			if (getVumeterValue() > getThreshold())
+			//if (getVumeterValue() > getThreshold())
+			if (deviceIn_vuValue.get() > threshold.get())
 			{
 				bBang = true;
 				bGateClosed = true;
-				tBang = ofGetElapsedTimeMillis();
+				timeLastBang = ofGetElapsedTimeMillis();
+				thresholdLastBang = threshold.get();
 			}
 		}
 		else
 		{
 			uint64_t t = ofGetElapsedTimeMillis();
-			tElapsed = (t - tBang);
+			tElapsed = (t - timeLastBang);
 
 			remainGatePrc = ofMap(tElapsed, 0, tGateDur, 1.0f, 0.f, true);
 
@@ -872,16 +876,29 @@ private:
 		//--
 
 		// Peak memo
-		//refresh max every timeAwengine seconds
+		// refresh max every timeAwengine seconds
+		//TODO: could improve by using timeLastBang somehow
+		// bc threshold switch could force that a new bang happens!
+
 		if (deviceIn_vuValue > deviceIn_VuMax) deviceIn_VuMax = deviceIn_vuValue;
-		if (ofGetFrameNum() % int(timeAwengine * 60) == 0)
+
+		int tf = int(timeAwengine * 60);
+		if (ofGetFrameNum() % tf == 0)
 		{
-			// Awengine!
+			// AWENGINE!
+
+			//TODO:
+			// should use the last threshold or time for last bang ?
+			// to improve results
+			//timeLastBang
+			//thresholdLastBang
+
 			if (deviceIn_vuAwengine)
 			{
 				doRunAwengine();
 			}
 
+			// reset
 			deviceIn_VuMax = 0;
 		}
 	}
@@ -1158,7 +1175,7 @@ private:
 		//--
 
 		bUpdateHelp = true;
-	}
+		}
 
 	//--
 
@@ -1173,89 +1190,70 @@ private:
 
 		ui.Begin();
 		{
-			//--
+			// Game Mode
+			if (!ui.bGui_GameMode) ui.bGui_GameMode = true;
+			drawImGuiGameMode();
 
-			// Main
-
-			drawImGuiMain();
-
-			//--
-
-			// Input
-
-			drawImGuiIn();
-
-			//--
-
-			// Out
-
-			drawImGuiOut();
-
-			//--
-
-			// Extras
-
-			//if (ui.isMaximized()) 
+			// Big Floating Slider
+			if (bGui_BigVSlider)
 			{
-				if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
+				//ofColor *colorGrab = nullptr;
+				//ofColor colorGrab = ofColor::pink;
 
-				if (bGui_VuPlot)
-				{
-					// mark threshold
-					vector<SliderMarks> marks;
-					SliderMarks m1;
-					m1.value = threshold;
-					m1.pad = -1;
-					m1.thick = 2;
-					m1.color = ofColor(ofColor::yellow, 96);
-					marks.push_back(m1);
+				vector<SliderMarks> marks;
 
-					ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU, true, ImVec2(-1, -1), false, &marks);
-				}
+				// vu
+				SliderMarks m1;
+				m1.value = deviceIn_vuValue;
+				m1.pad = ImGui::GetStyle().ItemSpacing.x;
+				m1.thick = 6;
+				m1.color = ofColor(ofColor::black, 96);
+				marks.push_back(m1);
 
-				//TODO: FFT bands
-				bool bWindowed = true;
-				ImVec2 sz = ImVec2(-1, -1);
-				bool bNoHeader = false;
-				float start = fftStart;
-				float end = fftEnd;
+				// peak memo
+				SliderMarks m2;
+				m2.value = deviceIn_VuMax;
+				m2.pad = 0;
+				m2.thick = 2;
+				if (colorGrab != nullptr) m2.color = ofColor(ofColor(*colorGrab), 128);
+				else m2.color = ofColor(ofColor::yellow, 200);
+				marks.push_back(m2);
 
-				if (bGui_FFT) ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f, bWindowed, ImVec2(-1, -1), bNoHeader, start, end);
+				ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, colorGrab, &marks);
 
-				// Big Floating Slider
-				if (bGui_BigVSlider)
-				{
-					//ofColor *colorGrab = nullptr;
-					//ofColor colorGrab = ofColor::pink;
+				//ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, nullptr, &marks);
 
-					vector<SliderMarks> marks;
+				//TODO: do not works. maybe bc windowed?
+				//ofxImGuiSurfing::AddMouseWheel(p);
+				ofxImGuiSurfing::AddMouseWheel(threshold, false);
+				ofxImGuiSurfing::AddMouseClickRightReset(threshold);
+			}
 
-					// vu
-					SliderMarks m1;
-					m1.value = deviceIn_vuValue;
-					m1.pad = ImGui::GetStyle().ItemSpacing.x;
-					m1.thick = 6;
-					m1.color = ofColor(ofColor::black, 96);
-					marks.push_back(m1);
+			//--
 
-					// peak memo
-					SliderMarks m2;
-					m2.value = deviceIn_VuMax;
-					m2.pad = 0;
-					m2.thick = 2;
-					if (colorGrab != nullptr) m2.color = ofColor(ofColor(*colorGrab), 128);
-					else m2.color = ofColor(ofColor::yellow, 200);
-					marks.push_back(m2);
+			// Skip!
+			if (!ui.bSolo_GameMode)
+			{
+				// Main
 
-					ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, colorGrab, &marks);
+				drawImGuiMain();
 
-					//ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, nullptr, &marks);
+				//--
 
-					//TODO: do not works. maybe bc windowed?
-					//ofxImGuiSurfing::AddMouseWheel(p);
-					ofxImGuiSurfing::AddMouseWheel(threshold, false);
-					ofxImGuiSurfing::AddMouseClickRightReset(threshold);
-				}
+				// Input
+
+				drawImGuiIn();
+
+				//--
+
+				// Out
+
+				drawImGuiOut();
+
+				//--
+
+				// Extras
+				drawImGuiExtras();
 			}
 
 			//--
@@ -1284,9 +1282,84 @@ private:
 			player.drawImGui();
 #endif
 			//--
-
-		}
+			}
 		ui.End();
+		}
+
+	//--------------------------------------------------------------
+	void drawImGuiGameMode()
+	{
+		if (ui.BeginWindow(ui.bGui_GameMode))
+		{
+			float wk = ui.getWidgetsWidth(2) / 2;
+
+			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
+			{
+				SurfingGuiFlags_ flags = SurfingGuiFlags_NoInput;
+
+				{
+					ofxImGuiSurfing::AddSpacingPad(wk);
+					ui.Add(deviceIn_Gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
+
+					ofxImGuiSurfing::AddSpacingPad(wk);
+					ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, 2, flags);
+				}
+
+				if (bEnable_SmoothAvg)
+				{
+					ofxImGuiSurfing::AddSpacingPad(wk);
+					ui.Add(powerSmoothAvg, OFX_IM_KNOB_DOTKNOB, 2, flags);
+				}
+			}
+			ui.PopFont();
+
+			ui.AddSpacing();
+
+			ImVec2 sz{ ui.getWidgetsWidth(2) , ui.getWidgetsHeightUnit() };
+			ofxImGuiSurfing::AddSpacingPad(wk);
+			if (ui.AddButton("RESET", sz))
+			{
+				doResetVuSmooth();
+			}
+
+			ui.AddSpacingBigSeparated();
+
+			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+			ui.AddSpacing();
+
+			{
+				// mark threshold
+				vector<SliderMarks> marks;
+				SliderMarks m1;
+				m1.value = threshold;
+				m1.pad = -1;
+				m1.thick = 2;
+				m1.color = ofColor(ofColor::yellow, 96);
+				marks.push_back(m1);
+				ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true);
+			}
+
+			ImGui::Spacing();
+			ui.Add(threshold, OFX_IM_VSLIDER);
+			ImGui::Spacing();
+			ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
+			ofxImGuiSurfing::AddProgressBar(remainGatePrc);
+
+			ui.AddSpacingBigSeparated();
+
+			ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
+			if (deviceIn_vuAwengine) {
+				ui.Add(timeAwengine, OFX_IM_DRAG);
+				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine, 0, timeAwengine * 1000, 0, 1);
+				ofxImGuiSurfing::AddProgressBar(v);
+			}
+
+			ui.AddSpacingBigSeparated();
+
+			ui.Add(ui.bSolo_GameMode, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+			ui.EndWindow();
+		}
 	}
 
 	//--------------------------------------------------------------
@@ -1357,6 +1430,7 @@ private:
 					//--
 
 					// In
+
 					ui.AddSpacing();
 					ui.Add(bGui_In, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 					ui.AddSpacing();
@@ -1416,7 +1490,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1427,9 +1501,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
+				}
 			}
 		}
-	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1595,74 +1669,39 @@ private:
 
 			//--
 
-			if (ui.isMinimized())
+			ui.EndWindowSpecial();
+		}
+	}
+
+	//--------------------------------------------------------------
+	void drawImGuiExtras()
+	{
+		//if (ui.isMaximized()) 
+		{
+			if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
+
+			if (bGui_VuPlot)
 			{
-				ui.AddSpacingSeparated();
+				// mark threshold
+				vector<SliderMarks> marks;
+				SliderMarks m1;
+				m1.value = threshold;
+				m1.pad = -1;
+				m1.thick = 2;
+				m1.color = ofColor(ofColor::yellow, 96);
+				marks.push_back(m1);
 
-				//if (ui.BeginTree("VU SMOOTH"))
-				{
-					float wk = ui.getWidgetsWidth(2) / 2 /*- ui.getWidgetsSpacingX()*/;
-					SurfingGuiFlags_ flags = SurfingGuiFlags_NoInput;
-
-					{
-						ofxImGuiSurfing::AddSpacingPad(wk);
-						ui.Add(deviceIn_Gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
-
-						ofxImGuiSurfing::AddSpacingPad(wk);
-						ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, 2, flags);
-					}
-
-					if (bEnable_SmoothAvg)
-					{
-						ofxImGuiSurfing::AddSpacingPad(wk);
-						ui.Add(powerSmoothAvg, OFX_IM_KNOB_DOTKNOB, 2, flags);
-					}
-
-					ui.AddSpacing();
-
-					ImVec2 sz{ ui.getWidgetsWidth(2) , ui.getWidgetsHeightUnit() };
-					ofxImGuiSurfing::AddSpacingPad(wk);
-					if (ui.AddButton("RESET", sz))
-					{
-						doResetVuSmooth();
-					}
-
-					ui.AddSpacingSeparated();
-
-					{
-						// mark threshold
-						vector<SliderMarks> marks;
-						SliderMarks m1;
-						m1.value = threshold;
-						m1.pad = -1;
-						m1.thick = 2;
-						m1.color = ofColor(ofColor::yellow, 96);
-						marks.push_back(m1);
-						ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true);
-					}
-
-					ImGui::Spacing();
-					ui.Add(threshold, OFX_IM_VSLIDER_NO_LABELS);
-					ImGui::Spacing();
-					ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
-					ofxImGuiSurfing::AddProgressBar(remainGatePrc);
-
-					ui.AddSpacingSeparated();
-
-					ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
-					if (deviceIn_vuAwengine) {
-						ui.Add(timeAwengine, OFX_IM_DRAG);
-						float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine, 0, timeAwengine * 1000, 0, 1);
-						ofxImGuiSurfing::AddProgressBar(v);
-					}
-					//ui.EndTree();
-				}
-
+				ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU, true, ImVec2(-1, -1), false, &marks);
 			}
 
-			//--
+			//TODO: FFT bands
+			bool bWindowed = true;
+			ImVec2 sz = ImVec2(-1, -1);
+			bool bNoHeader = false;
+			float start = fftStart;
+			float end = fftEnd;
 
-			ui.EndWindowSpecial();
+			if (bGui_FFT) ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f, bWindowed, ImVec2(-1, -1), bNoHeader, start, end);
 		}
 	}
 
@@ -1680,7 +1719,7 @@ private:
 			ui.EndWindowSpecial();
 		}
 #endif
-	}
+		}
 
 public:
 
@@ -1724,7 +1763,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-	}
+		}
 
 private:
 
@@ -1890,12 +1929,12 @@ private:
 			//{
 			//	//helpInfo += "------------------------------------------\n\n\n";
 			//}
-		}
+			}
 
 		//--
 
 		boxHelpInfo.setText(helpInfo);
-	}
+		}
 
 public:
 
@@ -2210,7 +2249,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+		}
 
 			//--
 
@@ -2299,7 +2338,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-		}
+	}
 
 		//----
 
@@ -2362,8 +2401,8 @@ public:
 					indexOut = 0;
 				}
 #endif
-			}
-		}
+	}
+	}
 	}
 #endif
 
@@ -2500,7 +2539,7 @@ private:
 	bool bFlagDoneAwengine = false;
 
 public:
-	
+
 	//--------------------------------------------------------------
 	const bool isDoneAwengine() {
 		if (bFlagDoneAwengine) {
@@ -2515,7 +2554,20 @@ private:
 	//--------------------------------------------------------------
 	void doRunAwengine()
 	{
-		threshold = deviceIn_VuMax;
+		// DO THE MAGYC!
+		float gap = 1.f;
+
+		//TODO:
+		// should use the last threshold or time for last bang ?
+		// to improve results
+		//timeLastBang
+		//thresholdLastBang
+
+		// if "could be too low", then make it 5% more
+		if (deviceIn_VuMax < thresholdLastBang) gap = 1.1f;
+
+		threshold = deviceIn_VuMax * gap;
+
 		bFlagDoneAwengine = true;
 		timeLastAwengine = ofGetElapsedTimeMillis();
 	}
@@ -2607,7 +2659,7 @@ private:
 	}
 	*/
 
-};
+	};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78
