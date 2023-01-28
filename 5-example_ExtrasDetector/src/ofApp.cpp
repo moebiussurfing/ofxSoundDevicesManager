@@ -15,7 +15,7 @@ void ofApp::setup()
 
 	// Notifier
 	string path = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
-	float sz = 37;
+	float sz = 34;
 	float round = 15;
 	//float round = 40;
 	notifier.setup(path, sz, round);
@@ -23,8 +23,8 @@ void ofApp::setup()
 
 	// Align
 	//notifier.setAlignment(surfingNotify::AlignNote_LEFT);
-	notifier.setAlignment(surfingNotify::AlignNote_CENTER);
-	//notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
+	//notifier.setAlignment(surfingNotify::AlignNote_CENTER);
+	notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
 
 	// Settings
 	ofxSurfingHelpers::load(g);
@@ -68,7 +68,7 @@ void ofApp::draw()
 		float t_ = audioDevices.getThreshold();
 
 		//TODO: tween threshold circle
-		static float t = 0;
+		static float t = t_;
 		float diff = t_ - t;
 		bool bIsShapeChanging = (abs(diff) > 0.01f);
 		//cout << bIsShapeChanging << ":" << diff << endl;
@@ -136,6 +136,7 @@ void ofApp::draw()
 
 				// Notify
 				s = "BANG #" + ofToString(count);
+
 				notifier.addNotification(s, cPre, ofColor(0));
 
 				audioDevices.setColorSliderGrab(&cPre);
@@ -155,16 +156,36 @@ void ofApp::draw()
 		}
 		else bDo = false;
 
+		// make slider grab blink
+		if (audioDevices.getIsAwengine()) {
+			float a = ofxSurfingHelpers::getFadeBlink(0.60, 1.0, 0.15);
+			static ofColor cGrab;
+			cGrab = ofColor(cPre.r, cPre.g, cPre.b, cPre.a * a);
+			audioDevices.setColorSliderGrab(&cGrab);
+		}
+
 		//--
 
-		//// Awengine 
-		//// Get notified when Awengine done!
-		//if (audioDevices.isDoneAwengine())
-		//{
-		//	// Notify
-		//	string s = "AWE! THR>" + ofToString(audioDevices.getThreshold(), 1);
-		//	notifier.addNotification(s, 255, ofColor(0));
-		//}
+		// AWENGINE 
+		// Get notified when Awengine done!
+		if (audioDevices.isDoneAwengine())
+		{
+			// Notify
+			string s = "THRS ";
+			//string s = "AWE! THR>" + ofToString(audioDevices.getThreshold(), 1);
+
+			static float thrPre = 0;
+			float thr = audioDevices.getThreshold();
+			float diff = 0;
+			if (thr != thrPre) {
+				diff = thr - thrPre;
+				thrPre = thr;
+				s += ofToString(diff > 0 ? "+" : "");
+				s += ofToString(diff, 2);
+			}
+
+			notifier.addNotification(s, 255, ofColor(0));
+		}
 
 		//--
 
@@ -176,16 +197,32 @@ void ofApp::draw()
 		if (bIsShapeChanging) a = ofxSurfingHelpers::getFadeBlink(0.0, 1.0, 0.5);
 		ofSetColor(ofColor(c, 255 * a));
 		ofSetLineWidth(2.f);
-			ofNoFill();
+		ofNoFill();
+
+		bool bExtra = false;//draw a thin black shape
 
 		// circle
 		float radiusTh = rThreshold.getHeight() / 2;
 		if (bShape) {
 			ofDrawCircle(rThreshold.getCenter(), radiusTh);
+		
+			if (bExtra) {
+				ofSetLineWidth(1.f);
+				ofSetColor(0, 64);
+				ofDrawCircle(rThreshold.getCenter(), radiusTh - 1);
+			}
 		}
+
 		// rectangle
 		else {
 			ofDrawRectangle(rThreshold);
+
+			if (bExtra) {
+				ofSetLineWidth(1.f);
+				ofSetColor(0, 64);
+				ofDrawRectangle(
+					ofRectangle(rThreshold.x + 1, rThreshold.y + 1, rThreshold.width - 2, rThreshold.height - 2));
+			}
 		}
 
 		ofPopStyle();
@@ -212,14 +249,14 @@ void ofApp::keyPressed(int key)
 		audioDevices.setVisibleToggle();
 
 		// Notify
-		string s = "GUI: " + ofToString(audioDevices.getIsVisibleGui() ? "ON" : "OFF");
+		string s = "GUI " + ofToString(audioDevices.getIsVisibleGui() ? "ON" : "OFF");
 		notifier.addNotification(s);
 	}
 	if (key == 's') {
 		bScene = !bScene;
 
 		// Notify
-		string s = "DRAW SCENE: " + ofToString(bScene ? "ON" : "OFF");
+		string s = "SCENE " + ofToString(bScene ? "ON" : "OFF");
 		notifier.addNotification(s);
 	}
 
@@ -227,7 +264,7 @@ void ofApp::keyPressed(int key)
 		bFlipScene = !bFlipScene;
 
 		// Notify
-		string s = "SCENE COLORS: " + ofToString(bFlipScene ? "BLACK/WHITE" : "BLACK/WHITE");
+		string s = "COLORS " + ofToString(bFlipScene ? "BLACK/WHITE" : "WHITE/BLACK");
 		notifier.addNotification(s);
 	}
 
@@ -235,7 +272,7 @@ void ofApp::keyPressed(int key)
 		bShape = !bShape;
 
 		// Notify
-		string s = "SCENE SHAPE: " + ofToString(bShape ? "CIRCLE" : "RECTANGLE");
+		string s = "SCENE " + ofToString(bShape ? "CIRCLE" : "RECTANGLE");
 		notifier.addNotification(s);
 	}
 
@@ -244,7 +281,7 @@ void ofApp::keyPressed(int key)
 		ofClamp(audioDevices.threshold, 0, 1);
 
 		// Notify
-		string s = "THRESHOLD: " + ofToString(audioDevices.threshold.get(), 2);
+		string s = "THRS " + ofToString(audioDevices.threshold.get(), 2);
 		notifier.addNotification(s);
 	}
 	if (key == OF_KEY_UP) {
@@ -252,7 +289,7 @@ void ofApp::keyPressed(int key)
 		ofClamp(audioDevices.threshold, 0, 1);
 
 		// Notify
-		string s = "THRESHOLD: " + ofToString(audioDevices.threshold.get(), 2);
+		string s = "THRS " + ofToString(audioDevices.threshold.get(), 2);
 		notifier.addNotification(s);
 	}
 }

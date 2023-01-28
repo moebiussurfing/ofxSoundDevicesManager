@@ -4,17 +4,12 @@
 
 	TODO:
 
-	+	add threshold line to waveform plot
-
 	+	WIP: Enable toggles not working
 
-		Out not working as player can't pick which output devide to use!
 	+	WIP: INPUT ONLY.
+		Out not working as player can't pick which output device to use!
 		But probably output can be enabled and easy to fix.
 		enable output and test with an example
-
-	+	get smooth VU from use ofxSurfingSmooth code
-	https://github.com/turowskipaul/ofxDataStream/blob/master/src/ofxDataStream.cpp
 
 	+	add thread to build help info without drop frames
 
@@ -23,26 +18,20 @@
 
 	+	BUG: currently using only DS API, now changing API (to ASIO or WASAPI) on runtime crashes!
 	+	currently using only inputs. outputs must be tested.
+	+	fix API selector. add switch API/device. without exceptions/crashes.
+		add disconnect to allow use only input or output. now, enablers are only like mutes.
 
 	+	draggable rectangle to draw the waveforms
-	+	fix api selector. add switch API/device. without exceptions/crashes.
-		add disconnect to allow use only input or output. now, enablers are only like mutes.
 
 	+	store devices by names? just editing xml file bc sorting can change on the system?
 
-	+	integrate / move to with ofSoundObjects
+	+	integrate / move to with ofSoundObjects ?
 		maybe a too much dependencies to only use the input in most situations.
 	+	change all to ofSoundBuffer, not buffer, channels..etc
-	+	add sample-rate and other settings to gui selectors. store to XML too. Restart must be required maybe
-	https://github.com/roymacdonald/ofxSoundDeviceManager
-
-	+	alternative waveforms plotting:
-	+	alternative plots or vu's
-		code from here: https://github.com/edap/examplesOfxMaxim
-		rms calculation as explained here http://openframeworks.cc/ofBook/chapters/sound.html
-	+	better vu meter using other rms snippets:
-	https://github.com/Feliszt/sound-analyzer-OF
-	https://github.com/roymacdonald/ofxSoundObjects
+	+	add sample-rate and other settings to gui selectors. 
+			store to XML too. 
+			Restart must be required maybe
+			https://github.com/roymacdonald/ofxSoundDeviceManager
 
 	Sound Utils
 	https://github.com/perevalovds/ofxSoundUtils/blob/master/src/ofxSoundUtils.h
@@ -544,6 +533,9 @@ public:
 	bool getIsBang() const {
 		return bBang.get();
 	}
+	bool getIsAwengine() const {
+		return deviceIn_vuAwengine.get();
+	}
 	float getGateProgress() const {
 		return remainGatePrc;
 	}
@@ -645,7 +637,7 @@ private:
 	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
 
 	ofParameter<bool> deviceIn_vuAwengine{ "AWENGINE", false };
-	ofParameter<int> timeAwengine{ "Patience", 4, 1, 10 };
+	ofParameter<int> timeAwengine{ "PATIENCE", 4, 1, 10 };
 	float deviceIn_VuMax = 0;
 	uint32_t timeLastAwengine = 0;
 
@@ -655,7 +647,7 @@ private:
 	// threshold bang
 	uint64_t timeLastBang = 0;
 	float thresholdLastBang;
-	ofParameter<int> tGateDur{ "tGate", 1000, 10, 10000 };
+	ofParameter<int> tGateDur{ "GATE", 1000, 25, 2000 };
 	bool bGateClosed = false;
 	float remainGatePrc = 0;
 
@@ -1175,7 +1167,7 @@ private:
 		//--
 
 		bUpdateHelp = true;
-		}
+	}
 
 	//--
 
@@ -1282,9 +1274,9 @@ private:
 			player.drawImGui();
 #endif
 			//--
-			}
-		ui.End();
 		}
+		ui.End();
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiGameMode()
@@ -1294,9 +1286,24 @@ private:
 			float wk = ui.getWidgetsWidth(2) / 2;
 
 			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
-			{
-				SurfingGuiFlags_ flags = SurfingGuiFlags_NoInput;
+			ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
+			ui.PopFont();
 
+			ui.AddSpacing();
+			if (deviceIn_vuAwengine) {
+				ui.Add(timeAwengine, OFX_IM_DRAG);
+				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine, 0, timeAwengine * 1000, 0, 1);
+				ui.AddSpacing();
+				ofxImGuiSurfing::AddProgressBar(v);
+			}
+
+			ui.AddSpacingBigSeparated();
+
+			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
+			{
+				SurfingGuiFlags flags = SurfingGuiFlags_None;
+				flags += SurfingGuiFlags_NoInput;
+				flags += SurfingGuiFlags_TooltipValue;
 				{
 					ofxImGuiSurfing::AddSpacingPad(wk);
 					ui.Add(deviceIn_Gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
@@ -1340,24 +1347,24 @@ private:
 			}
 
 			ImGui::Spacing();
-			ui.Add(threshold, OFX_IM_VSLIDER);
+
+			//ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
+			ui.AddLabelBig(threshold.getName(), true);
+			ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME);
+			//ui.PopFont();
+
 			ImGui::Spacing();
 			ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
+			ui.Add(tGateDur, OFX_IM_HSLIDER_SMALL);
 			ofxImGuiSurfing::AddProgressBar(remainGatePrc);
 
 			ui.AddSpacingBigSeparated();
 
-			ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
-			if (deviceIn_vuAwengine) {
-				ui.Add(timeAwengine, OFX_IM_DRAG);
-				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine, 0, timeAwengine * 1000, 0, 1);
-				ofxImGuiSurfing::AddProgressBar(v);
-			}
-
-			ui.AddSpacingBigSeparated();
-
+#ifdef USE_SOUND_FILE_PLAYER
+			ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED);
+			ui.AddSpacingSeparated();
+#endif
 			ui.Add(ui.bSolo_GameMode, OFX_IM_TOGGLE_ROUNDED_MINI);
-
 			ui.EndWindow();
 		}
 	}
@@ -1490,7 +1497,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1501,9 +1508,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-				}
 			}
 		}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1719,7 +1726,7 @@ private:
 			ui.EndWindowSpecial();
 		}
 #endif
-		}
+	}
 
 public:
 
@@ -1763,7 +1770,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-		}
+	}
 
 private:
 
@@ -1929,12 +1936,12 @@ private:
 			//{
 			//	//helpInfo += "------------------------------------------\n\n\n";
 			//}
-			}
+		}
 
 		//--
 
 		boxHelpInfo.setText(helpInfo);
-		}
+	}
 
 public:
 
@@ -2249,7 +2256,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-		}
+			}
 
 			//--
 
@@ -2338,7 +2345,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-	}
+		}
 
 		//----
 
@@ -2401,8 +2408,8 @@ public:
 					indexOut = 0;
 				}
 #endif
-	}
-	}
+			}
+		}
 	}
 #endif
 
@@ -2555,20 +2562,42 @@ private:
 	void doRunAwengine()
 	{
 		// DO THE MAGYC!
-		float gap = 1.f;
+		float gapUpper = 1.f;
 
+		//TODO:
+		// could have different behaviors presets like
+		// slow, medium, aggressive
+		
 		//TODO:
 		// should use the last threshold or time for last bang ?
 		// to improve results
 		//timeLastBang
 		//thresholdLastBang
 
-		// if "could be too low", then make it 5% more
-		if (deviceIn_VuMax < thresholdLastBang) gap = 1.1f;
+		// threshold will be reduced from last catched bang..,
+		// check if it "could be too low", then make it x% more bigger.
+		//if (deviceIn_VuMax < thresholdLastBang) gapUpper = 1.1f;
+		//if (deviceIn_VuMax < thresholdLastBang) gapUpper = 1.07f;
 
-		threshold = deviceIn_VuMax * gap;
+		//TODO:
+		// waiting time could be synced with BPM tempo!
+		// this will improve sync..
 
-		bFlagDoneAwengine = true;
+		float thresholdTarget = deviceIn_VuMax * gapUpper;
+
+		// avoid switch if diff is small
+		float gapDiff = 0.025f;
+		float diff = abs(thresholdTarget - threshold);
+		if (diff > gapDiff)
+		{
+			threshold = thresholdTarget;
+			bFlagDoneAwengine = true;
+		}
+		else {
+			// bypass threshold switch!
+			ofLogNotice("ofxSoundDevicesManager:doRunAwengine") << "Ignored diff: " << diff;
+		}
+
 		timeLastAwengine = ofGetElapsedTimeMillis();
 	}
 
@@ -2659,7 +2688,7 @@ private:
 	}
 	*/
 
-	};
+};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78
