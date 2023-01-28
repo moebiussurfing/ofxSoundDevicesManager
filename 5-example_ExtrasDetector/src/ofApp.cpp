@@ -15,12 +15,13 @@ void ofApp::setup()
 
 	// Notifier
 	string path = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
-	float sz = 20;
+	float sz = 30;
 	notifier.setup(path, sz, 20);
+
 	// align
 	//notifier.setAlignment(surfingNotify::AlignNote_LEFT);
-	notifier.setAlignment(surfingNotify::AlignNote_CENTER);
-	//notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
+	//notifier.setAlignment(surfingNotify::AlignNote_CENTER);
+	notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
 
 	// Settings
 	ofxSurfingHelpers::load(g);
@@ -129,6 +130,8 @@ void ofApp::draw()
 				// Notify
 				s = "BANG #" + ofToString(count);
 				notifier.addNotification(s, cPre, ofColor(0));
+
+				audioDevices.setColorSliderGrab(&cPre);
 			}
 
 			//--
@@ -144,7 +147,10 @@ void ofApp::draw()
 		//--
 
 		// Anticipate next flash color!
-		ofSetColor(cNew, 255 * ofxSurfingHelpers::getFadeBlink(0.30, 1.0, 0.3));
+		//ofColor c = cNew;
+		// Use same color
+		ofColor c = cPre;
+		ofSetColor(ofColor(c, 255 * ofxSurfingHelpers::getFadeBlink(0.30, 1.0, 0.3)));
 		ofSetLineWidth(3);
 
 		// circle
@@ -183,14 +189,14 @@ void ofApp::keyPressed(int key)
 		audioDevices.setVisibleToggle();
 
 		// Notify
-		string s = "GUI : " + ofToString(audioDevices.getIsVisibleGui() ? "ON" : "OFF");
+		string s = "GUI: " + ofToString(audioDevices.getIsVisibleGui() ? "ON" : "OFF");
 		notifier.addNotification(s);
 	}
 	if (key == 's') {
 		bScene = !bScene;
 
 		// Notify
-		string s = "DRAW SCENE : " + ofToString(bScene ? "ON" : "OFF");
+		string s = "DRAW SCENE: " + ofToString(bScene ? "ON" : "OFF");
 		notifier.addNotification(s);
 	}
 
@@ -198,7 +204,7 @@ void ofApp::keyPressed(int key)
 		bFlipScene = !bFlipScene;
 
 		// Notify
-		string s = "SCENE COLORS : " + ofToString(bFlipScene ? "BLACK/WHITE" : "BLACK/WHITE");
+		string s = "SCENE COLORS: " + ofToString(bFlipScene ? "BLACK/WHITE" : "BLACK/WHITE");
 		notifier.addNotification(s);
 	}
 
@@ -206,24 +212,24 @@ void ofApp::keyPressed(int key)
 		bShape = !bShape;
 
 		// Notify
-		string s = "SCENE SHAPE : " + ofToString(bShape ? "CIRCLE" : "RECTANGLE");
+		string s = "SCENE SHAPE: " + ofToString(bShape ? "CIRCLE" : "RECTANGLE");
 		notifier.addNotification(s);
 	}
 
 	if (key == OF_KEY_DOWN) {
-		audioDevices.threshold -= 0.02;
+		audioDevices.threshold -= 0.007;
 		ofClamp(audioDevices.threshold, 0, 1);
 
 		// Notify
-		string s = "THRESHOLD : " + ofToString(audioDevices.threshold.get(), 2);
+		string s = "THRESHOLD: " + ofToString(audioDevices.threshold.get(), 2);
 		notifier.addNotification(s);
 	}
 	if (key == OF_KEY_UP) {
-		audioDevices.threshold += 0.02;
+		audioDevices.threshold += 0.007;
 		ofClamp(audioDevices.threshold, 0, 1);
 
 		// Notify
-		string s = "THRESHOLD : " + ofToString(audioDevices.threshold.get(), 2);
+		string s = "THRESHOLD: " + ofToString(audioDevices.threshold.get(), 2);
 		notifier.addNotification(s);
 	}
 }

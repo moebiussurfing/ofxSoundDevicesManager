@@ -660,7 +660,14 @@ private:
 	ofParameter<float> fftEnd{ "End", 1, 0, 1};
 
 	ofParameter<bool> bGui_BigVSlider{ "Big Slider", false };
+	
+	ofColor* colorGrab = nullptr;
+public:
 
+	void setColorSliderGrab(ofColor* color) {
+		colorGrab = color;
+	}
+	
 	//--
 
 	// Out
@@ -1127,13 +1134,14 @@ private:
 				// Big Floating Slider
 				if (bGui_BigVSlider)
 				{
-					ofColor *colorGrab = nullptr;
+					//ofColor *colorGrab = nullptr;
 					//ofColor colorGrab = ofColor::pink;
 
 					vector<SliderMarks> marks;
 					// vu
 					SliderMarks m1;
-					m1.color = ofColor(ofColor::yellow, 96);
+					m1.color = ofColor(ofColor::black, 96);
+					//m1.color = ofColor(ofColor::yellow, 96);
 					m1.value = deviceIn_VU_Value;
 					marks.push_back(m1);
 					// test
@@ -2159,7 +2167,10 @@ private:
 		if (bDISABLE_CALBACKS) return;
 
 		string name = e.getName();
-		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << name << " " << e;
+
+		//ofLogNotice(__FUNCTION__) << name << " " << e;
+		//ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << name << " " << e;
+		ofLogNotice("ofxSoundDevicesManager") << name << " " << e;
 
 		if (0) {}
 
