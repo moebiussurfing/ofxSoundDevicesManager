@@ -3,9 +3,8 @@
 #include "ofMain.h"
 
 #include "ofxSoundDevicesManager.h"
+#include "surfingNotify.h"
 #include "ofxWindowApp.h"
-// .h
-#include "TextBoxWidget.h"
 
 class ofApp : public ofBaseApp
 {
@@ -31,5 +30,5 @@ public:
 
 	ofxWindowApp w;
 
-	TextBoxWidget textBox;
+	surfingNotify notifier;
 };

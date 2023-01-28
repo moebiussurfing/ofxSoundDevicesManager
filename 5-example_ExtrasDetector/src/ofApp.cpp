@@ -7,15 +7,17 @@ void ofApp::setup() {
 	numBuffers = 4;
 
 	audioDevices.setup(sampleRate, bufferSize, numBuffers);
-	
+
 	// Log
 	audioDevices.getUiPtr()->ClearLogDefaultTags();
 	audioDevices.getUiPtr()->AddLogTag("BANG", ofColor::green);
 
-	textBox.setFontSize(65);
-	textBox.setup();
-	textBox.setMode(TextBoxWidget::BOX_LAYOUT::CENTER);
-	textBox.setTheme(true);
+	string path = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
+	notifier.setup(path, 30);
+
+	//notifier.setAlignment(surfingNotify::AlignNote_LEFT);
+	notifier.setAlignment(surfingNotify::AlignNote_CENTER);
+	//notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
 
 	ofxSurfingHelpers::load(g);
 }
@@ -115,6 +117,10 @@ void ofApp::draw()
 				string s;
 				s += "#" + ofToString(count);
 				audioDevices.getUiPtr()->AddToLog(s, "BANG");
+
+				s = "BANG #" + ofToString(count);
+				notifier.addNotification(s);
+				//notifier.setColorText(c);
 			}
 
 			//--
@@ -124,34 +130,13 @@ void ofApp::draw()
 			ofFill();
 			ofRectangle rBg = ofGetCurrentViewport();
 			ofDrawRectangle(rBg);
-
-			//string s = "         \n";
-			//s += "  BANG !  \n";
-			//s += "  #" + ofToString(count) + "\n";
-			//s += "         ";
-			//static ofBitmapFont f;
-			//float w = f.getBoundingBox(s, 0, 0).getWidth();
-			//float h = f.getBoundingBox(s, 0, 0).getHeight();
-			//float x = ofGetWidth() / 2 - w / 2;
-			//float y = ofGetHeight() / 2 - h / 2;
-			//////top center
-			////ofDrawBitmapStringHighlight(s, glm::vec2(x, 60));
-			////center 
-			//ofDrawBitmapStringHighlight(s, glm::vec2(x, y));
-
-			// Draw
-			string s;
-			s += "BANG!\n";
-			s += " #" + ofToString(count);
-			textBox.setText(s);
-			textBox.draw();
 		}
 		else bDo = false;
 
 		//--
 
 		// Anticipate next flash color!
-		ofSetColor(c, 255);
+		ofSetColor(c, 255 * ofxSurfingHelpers::getFadeBlink(0.30, 1.0, 0.3));
 		ofSetLineWidth(3);
 
 		// circle
@@ -167,6 +152,10 @@ void ofApp::draw()
 		}
 
 		ofPopStyle();
+
+		//--
+
+		notifier.draw();
 	}
 }
 

@@ -1121,21 +1121,23 @@ private:
 				// Big Floating Slider
 				if (bGui_BigVSlider)
 				{
+					ofColor *colorGrab = nullptr;
 					//ofColor colorGrab = ofColor::pink;
 
 					vector<SliderMarks> marks;
+					// vu
 					SliderMarks m1;
 					m1.color = ofColor(ofColor::yellow, 96);
 					m1.value = deviceIn_VU_Value;
 					marks.push_back(m1);
+					// test
 					//SliderMarks m2;
 					//m2.color = ofColor::orange;
 					//m2.value = ofMap(glm::cos(ofGetElapsedTimef()), -1, 1, 0, 1, true);
 					//marks.push_back(m2);
 
-					//ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, &colorGrab, &marks);
-
-					ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, nullptr, &marks);
+					ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, colorGrab, &marks);
+					//ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, nullptr, &marks);
 
 					//TODO: do not works. maybe bc windowed?
 					//ofxImGuiSurfing::AddMouseWheel(p);
