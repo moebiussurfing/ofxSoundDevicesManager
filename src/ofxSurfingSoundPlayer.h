@@ -682,7 +682,7 @@ public:
 
 			if (!ui->bMinimize)
 			{
-				ui->AddSpacing();
+				ui->AddSpacingBig();
 				ui->Add(bLoop, OFX_IM_TOGGLE_ROUNDED_SMALL);
 				ui->Add(bScrub, OFX_IM_TOGGLE_ROUNDED_MINI);
 				ui->AddSpacingSeparated();

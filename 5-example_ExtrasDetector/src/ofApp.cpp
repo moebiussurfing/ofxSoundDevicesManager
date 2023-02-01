@@ -192,7 +192,8 @@ void ofApp::draw()
 		// Anticipate next flash color!
 		//ofColor c = cNew;
 		// Use same color
-		ofColor c = cPre;
+		//ofColor c = cPre;
+		ofColor c = bFlipScene ? c1 : c2;
 		float a = 1;
 		if (bIsShapeChanging) a = ofxSurfingHelpers::getFadeBlink(0.0, 1.0, 0.5);
 		ofSetColor(ofColor(c, 255 * a));
@@ -203,9 +204,12 @@ void ofApp::draw()
 
 		// circle
 		float radiusTh = rThreshold.getHeight() / 2;
+
+		//if(radiusTh == 0) radiusTh= ofxSurfingHelpers::getFadeBlink(0, 3);//mark if 0
+
 		if (bShape) {
 			ofDrawCircle(rThreshold.getCenter(), radiusTh);
-		
+
 			if (bExtra) {
 				ofSetLineWidth(1.f);
 				ofSetColor(0, 64);

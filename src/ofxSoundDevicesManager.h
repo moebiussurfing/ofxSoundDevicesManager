@@ -28,8 +28,8 @@
 	+	integrate / move to with ofSoundObjects ?
 		maybe a too much dependencies to only use the input in most situations.
 	+	change all to ofSoundBuffer, not buffer, channels..etc
-	+	add sample-rate and other settings to gui selectors. 
-			store to XML too. 
+	+	add sample-rate and other settings to gui selectors.
+			store to XML too.
 			Restart must be required maybe
 			https://github.com/roymacdonald/ofxSoundDeviceManager
 
@@ -91,6 +91,8 @@
 #include "ofxSurfingSoundPlayer.h"
 #endif
 
+#include <cmath>
+
 //#define deviceIn_vuGainBoost 2.f
 
 //--
@@ -111,6 +113,21 @@ public:
 
 private:
 
+	// interpolator
+	//const size_t sz = 4;
+#define szi 3
+	//idea: from less to more smoothed
+	double x1[szi] = { 1.00, 0.94, 0.90 };//gain
+	double x2[szi] = { 0.6, 0.7, 0.75, };//smooth
+	double x3[szi] = { 0.50, 0.55, 0.65 };//offset
+	double x4[szi] = { 0.50, 0.6, 1.00 };//smooth2
+
+	// Linear interpolation function
+	double lerp(double a, double b, double t) {
+		return (1 - t) * a + t * b;
+	}
+
+private:
 	// FFT
 	//TODO: should use a vector instead to vary size!
 	//ofParameter<int> nBandsToGet{ "Bands", 1 , 1, 128 };
@@ -442,14 +459,17 @@ private:
 		params_In.add(deviceIn_Port);
 		params_In.add(deviceIn_PortName);
 		params_In.add(deviceIn_Gain);
-		params_In.add(deviceIn_vuSmooth);
+		params_In.add(deviceIn_vuSmooth1);
 		params_In.add(deviceIn_vuOffsetPow);
 		// smooth2
 		params_In.add(deviceIn_vuGainBoost);
-		params_In.add(powerSmoothAvg);
-		params_In.add(bEnable_SmoothAvg);
+		params_In.add(deviceIn_PowerSmoothAvg);
+		params_In.add(deviceIn_bEnable_SmoothAvg);
 		params_In.add(deviceIn_vuAwengine);
-		params_In.add(timeAwengine);
+		params_In.add(deviceIn_timeAwePatience);
+		//params_In.add(deviceIn_timeAwengine);
+
+		params_In.add(deviceIn_OneSmooth);
 
 		//params_In.add(deviceIn_Api);
 		//params_In.add(deviceIn_ApiName);//labels
@@ -629,15 +649,21 @@ private:
 	ofParameter<int> deviceIn_Api;
 	ofParameter<string> deviceIn_ApiName;
 
-	ofParameter<int> deviceIn_vuGainBoost{ "Boost", 2, 0, 10 };
+	ofParameter<float> deviceIn_vuGainBoost{ "Boost", 3, 0, 6 };
+
+	ofParameter<float> deviceIn_OneSmooth{ "Smooth", 0, 0, 1 }; // main control
+	ofParameter<float> deviceIn_OneGain{ "OneGain", 0, 0, 1 }; // main control
 
 	// rms signal to use on VU
-	ofParameter<float> deviceIn_vuOffsetPow{ "Pow", 0, -1, 1 }; // Offset pow
-	ofParameter<float> deviceIn_vuSmooth{ "Smooth", 0, 0, 1 }; // to smooth the vu signal
+	ofParameter<float> deviceIn_vuOffsetPow{ "Offset", 0, -1, 1 }; // Offset pow
+	ofParameter<float> deviceIn_vuSmooth1{ "Smooth1", 0, 0, 1 }; // to smooth the vu signal
 	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
 
 	ofParameter<bool> deviceIn_vuAwengine{ "AWENGINE", false };
-	ofParameter<int> timeAwengine{ "PATIENCE", 4, 1, 10 };
+	ofParameter<float> deviceIn_timeAwePatience{ "PATIENCE", 0, 0, 1 };
+	int deviceIn_timeAwengine;
+	//ofParameter<int> deviceIn_timeAwengine{ "PATIENCE", 4, 1, 10 };
+
 	float deviceIn_VuMax = 0;
 	uint32_t timeLastAwengine = 0;
 
@@ -647,7 +673,7 @@ private:
 	// threshold bang
 	uint64_t timeLastBang = 0;
 	float thresholdLastBang;
-	ofParameter<int> tGateDur{ "GATE", 1000, 25, 2000 };
+	ofParameter<int> tGateDur{ "GATE", 1000, 25, 1975 };
 	bool bGateClosed = false;
 	float remainGatePrc = 0;
 
@@ -767,8 +793,8 @@ private:
 
 	int historySmoothAvgMax = 15;//that's the slower value. hardcoded!
 	float valueSmoothedAvg = 0.0;
-	ofParameter<bool> bEnable_SmoothAvg{ "AVG", false };
-	ofParameter<float> powerSmoothAvg{ "Smooth2", 0.5f, 0, 1 };
+	ofParameter<bool> deviceIn_bEnable_SmoothAvg{ "AVG", false };
+	ofParameter<float> deviceIn_PowerSmoothAvg{ "Smooth2", 0.5f, 0, 1 };
 	vector<float> historySmoothAvg;
 	int ioffset = 0;
 	int ioffsetEnd = historySmoothAvgMax;
@@ -868,13 +894,13 @@ private:
 		//--
 
 		// Peak memo
-		// refresh max every timeAwengine seconds
+		// refresh max every deviceIn_timeAwengine seconds
 		//TODO: could improve by using timeLastBang somehow
 		// bc threshold switch could force that a new bang happens!
 
 		if (deviceIn_vuValue > deviceIn_VuMax) deviceIn_VuMax = deviceIn_vuValue;
 
-		int tf = int(timeAwengine * 60);
+		int tf = int(deviceIn_timeAwengine * 60);
 		if (ofGetFrameNum() % tf == 0)
 		{
 			// AWENGINE!
@@ -1283,57 +1309,63 @@ private:
 	{
 		if (ui.BeginWindow(ui.bGui_GameMode))
 		{
-			float wk = ui.getWidgetsWidth(2) / 2;
-
 			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
 			ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
 			ui.PopFont();
-
 			ui.AddSpacing();
-			if (deviceIn_vuAwengine) {
-				ui.Add(timeAwengine, OFX_IM_DRAG);
-				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine, 0, timeAwengine * 1000, 0, 1);
-				ui.AddSpacing();
-				ofxImGuiSurfing::AddProgressBar(v);
-			}
+			ui.AddSpacing();
 
-			ui.AddSpacingBigSeparated();
-
-			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
+			// Patience
 			{
 				SurfingGuiFlags flags = SurfingGuiFlags_None;
 				flags += SurfingGuiFlags_NoInput;
+				//flags += SurfingGuiFlags_NoTitle;
 				flags += SurfingGuiFlags_TooltipValue;
-				{
-					ofxImGuiSurfing::AddSpacingPad(wk);
-					ui.Add(deviceIn_Gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
 
-					ofxImGuiSurfing::AddSpacingPad(wk);
-					ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, 2, flags);
-				}
+				const float amt = 2;//size
+				//float wk = ui.getWidgetsWidth(amt) / amt;
+				//ofxImGuiSurfing::AddSpacingPad(wk);
 
-				if (bEnable_SmoothAvg)
-				{
-					ofxImGuiSurfing::AddSpacingPad(wk);
-					ui.Add(powerSmoothAvg, OFX_IM_KNOB_DOTKNOB, 2, flags);
-				}
-			}
-			ui.PopFont();
+				ui.Add(deviceIn_OneSmooth, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt, true, flags);
+				//ui.AddTooltip(deviceIn_OneSmooth, true, false);
 
-			ui.AddSpacing();
-
-			ImVec2 sz{ ui.getWidgetsWidth(2) , ui.getWidgetsHeightUnit() };
-			ofxImGuiSurfing::AddSpacingPad(wk);
-			if (ui.AddButton("RESET", sz))
-			{
-				doResetVuSmooth();
+				ui.Add(deviceIn_vuGainBoost, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt, false, SurfingGuiFlags_NoInput);
+				ui.AddTooltip(deviceIn_vuGainBoost, true, false);
 			}
 
-			ui.AddSpacingBigSeparated();
+			ui.AddSpacingSeparated();
 
+			//if (ui.AddExtra()) 
+			//{
+			//	ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
+			//	{
+			//		const float amt = 3;
+			//		float wk = ui.getWidgetsWidth(amt) / amt;
+			//		ofxImGuiSurfing::AddSpacingPad(wk);
+			//		SurfingGuiFlags flags = SurfingGuiFlags_None;
+			//		//flags += SurfingGuiFlags_NoInput;
+			//		//flags += SurfingGuiFlags_TooltipValue;
+			//		{
+			//			ofxImGuiSurfing::AddSpacingPad(wk);
+			//			ui.Add(deviceIn_Gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
+			//			ofxImGuiSurfing::AddSpacingPad(wk);
+			//			ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, 2, flags);
+			//		}
+			//		if (deviceIn_bEnable_SmoothAvg)
+			//		{
+			//			ofxImGuiSurfing::AddSpacingPad(wk);
+			//			ui.Add(deviceIn_PowerSmoothAvg, OFX_IM_KNOB_DOTKNOB, 2, flags);
+			//		}
+			//	}
+			//	ui.PopFont();
+			//}
+			//ui.AddSpacingSeparated();
+
+			ui.AddLabelBig("VU");
 			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 			ui.AddSpacing();
 
+			// Plot
 			{
 				// mark threshold
 				vector<SliderMarks> marks;
@@ -1344,21 +1376,60 @@ private:
 				m1.color = ofColor(ofColor::yellow, 96);
 				marks.push_back(m1);
 				ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true);
+				//ImGui::Spacing();
 			}
 
-			ImGui::Spacing();
+			ui.AddSpacingSeparated();
 
-			//ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
 			ui.AddLabelBig(threshold.getName(), true);
+			//ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
 			ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME);
 			//ui.PopFont();
 
-			ImGui::Spacing();
-			ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
-			ui.Add(tGateDur, OFX_IM_HSLIDER_SMALL);
-			ofxImGuiSurfing::AddProgressBar(remainGatePrc);
+			ui.AddSpacingSeparated();
 
-			ui.AddSpacingBigSeparated();
+			// Gate
+			{
+				ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
+				ui.AddSpacing();
+
+				ui.Add(tGateDur, OFX_IM_HSLIDER_SMALL);
+				ofxImGuiSurfing::AddProgressBar(remainGatePrc);
+			}
+
+			ui.AddSpacingSeparated();
+
+			// Patience
+			if (deviceIn_vuAwengine)
+			{
+				ui.AddSpacing();
+				ui.Add(deviceIn_timeAwePatience, OFX_IM_HSLIDER_SMALL_NO_NUMBER);
+
+				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine,
+					0, deviceIn_timeAwengine * 1000, 0, 1, true);
+				ofxImGuiSurfing::AddProgressBar(v);
+
+				ui.AddSpacingSeparated();
+			}
+
+			//ui.AddSpacing();
+			{
+				//const float amt = 2;
+				//float wk = ui.getWidgetsWidth(amt) / amt;
+				//ofxImGuiSurfing::AddSpacingPad(wk);
+				//ImVec2 sz{ ui.getWidgetsWidth(amt) , ui.getWidgetsHeightUnit() };
+				//if (ui.AddButton("RESET ALL", sz))
+				//{
+				//	doResetAll();
+				//}
+
+				if (ui.AddButton("RESET ALL"))
+				{
+					doResetAll();
+				}
+			}
+
+			ui.AddSpacingSeparated();
 
 #ifdef USE_SOUND_FILE_PLAYER
 			ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED);
@@ -1378,7 +1449,7 @@ private:
 
 			if (ui.BeginWindowSpecial(bGui_Main))
 			{
-				ui.AddMinimizerToggle();
+				ui.AddMinimizeToggle();
 				if (ui.isMaximized()) ui.AddLogToggle();
 				ui.AddSpacingSeparated();
 
@@ -1533,7 +1604,7 @@ private:
 
 			ui.AddSpacingSeparated();
 
-			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT); // Used out!
 			ui.AddTooltip("Real-time VU");
 
 			if (!ui.bMinimize)
@@ -1551,7 +1622,7 @@ private:
 					//// 3 widgets per row with a width of 1/3 of the total available window width
 					//ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
 					//ui.SameLine();
-					//ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
+					//ui.Add(deviceIn_vuSmooth1, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
 					//ui.SameLine();
 					//ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
 					////ui.AddTooltip("Offset Gain");
@@ -1561,9 +1632,9 @@ private:
 						// 3 widgets per row with a width of 1/3 of the total available window width
 						ui.Add(deviceIn_Gain, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
 						ui.SameLine();
-						ui.Add(deviceIn_vuSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
+						ui.Add(deviceIn_vuSmooth1, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt);
 
-						ui.Add(deviceIn_vuGainBoost, OFX_IM_KNOB_STEPPEDKNOB, amt, 1 / amt);
+						ui.Add(deviceIn_vuGainBoost, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt);
 						ui.SameLine();
 						ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt);
 					}
@@ -1572,13 +1643,16 @@ private:
 
 					//TODO:
 					{
-						ui.Add(bEnable_SmoothAvg, OFX_IM_TOGGLE);
+						ui.Add(deviceIn_bEnable_SmoothAvg, OFX_IM_TOGGLE);
 						{
-							if (bEnable_SmoothAvg) {
+							if (deviceIn_bEnable_SmoothAvg) {
 								float wk = ui.getWidgetsWidth(2) / 2 - ui.getWidgetsSpacingX();
 								ofxImGuiSurfing::AddSpacingPad(wk);
-								SurfingGuiFlags_ flags = SurfingGuiFlags_NoInput;
-								ui.Add(powerSmoothAvg, OFX_IM_KNOB_TICKKNOB, 2, flags);
+
+								SurfingGuiFlags flags = SurfingGuiFlags_None;
+								//flags += SurfingGuiFlags_NoInput;
+								//flags += SurfingGuiFlags_TooltipValue;
+								ui.Add(deviceIn_PowerSmoothAvg, OFX_IM_KNOB_TICKKNOB, 2, flags);
 							}
 
 							//string s;
@@ -1607,7 +1681,7 @@ private:
 					ImGui::Spacing();
 					if (ui.isExtraEnabled())
 					{
-						ofxImGuiSurfing::AddPad2D(deviceIn_vuSmooth, deviceIn_Gain, ImVec2{ -1,-1 }, false, true);
+						ofxImGuiSurfing::AddPad2D(deviceIn_vuSmooth1, deviceIn_Gain, ImVec2{ -1,-1 }, false, true);
 						ImGui::Spacing();
 
 						ofxImGuiSurfing::AddPlot(deviceIn_vuValue, ImVec2{ -1,-1 }, nullptr);
@@ -2033,6 +2107,8 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 		waveformPlot.setUiPtr(&ui);
 #endif
+		//workflow default
+		ui.bExtra = false;
 
 	}
 
@@ -2278,7 +2354,7 @@ public:
 			// prepare the smooth control to fit a more useful range
 
 			// A. Raw
-			float smooth = deviceIn_vuSmooth.get();
+			float smooth = deviceIn_vuSmooth1.get();
 
 			//// B. Expanded
 			//smooth = ofxSurfingHelpers::squaredFunction(smooth);
@@ -2297,7 +2373,7 @@ public:
 			//--
 
 			//TODO:
-			if (bEnable_SmoothAvg) {
+			if (deviceIn_bEnable_SmoothAvg) {
 				updateSmoothAvg();
 				addValueSmoothAvg(_vu);
 				_vu = getValueSmoothAvg();
@@ -2503,9 +2579,43 @@ private:
 
 		if (0) {}
 
-		else if (name == powerSmoothAvg.getName())
+		else if (name == deviceIn_timeAwePatience.getName())
 		{
-			setSmoothAvgPow(powerSmoothAvg.get());
+			deviceIn_timeAwengine = ofMap(deviceIn_timeAwePatience.get(), 0, 1, 1, 10, true);
+		}
+
+		//TODO:
+		else if (name == deviceIn_OneSmooth.getName())
+		{
+			/*
+
+			deviceIn_Gain
+			deviceIn_vuSmooth1
+			deviceIn_vuOffsetPow
+
+			deviceIn_vuGainBoost
+			deviceIn_PowerSmoothAvg
+
+			*/
+
+			// Master knob from 0 to 1
+			double control = deviceIn_OneSmooth.get();
+
+			// Interpolate between good values for each of the float variables
+			double y1 = lerp(x1[0], x1[szi - 1], control);
+			double y2 = lerp(x2[0], x2[szi - 1], control);
+			double y3 = lerp(x3[0], x3[szi - 1], control);
+			double y4 = lerp(x4[0], x4[szi - 1], control);
+
+			deviceIn_Gain = y1;
+			deviceIn_vuSmooth1 = y2;
+			deviceIn_vuOffsetPow = y3;
+			deviceIn_PowerSmoothAvg = y4;
+		}
+
+		else if (name == deviceIn_PowerSmoothAvg.getName())
+		{
+			setSmoothAvgPow(deviceIn_PowerSmoothAvg.get());
 		}
 
 		else if (name == deviceIn_Enable.getName())
@@ -2567,7 +2677,7 @@ private:
 		//TODO:
 		// could have different behaviors presets like
 		// slow, medium, aggressive
-		
+
 		//TODO:
 		// should use the last threshold or time for last bang ?
 		// to improve results
@@ -2593,24 +2703,36 @@ private:
 			threshold = thresholdTarget;
 			bFlagDoneAwengine = true;
 		}
-		else {
+		else
+		{
 			// bypass threshold switch!
-			ofLogNotice("ofxSoundDevicesManager:doRunAwengine") << "Ignored diff: " << diff;
+			ofLogVerbose("ofxSoundDevicesManager:doRunAwengine") << "Ignored diff: " << diff;
 		}
 
 		timeLastAwengine = ofGetElapsedTimeMillis();
 	}
 
 	//--------------------------------------------------------------
+	void doResetAll()
+	{
+		tGateDur = 1000;
+
+		doResetVuSmooth();
+	}
+
+	//--------------------------------------------------------------
 	void doResetVuSmooth()
 	{
-		deviceIn_Gain = .84;
-		deviceIn_vuSmooth = .84;
-		deviceIn_vuGainBoost = 3;
-		deviceIn_vuOffsetPow = 0.7f;
+		deviceIn_OneSmooth = 0.5;
 
-		bEnable_SmoothAvg = true;
-		powerSmoothAvg = 0.5;
+		//deviceIn_Gain = .84;
+		//deviceIn_vuSmooth1 = .84;
+		//deviceIn_vuGainBoost = 3;
+		//deviceIn_vuOffsetPow = 0.7f;
+		//deviceIn_PowerSmoothAvg = 0.5;
+		deviceIn_vuGainBoost = 3;
+
+		deviceIn_bEnable_SmoothAvg = true;
 	}
 
 	//--
