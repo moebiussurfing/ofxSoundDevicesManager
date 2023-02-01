@@ -111,9 +111,12 @@ public:
 	//TODO: test avoid thread problems..
 	ofMutex waveformMutex;
 
+	//--
+
 private:
 
-	// interpolator
+	// OneSmooth
+	// Interpolator Engine
 	//const size_t sz = 4;
 #define szi 3
 	//idea: from less to more smoothed
@@ -468,8 +471,10 @@ private:
 		params_In.add(deviceIn_vuAwengine);
 		params_In.add(deviceIn_timeAwePatience);
 		//params_In.add(deviceIn_timeAwengine);
+		params_In.add(bDebug_Awengine);
 
 		params_In.add(deviceIn_OneSmooth);
+		params_In.add(plotScale);
 
 		//params_In.add(deviceIn_Api);
 		//params_In.add(deviceIn_ApiName);//labels
@@ -658,8 +663,10 @@ private:
 	ofParameter<float> deviceIn_vuOffsetPow{ "Offset", 0, -1, 1 }; // Offset pow
 	ofParameter<float> deviceIn_vuSmooth1{ "Smooth1", 0, 0, 1 }; // to smooth the vu signal
 	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
+	ofParameter<float> plotScale{ "Scale", 0.5, 0, 1 };
 
 	ofParameter<bool> deviceIn_vuAwengine{ "AWENGINE", false };
+	ofParameter<bool> bDebug_Awengine{ "Debug", false };
 	ofParameter<float> deviceIn_timeAwePatience{ "PATIENCE", 0, 0, 1 };
 	int deviceIn_timeAwengine;
 	//ofParameter<int> deviceIn_timeAwengine{ "PATIENCE", 4, 1, 10 };
@@ -1320,50 +1327,35 @@ private:
 				SurfingGuiFlags flags = SurfingGuiFlags_None;
 				flags += SurfingGuiFlags_NoInput;
 				//flags += SurfingGuiFlags_NoTitle;
-				flags += SurfingGuiFlags_TooltipValue;
+				//flags += SurfingGuiFlags_TooltipValue;
 
 				const float amt = 2;//size
-				//float wk = ui.getWidgetsWidth(amt) / amt;
-				//ofxImGuiSurfing::AddSpacingPad(wk);
 
-				ui.Add(deviceIn_OneSmooth, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt, true, flags);
-				//ui.AddTooltip(deviceIn_OneSmooth, true, false);
-
-				ui.Add(deviceIn_vuGainBoost, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt, false, SurfingGuiFlags_NoInput);
+				ui.Add(deviceIn_vuGainBoost, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt, false, flags);
 				ui.AddTooltip(deviceIn_vuGainBoost, true, false);
+				ui.SameLine();
+				ui.Add(deviceIn_OneSmooth, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt, false, flags);
 			}
 
 			ui.AddSpacingSeparated();
 
-			//if (ui.AddExtra()) 
-			//{
-			//	ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
-			//	{
-			//		const float amt = 3;
-			//		float wk = ui.getWidgetsWidth(amt) / amt;
-			//		ofxImGuiSurfing::AddSpacingPad(wk);
-			//		SurfingGuiFlags flags = SurfingGuiFlags_None;
-			//		//flags += SurfingGuiFlags_NoInput;
-			//		//flags += SurfingGuiFlags_TooltipValue;
-			//		{
-			//			ofxImGuiSurfing::AddSpacingPad(wk);
-			//			ui.Add(deviceIn_Gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
-			//			ofxImGuiSurfing::AddSpacingPad(wk);
-			//			ui.Add(deviceIn_vuOffsetPow, OFX_IM_KNOB_DOTKNOB, 2, flags);
-			//		}
-			//		if (deviceIn_bEnable_SmoothAvg)
-			//		{
-			//			ofxImGuiSurfing::AddSpacingPad(wk);
-			//			ui.Add(deviceIn_PowerSmoothAvg, OFX_IM_KNOB_DOTKNOB, 2, flags);
-			//		}
-			//	}
-			//	ui.PopFont();
-			//}
-			//ui.AddSpacingSeparated();
-
 			ui.AddLabelBig("VU");
 			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
 			ui.AddSpacing();
+
+			// Slide with name exactly aligned
+			//static float scale = 1.f;
+			{
+				//string n = "Scale";
+				//auto sz = ImGui::CalcTextSize(n.c_str());
+				//float w = ui.getWidgetsWidth(1) - ui.getWidgetsSpacingX() - sz.x;
+				//ImGui::PushItemWidth(w);
+				//ImGui::SliderFloat(n.c_str(), &scale, 0, 1);
+				//ImGui::PopItemWidth();
+
+				//ui.Add(plotScale);
+				ui.Add(plotScale, OFX_IM_HSLIDER_MINI_NO_NUMBER);
+			}
 
 			// Plot
 			{
@@ -1375,11 +1367,19 @@ private:
 				m1.thick = 2;
 				m1.color = ofColor(ofColor::yellow, 96);
 				marks.push_back(m1);
-				ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true);
+				ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true, plotScale.get());
 				//ImGui::Spacing();
 			}
 
 			ui.AddSpacingSeparated();
+
+			//// make slider half size and center it
+			//ui.AddLabelBig(threshold.getName(), true, true);
+			//const float amt = 2;
+			//float wk = ui.getWidgetsWidth(amt) / amt;
+			////wk += 20;//a bit bigger
+			//ofxImGuiSurfing::AddSpacingPad(wk);
+			//ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME, 2); 
 
 			ui.AddLabelBig(threshold.getName(), true);
 			//ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
@@ -1390,11 +1390,17 @@ private:
 
 			// Gate
 			{
+				ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
 				ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
+				ui.PopFont();
+
 				ui.AddSpacing();
 
 				ui.Add(tGateDur, OFX_IM_HSLIDER_SMALL);
+
+				ofxImGuiSurfing::PushMinimalHeights();
 				ofxImGuiSurfing::AddProgressBar(remainGatePrc);
+				ofxImGuiSurfing::PopMinimalHeights();
 			}
 
 			ui.AddSpacingSeparated();
@@ -1403,16 +1409,20 @@ private:
 			if (deviceIn_vuAwengine)
 			{
 				ui.AddSpacing();
-				ui.Add(deviceIn_timeAwePatience, OFX_IM_HSLIDER_SMALL_NO_NUMBER);
 
+				ui.Add(deviceIn_timeAwePatience, OFX_IM_HSLIDER_SMALL_NO_NUMBER);
 				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine,
 					0, deviceIn_timeAwengine * 1000, 0, 1, true);
+				ofxImGuiSurfing::PushMinimalHeights();
 				ofxImGuiSurfing::AddProgressBar(v);
+				ofxImGuiSurfing::PopMinimalHeights();
+				ui.AddSpacing();
 
-				ui.AddSpacingSeparated();
+				ui.Add(bDebug_Awengine, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
 			}
 
-			//ui.AddSpacing();
+			ui.AddSpacingSeparated();
+
 			{
 				//const float amt = 2;
 				//float wk = ui.getWidgetsWidth(amt) / amt;
@@ -1568,7 +1578,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1579,9 +1589,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
+				}
 			}
 		}
-	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1707,12 +1717,14 @@ private:
 					ui.Add(tGateDur, OFX_IM_STEPPER);
 					s = "Gated time in ms \nafter a Bang trig.";
 					ui.AddTooltip(s);
-					ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
+					ui.Add(bBang, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
 					s = "Boolean Bang enabled \nduring gated time.";
 					s = "Consider linking a callback \nto be notified \nwhen delta/trig happens.";
 					ui.AddTooltip(s);
 					///*if (bBang) */ofxImGuiSurfing::AddProgressBar(1 - remainGatePrc);
+					ofxImGuiSurfing::PushMinimalHeights();
 					ofxImGuiSurfing::AddProgressBar(remainGatePrc);
+					ofxImGuiSurfing::PopMinimalHeights();
 					ui.EndTree();
 				}
 
@@ -1798,9 +1810,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-		}
-#endif
 	}
+#endif
+}
 
 public:
 
@@ -2286,7 +2298,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 				//--
 
@@ -2332,7 +2344,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+	}
 
 			//--
 
@@ -2421,7 +2433,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-		}
+}
 
 		//----
 
@@ -2441,7 +2453,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 			}
 		}
@@ -2664,6 +2676,10 @@ public:
 			return true;
 		}
 		else return false;
+	}
+	//--------------------------------------------------------------
+	const bool isDebugAwengine() {
+		return bDebug_Awengine.get();
 	}
 
 private:

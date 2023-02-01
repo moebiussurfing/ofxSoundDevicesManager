@@ -23,8 +23,8 @@ void ofApp::setup()
 
 	// Align
 	//notifier.setAlignment(surfingNotify::AlignNote_LEFT);
-	//notifier.setAlignment(surfingNotify::AlignNote_CENTER);
-	notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
+	notifier.setAlignment(surfingNotify::AlignNote_CENTER);
+	//notifier.setAlignment(surfingNotify::AlignNote_RIGHT);
 
 	// Settings
 	ofxSurfingHelpers::load(g);
@@ -170,7 +170,8 @@ void ofApp::draw()
 		// Get notified when Awengine done!
 		if (audioDevices.isDoneAwengine())
 		{
-			// Notify
+			// Apply engine
+
 			string s = "THRS ";
 			//string s = "AWE! THR>" + ofToString(audioDevices.getThreshold(), 1);
 
@@ -184,7 +185,8 @@ void ofApp::draw()
 				s += ofToString(diff, 2);
 			}
 
-			notifier.addNotification(s, 255, ofColor(0));
+			// notify
+			if (audioDevices.isDebugAwengine()) notifier.addNotification(s, 255, ofColor(0));
 		}
 
 		//--
