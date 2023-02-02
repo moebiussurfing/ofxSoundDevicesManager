@@ -1,20 +1,26 @@
 # ofxSoundDevicesManager
 
 # OVERVIEW
-An **openFrameworks** add-on to provide audio basics to any ofApp. Easily handles and selects system sound devices.  
+An **openFrameworks** add-on to provide audio basics to any ofApp.  
+Easily handles and selects system sound devices.  
 Currently working on Windows only, and for Input devices only.  
+ 
+<details>
+<summary>NOTE</summary>
 
-Note that it will not work without [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui), or using **ofxGui** instead! For similar basic purpose you can use [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald** instead of this add-on.
+It will not work _out-of-the-box_ without [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui), or using **ofxGui** instead. But could be fixed for that. Look on **USE_OFXGUI_INTERNAL** directive. 
+For similar basic purposes (maybe for devices selector only) you can use [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald** instead of this add-on.
+</details>
  
 <details>
 <summary>WIP</summary>
 
-- ONLY MS WINDOWS YET. SHOULD ADD macOS / MAYBE LINUX APIs ENGINES.
-- NOW I'AM USING THE MS DIRECTSHOW API. ASIO OR WASAPI HAS NOT BEEN TESTED BUT SHOULD WORK.
-- CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED MAINLY ON AN AUDIO ANALYZER.
-- DEVICES OUTPUT SELECTOR SEEMS NOT WORKING YET. USES THE DEFAULT DEVICE.
+- ONLY MS WINDOWS YET. SHOULD ADD macOS AND MAYBE LINUX APIs ENGINES.
+- NOW I'AM USING THE MS DIRECTSHOW API. ASIO OR WASAPI HAS NOT BEEN HARDLY TESTED BUT IT SHOULD WORK.
+- CURRENTLY ONLY USING INPUTS YET. INTENDED TO BE USED MAINLY ON AN AUDIO ANALYZER.
+- DEVICES OUTPUT SELECTOR SEEMS NOT WORKING YET. IT USES THE DEFAULT DEVICE.
 - SOUND FILE PLAYER GOES THROUGH THE DEFAULT OUTPUT. BUT IT´S FEEDING THE DETECTOR ENGINE FINE.
-- COMPATIBLE WITH ofxSurfingAudioPlots FOR STYLED WAVEFORM PLOT.
+- COMPATIBLE WITH **ofxSurfingAudioPlots** FOR STYLED WAVEFORM PLOT.
 </details>
 
 ## SCREENSHOTS
@@ -31,16 +37,17 @@ Note that it will not work without [ofxSurfingImGui](https://github.com/moebiuss
 [IG VIDEO](https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_link)  
 
 ## FEATURES
+- Provides audio basics to any ofApp.
 - Device selector: 
-	- Input and Output (WIP) **devices**.
-	- All (Windows yet) sound APIs: **DS/ASIO/WASAPI**. 
+	- Input and Output (WIP) **audio devices**.
+	- All (MS Windows yet) sound APIs: **DS/ASIO/WASAPI**. 
 - **ImGui** based **GUI**.
-- Provide audio basics to any ofApp.
 - WIP Smoother module.
 - Intuitive VU / RMS.
 - Bangs detector using a threshold.
 - Gate with release timer.
 - New audio widgets.
+- Custom auto pilot **AWENGINE**.
 - Testing scene.
 
 <details>
@@ -74,8 +81,8 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
 * [ofxSurfingHelpers](https://github.com/moebiussurfing/ofxSurfingHelpers)
 * [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
-* ofxGui (oF core) / Optional
 * [ofxSurfingAudioPlots](https://github.com/moebiussurfing/ofxSurfingAudioPlots/) / Optional for example 2
+* ofxGui (oF core) / Optional
 
 ### TESTED SYSTEMS
 - **Windows 10** / **VS 2022** / **oF 0.11+**
@@ -83,7 +90,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 <details>
 <summary>TODO</summary>
 
-* Make it https://github.com/roymacdonald/ofxSoundObjects compatible. (?)
+* Make it [ofxSoundObjects](https://github.com/roymacdonald/ofxSoundObjects) compatible. (?)
 * Merge some stuff from [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald**. (?)
 * Test and make it macOS-compatible.
 * Improve settings using Port names instead of Port Numbers.
