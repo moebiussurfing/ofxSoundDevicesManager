@@ -218,9 +218,11 @@ public:
 	//--------------------------------------------------------------
 	void keyPressed(int key)
 	{
-		// Disable keyboard 
-		// when typing into any ui widget.
-		if (this->getUiPtr()->isOverInputText()) return;
+		if (!ui.isKeys()) return;
+		//// Disable keyboard 
+		//// when typing into any ui widget.
+		//if (ui.isOverInputText()) return;
+		////if (this->getUiPtr()->isOverInputText()) return;
 
 #ifdef DETECTOR_INTERNAL
 		surfingDetector.keyPressed(key);
@@ -1591,7 +1593,10 @@ private:
 			if (ui.BeginWindowSpecial(bGui_Main))
 			{
 				ui.AddMinimizeToggle();
-				if (ui.isMaximized()) ui.AddLogToggle();
+				if (ui.isMaximized()) {
+					ui.AddKeysToggle();
+					ui.AddLogToggle();
+				}
 				ui.AddSpacingSeparated();
 
 				//--

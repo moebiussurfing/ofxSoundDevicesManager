@@ -29,7 +29,9 @@ class ofApp : public ofBaseApp
 		int bufferSize;
 		int numBuffers;
 		
-		ofxWindowApp w;
-
 		surfingSceneTesters scene;
+
+		float bMode = false;
+
+		ofxWindowApp w;
 };
