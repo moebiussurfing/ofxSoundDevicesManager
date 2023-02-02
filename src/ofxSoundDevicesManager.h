@@ -70,6 +70,8 @@
 
 //#define USE_OFXGUI_INTERNAL // ofxGui internal debug or split from ImGui..
 
+//#define DETECTOR_INTERNAL
+
 //-----------------------
 
 
@@ -91,6 +93,10 @@
 #include "ofxSurfingSoundPlayer.h"
 #endif
 
+#ifdef DETECTOR_INTERNAL
+#include "surfingDetector.hpp"
+#endif
+
 #include <cmath>
 
 //#define deviceIn_vuGainBoost 2.f
@@ -110,6 +116,11 @@ public:
 
 	//TODO: test avoid thread problems..
 	ofMutex waveformMutex;
+
+#ifdef DETECTOR_INTERNAL
+private:
+	SurfingDetector surfingDetector;
+#endif
 
 	//--
 
@@ -202,6 +213,14 @@ public:
 	//--------------------------------------------------------------
 	void keyPressed(int key)
 	{
+		// Disable keyboard 
+		// when typing into any ui widget.
+		if (this->getUiPtr()->isOverInputText()) return;
+
+#ifdef DETECTOR_INTERNAL
+		surfingDetector.keyPressed(key);
+#endif
+
 #ifdef USE_SOUND_FILE_PLAYER
 		player.keyPressed(key);
 #endif
@@ -343,6 +362,17 @@ public:
 
 		//TODO:
 		setupSmoothAvg(historySmoothAvgMax);
+
+		//--
+
+		//TODO:
+		//fails
+#ifdef DETECTOR_INTERNAL
+		surfingDetector.setAudioDevicesPtr(this);
+		//surfingDetector.setAudioDevicesPtr(&audioDevices);
+		//surfingDetector.setAudioDevicesPtr((ofxSoundDevicesManager * )this);
+		//surfingDetector.setAudioDevicesPtr((ofxSoundDevicesManager *) (this));
+#endif
 
 		//--
 
@@ -706,7 +736,7 @@ private:
 	ofParameter<float> fftStart{ "Start", 0, 0, 1 };
 	ofParameter<float> fftEnd{ "End", 1, 0, 1 };
 
-	ofParameter<bool> bGui_BigVSlider{ "Big Slider", false };
+	ofParameter<bool> bGui_BigVSlider{ "BIG THRESHOLD", false };
 
 	ofColor* colorGrab = nullptr;
 public:
@@ -762,7 +792,9 @@ private:
 	string helpInfo = "";
 	string devices_ApiName;
 
-	string nameLabel = "SoundDevices";
+	//string nameLabel = "SoundDevices";
+	string nameLabel = "ofxSoundDevicesManager";
+
 	string pathGlobal = "ofxSoundDevicesManager";
 	string pathSettings = "ofxSoundDevicesManager_Settings.json";
 
@@ -885,8 +917,9 @@ private:
 			tElapsed = (t - timeLastBang);
 
 			remainGatePrc = ofMap(tElapsed, 0, tGateDur, 1.0f, 0.f, true);
-
 			//gate being closed
+
+			//release gate
 			if (tElapsed > tGateDur)
 			{
 				bGateClosed = false;//open gate
@@ -907,7 +940,7 @@ private:
 
 		if (deviceIn_vuValue > deviceIn_VuMax) deviceIn_VuMax = deviceIn_vuValue;
 
-		int tf = int(deviceIn_timeAwengine * 60);
+		int tf = MAX(1, int(deviceIn_timeAwengine * 60));
 		if (ofGetFrameNum() % tf == 0)
 		{
 			// AWENGINE!
@@ -1309,6 +1342,12 @@ private:
 			//--
 		}
 		ui.End();
+
+		//--
+
+#ifdef DETECTOR_INTERNAL
+		surfingDetector.draw();
+#endif
 	}
 
 	//--------------------------------------------------------------
@@ -1316,9 +1355,19 @@ private:
 	{
 		if (ui.BeginWindow(ui.bGui_GameMode))
 		{
+			bool bMax = ui.isMaximized();
+
+			string s;
+			ui.AddMinimizerXsToggle(ui.bMinimize);
+			ui.AddSpacing();
+
 			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
 			ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
 			ui.PopFont();
+			if (deviceIn_vuAwengine) s = "Threshold is locked, \nand controlled by the Engine.";
+			else s = "Threshold is manual, un-locked \nand controlled by the user.";
+			ui.AddTooltip(s, bMax);
+
 			ui.AddSpacing();
 			ui.AddSpacing();
 
@@ -1331,30 +1380,27 @@ private:
 
 				const float amt = 2;//size
 
-				ui.Add(deviceIn_vuGainBoost, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt, false, flags);
-				ui.AddTooltip(deviceIn_vuGainBoost, true, false);
+				ui.Add(deviceIn_vuGainBoost, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt, false, flags);
+				ui.AddTooltip(deviceIn_vuGainBoost, true, true);
 				ui.SameLine();
-				ui.Add(deviceIn_OneSmooth, OFX_IM_KNOB_DOTKNOB, amt, 1 / amt, false, flags);
+				ui.Add(deviceIn_OneSmooth, OFX_IM_KNOB_TICKKNOB, amt, 1 / amt, false, flags);
+				ui.AddTooltip(deviceIn_OneSmooth, true, true);
 			}
 
 			ui.AddSpacingSeparated();
 
-			ui.AddLabelBig("VU");
+			if (ui.isMaximized()) ui.AddLabelBig("VU");
+			else ui.AddSpacing();
 			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
-			ui.AddSpacing();
+			s = "Main smoothed signal. \nWill push the threshold.";
+			ui.AddTooltip(s, bMax);
 
-			// Slide with name exactly aligned
-			//static float scale = 1.f;
+			if (ui.isMaximized())
 			{
-				//string n = "Scale";
-				//auto sz = ImGui::CalcTextSize(n.c_str());
-				//float w = ui.getWidgetsWidth(1) - ui.getWidgetsSpacingX() - sz.x;
-				//ImGui::PushItemWidth(w);
-				//ImGui::SliderFloat(n.c_str(), &scale, 0, 1);
-				//ImGui::PopItemWidth();
-
-				//ui.Add(plotScale);
+				ui.AddSpacing();
 				ui.Add(plotScale, OFX_IM_HSLIDER_MINI_NO_NUMBER);
+				s = "Re scale Plot.";
+				ui.AddTooltip(s, bMax);
 			}
 
 			// Plot
@@ -1365,13 +1411,18 @@ private:
 				m1.value = threshold;
 				m1.pad = -1;
 				m1.thick = 2;
-				m1.color = ofColor(ofColor::yellow, 96);
+				//m1.color = ofColor(ofColor::yellow, 96);
+				if (colorGrab != nullptr && deviceIn_vuAwengine) m1.color = ofColor(*colorGrab);
+				else m1.color = ImGui::GetStyleColorVec4(ImGuiCol_SliderGrabActive);
 				marks.push_back(m1);
-				ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true, plotScale.get());
+
+				ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true, plotScale.get(), bDebug_Awengine.get());
 				//ImGui::Spacing();
 			}
 
 			ui.AddSpacingSeparated();
+
+			// Threshold
 
 			//// make slider half size and center it
 			//ui.AddLabelBig(threshold.getName(), true, true);
@@ -1381,10 +1432,27 @@ private:
 			//ofxImGuiSurfing::AddSpacingPad(wk);
 			//ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME, 2); 
 
-			ui.AddLabelBig(threshold.getName(), true);
-			//ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
+			if (ui.isMaximized()) ui.AddLabelBig(threshold.getName(), true);
+
+			// change grab slider
+			if (colorGrab != nullptr && deviceIn_vuAwengine) {
+				ImVec4 cg = ImVec4(*colorGrab);
+				auto c1 = ImGui::GetColorU32(cg);
+				auto c2 = ImGui::GetColorU32(ImVec4(cg.x, cg.y, cg.z, 0.5f * cg.w));
+				ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, c1);
+				ImGui::PushStyleColor(ImGuiCol_SliderGrab, c2);
+			}
+
 			ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME);
-			//ui.PopFont();
+
+			// change grab slider
+			if (colorGrab != nullptr && deviceIn_vuAwengine)
+			{
+				ImGui::PopStyleColor(2);
+			}
+
+			s = "When VU signal passes above, \na Bang will be trigged.";
+			ui.AddTooltip(s, bMax);
 
 			ui.AddSpacingSeparated();
 
@@ -1393,14 +1461,28 @@ private:
 				ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
 				ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
 				ui.PopFont();
+				s = "Bang deltas will be used \nexternally to trig events.";
+				ui.AddTooltip(s, bMax);
 
-				ui.AddSpacing();
-
-				ui.Add(tGateDur, OFX_IM_HSLIDER_SMALL);
-
+				bool b = ui.isMaximized();
+				//if (b)
+				{
+					ui.AddSpacing();
+					ui.Add(tGateDur, b ? OFX_IM_HSLIDER_MINI : OFX_IM_HSLIDER_MINI_NO_LABELS);
+					if (bMax) {
+						s = "After a Bang. \nGate will be closed \nfor some time, \n";
+						s += "ignoring incoming Bangs \nuntil the Gate is released.";
+						ui.AddTooltip(s);
+					}
+					else {
+						s = "Gate time";
+						ui.AddTooltip(s);
+					}
+				}
 				ofxImGuiSurfing::PushMinimalHeights();
 				ofxImGuiSurfing::AddProgressBar(remainGatePrc);
 				ofxImGuiSurfing::PopMinimalHeights();
+				ui.AddSpacing();
 			}
 
 			ui.AddSpacingSeparated();
@@ -1409,19 +1491,33 @@ private:
 			if (deviceIn_vuAwengine)
 			{
 				ui.AddSpacing();
+				bool b = ui.isMaximized();
+				ui.Add(deviceIn_timeAwePatience, b ? OFX_IM_HSLIDER_MINI_NO_NUMBER : OFX_IM_HSLIDER_MINI_NO_LABELS);
+				if (bMax) {
+					s = "Lower patience will control \nthe threshold faster.\n";
+					s += "Slower patience will wait \nmore time before update \nagain the threshold.";
+					ui.AddTooltip(s);
+				}
+				else {
+					s = "Patience time";
+					ui.AddTooltip(s);
+				}
 
-				ui.Add(deviceIn_timeAwePatience, OFX_IM_HSLIDER_SMALL_NO_NUMBER);
 				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine,
 					0, deviceIn_timeAwengine * 1000, 0, 1, true);
 				ofxImGuiSurfing::PushMinimalHeights();
 				ofxImGuiSurfing::AddProgressBar(v);
 				ofxImGuiSurfing::PopMinimalHeights();
 				ui.AddSpacing();
+				if (ui.isMaximized()) {
+					ui.Add(bDebug_Awengine, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
+					s = "Enables more internal debug: \nnotifies when threshold switches \nby the engine,\n";
+					s += "show average plot, ...";
+					ui.AddTooltip(s, bMax);
+				}
 
-				ui.Add(bDebug_Awengine, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
+				ui.AddSpacingSeparated();
 			}
-
-			ui.AddSpacingSeparated();
 
 			{
 				//const float amt = 2;
@@ -1439,13 +1535,24 @@ private:
 				}
 			}
 
-			ui.AddSpacingSeparated();
+			if (ui.isMaximized()) {
+
+				ui.AddSpacingSeparated();
 
 #ifdef USE_SOUND_FILE_PLAYER
-			ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED);
-			ui.AddSpacingSeparated();
+				ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED);
+				ui.AddSpacingSeparated();
 #endif
-			ui.Add(ui.bSolo_GameMode, OFX_IM_TOGGLE_ROUNDED_MINI);
+
+				ui.Add(bGui_BigVSlider, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				s = "Big and floating widget \nfor the Threshold.";
+				ui.AddTooltip(s);
+
+				ui.Add(ui.bSolo_GameMode, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+			}
+
+			//--
+
 			ui.EndWindow();
 		}
 	}
@@ -1578,7 +1685,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1589,9 +1696,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-				}
 			}
 		}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1810,9 +1917,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-	}
+		}
 #endif
-}
+	}
 
 public:
 
@@ -2047,6 +2154,11 @@ public:
 #endif
 	}
 
+	//--------------------------------------------------------------
+	string getPathGlobal() const {
+		return pathGlobal;
+	}
+
 	//--
 
 private:
@@ -2085,6 +2197,9 @@ private:
 	{
 		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__);
 
+		// Game Mode
+		ui.bGui_GameMode.setName("AWENGINE");
+
 		ui.setName(nameLabel);
 		ui.setWindowsMode(IM_GUI_MODE_WINDOWS_SPECIAL_ORGANIZER);
 		ui.setup();
@@ -2121,7 +2236,6 @@ private:
 #endif
 		//workflow default
 		ui.bExtra = false;
-
 	}
 
 	////--------------------------------------------------------------
@@ -2298,7 +2412,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 				//--
 
@@ -2344,7 +2458,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-	}
+			}
 
 			//--
 
@@ -2433,7 +2547,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-}
+		}
 
 		//----
 
@@ -2453,7 +2567,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 			}
 		}
@@ -2688,7 +2802,7 @@ private:
 	void doRunAwengine()
 	{
 		// DO THE MAGYC!
-		float gapUpper = 1.f;
+		float gapUpper = 1.f;//target will be the same than last max
 
 		//TODO:
 		// could have different behaviors presets like
@@ -2732,6 +2846,8 @@ private:
 	void doResetAll()
 	{
 		tGateDur = 1000;
+		plotScale = 0.5;
+		threshold = 1;
 
 		doResetVuSmooth();
 	}
@@ -2740,13 +2856,14 @@ private:
 	void doResetVuSmooth()
 	{
 		deviceIn_OneSmooth = 0.5;
-
+		deviceIn_timeAwePatience = 0.5;
 		//deviceIn_Gain = .84;
 		//deviceIn_vuSmooth1 = .84;
 		//deviceIn_vuGainBoost = 3;
 		//deviceIn_vuOffsetPow = 0.7f;
 		//deviceIn_PowerSmoothAvg = 0.5;
-		deviceIn_vuGainBoost = 3;
+		deviceIn_vuGainBoost = (deviceIn_vuGainBoost.getMax() - deviceIn_vuGainBoost.getMin()) / 2;
+		//deviceIn_vuGainBoost = 3;
 
 		deviceIn_bEnable_SmoothAvg = true;
 	}

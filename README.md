@@ -16,6 +16,7 @@ Currently Input devices only.
 ![](/1-example_Basic/Capture.PNG)  
 ![](/4-example_Player/Capture.PNG)  
 ![](/5-example_ExtrasDetector/Capture.PNG)  
+
 IG VIDEO: https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_link  
 
 ## Features
