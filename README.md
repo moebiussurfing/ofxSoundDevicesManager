@@ -1,13 +1,14 @@
 # ofxSoundDevicesManager
 
 # OVERVIEW
-**openFrameworks** add-on to provide audio basics to any ofApp. Easily handles selected system sound devices.  
-Currently Windows only and Input devices only. Note that can´t be used without ofxSurfingImGui, or using ofxGui instead!
+An **openFrameworks** add-on to provide audio basics to any ofApp. Easily handles and selects system sound devices.  
+Currently working on Windows only, and for Input devices only.  
+Note that will not work without [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui), or using **ofxGui** instead! For similar basic purpose you can use [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald** instead of this add-on.
  
 <details>
 <summary>WIP</summary>
 
-- ONLY MS WINDOWS YET. SHOULD ADD macOS / (MAYBE) Linux APIs ENGINES.
+- ONLY MS WINDOWS YET. SHOULD ADD macOS / MAYBE LINUX APIs ENGINES.
 - NOW I'AM USING THE MS DIRECTSHOW API. ASIO OR WASAPI HAS NOT BEEN TESTED BUT SHOULD WORK.
 - CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED MAINLY ON AN AUDIO ANALYZER.
 - DEVICES OUTPUT SELECTOR SEEMS NOT WORKING YET. USES THE DEFAULT DEVICE.
@@ -82,7 +83,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 <summary>TODO</summary>
 
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible. (?)
-* Merge some stuff from https://github.com/roymacdonald/ofxSoundDeviceManager. (?)
+* Merge some stuff from [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald**. (?)
 * Test and make it macOS-compatible.
 * Improve settings using Port names instead of Port Numbers.
 </details>
