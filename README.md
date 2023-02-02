@@ -85,8 +85,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
  
 <details>
-<summary>NOTE</summary>
-
+<summary>Optional</summary>
 * [ofxSurfingWaveplots](https://github.com/moebiussurfing/ofxSurfingWaveplots) / Optional for the example 2
 * ofxGui (oF core) / Optional
 </details>
