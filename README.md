@@ -23,7 +23,8 @@ For similar basic purposes (maybe for devices selector only) you can use [ofxSou
 - COMPATIBLE WITH **ofxSurfingAudioPlots** FOR STYLED WAVEFORM PLOT.
 </details>
 
-## SCREENSHOTS
+<details>
+<summary>SCREENSHOTS</summary>
 
 ### 1-example_Basic
 ![](/1-example_Basic/Capture.PNG)  
@@ -35,6 +36,7 @@ For similar basic purposes (maybe for devices selector only) you can use [ofxSou
 ![](/5-example_ExtrasDetector/Capture.PNG)  
 
 [IG VIDEO](https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_link)  
+</details>
 
 ## FEATURES
 - Provides audio basics to any ofApp.
