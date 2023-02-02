@@ -1,7 +1,8 @@
 #include "ofApp.h"
 
 //--------------------------------------------------------------
-void ofApp::setup() {
+void ofApp::setup()
+{
 	sampleRate = 48000;
 	bufferSize = 512;
 	numBuffers = 4;
@@ -10,12 +11,28 @@ void ofApp::setup() {
 }
 
 //--------------------------------------------------------------
-void ofApp::draw() {
+void ofApp::draw()
+{
+	// scene
+	scene.speed = 1;
+	scene.amount = 100;
+
+	//if (audioDevices.getIsBangDelta())
+	//{
+	//	ofLogNotice() << "BANG";
+	//}
+
+	ofClear(scene.c1);
+	//bool b = audioDevices.getIsBangState();
+	//if (b) scene.draw();
+	scene.draw();
+
 	audioDevices.drawGui();
 }
 
 //--------------------------------------------------------------
-void ofApp::audioIn(ofSoundBuffer& input) {
+void ofApp::audioIn(ofSoundBuffer& input)
+{
 	audioDevices.audioIn(input);
 }
 

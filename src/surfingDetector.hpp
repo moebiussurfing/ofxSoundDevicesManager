@@ -185,7 +185,7 @@ public:
 			// Bang!
 			static bool bDo = false;
 			static int count = 0;//bangs
-			if (audioDevices->getIsBang())//will be true until gate is closed!
+			if (audioDevices->getIsBangState())//will be true until gate is closed!
 			{
 				// Get bang delta flag only!
 				if (!bDo) {
@@ -226,7 +226,7 @@ public:
 			else bDo = false;
 
 			// make slider grab blink
-			if (audioDevices->getIsAwengine()) {
+			if (audioDevices->getIsAwengineEnabled()) {
 				float a = ofxSurfingHelpers::getFadeBlink(0.60, 1.0, 0.15);
 				static ofColor cGrab;
 				cGrab = ofColor(cPre.r, cPre.g, cPre.b, cPre.a * a);

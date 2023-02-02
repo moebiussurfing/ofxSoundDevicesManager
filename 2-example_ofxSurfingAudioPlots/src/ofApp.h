@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include "surfingSceneTesters.h"
 
 /*
 
@@ -29,4 +30,6 @@ class ofApp : public ofBaseApp
 		int numBuffers;
 		
 		ofxWindowApp w;
+
+		surfingSceneTesters scene;
 };

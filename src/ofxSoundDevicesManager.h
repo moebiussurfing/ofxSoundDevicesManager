@@ -590,14 +590,30 @@ public:
 	float getThreshold() const {
 		return threshold.get();
 	}
-	bool getIsBang() const {
+	bool getIsBangState() const {
 		return bBang.get();
 	}
-	bool getIsAwengine() const {
+	bool getIsAwengineEnabled() const {
 		return deviceIn_vuAwengine.get();
 	}
 	float getGateProgress() const {
 		return remainGatePrc;
+	}
+
+	// Get delta/flag bang.
+	// not the state but a bool true just int the moment going to true.
+	// kind of simple callback.
+	bool getIsBangDelta()
+	{
+		static bool bBangPRE = !bBang.get();
+		if (bBang =! bBangPRE) // changed
+		{
+			bBangPRE = bBang;
+			if (bBang) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	//--
@@ -715,7 +731,7 @@ private:
 	// threshold bang
 	uint64_t timeLastBang = 0;
 	float thresholdLastBang;
-	ofParameter<int> tGateDur{ "GATE", 1000, 25, 1975 };
+	ofParameter<int> tGateDur{ "GATE", 1000, 250, 1750 };
 	bool bGateClosed = false;
 	float remainGatePrc = 0;
 
@@ -1365,7 +1381,7 @@ private:
 			string s;
 
 			ui.AddMinimizerXsToggle(ui.bMinimize);
-			ui.AddTooltip(ui.bMinimize ? "Maximize" : "Minimize");
+			//ui.AddTooltip(ui.bMinimize ? "Maximize" : "Minimize");
 
 			ui.AddSpacing();
 
@@ -1600,9 +1616,7 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
 
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-					ui.AddSpacing();
-					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 					if (waveformPlot.bGui) {
 						ui.Indent();
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_SMALL);
@@ -1610,21 +1624,25 @@ private:
 						ui.Unindent();
 					}
 
-					//ui.Indent();
-					//ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
+					ui.AddSpacing();
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					if (waveformPlot.bGui_Plots) {
 
-					//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
-					//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+						//ui.Indent();
+						//ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
 
-					// Center a single widget
-					{
-						float w = ui.getWidgetsWidth(2) / 2;
-						// Pass the expected widget width divided by two
-						AddSpacingPad(w);
-						ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
+						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+
+						// Center a single widget
+						{
+							float w = ui.getWidgetsWidth(2) / 2;
+							// Pass the expected widget width divided by two
+							AddSpacingPad(w);
+							ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
+						}
+						//ui.Unindent();
 					}
-
-					//ui.Unindent();
 #endif
 				}
 				else // maximized
@@ -1672,9 +1690,7 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
 
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-					ui.AddSpacing();
-					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 					if (waveformPlot.bGui) {
 						ui.Indent();
 						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_SMALL);
@@ -1682,20 +1698,23 @@ private:
 						ui.Unindent();
 					}
 
-					//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
-					//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
+					ui.AddSpacing();
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					if (waveformPlot.bGui_Plots) {
+						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 
-					// Center a single widget
-					float w = ui.getWidgetsWidth(2) / 2;
-					// Pass the expected widget width divided by two
+						// Center a single widget
+						float w = ui.getWidgetsWidth(2) / 2;
+						// Pass the expected widget width divided by two
 
-					SurfingGuiFlags flags = SurfingGuiFlags_NoInput;
-					flags += SurfingGuiFlags_TooltipValue;
-					
-					AddSpacingPad(w);
-					ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
+						SurfingGuiFlags flags = SurfingGuiFlags_NoInput;
+						flags += SurfingGuiFlags_TooltipValue;
 
-					ui.Unindent();
+						AddSpacingPad(w);
+						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
+						//ui.Unindent();
+					}
 #endif
 					ui.AddSpacingSeparated();
 					ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED_SMALL);
@@ -1707,7 +1726,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1721,9 +1740,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-				}
 			}
 		}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1942,9 +1961,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-	}
+		}
 #endif
-}
+	}
 
 public:
 
@@ -2637,7 +2656,7 @@ public:
 				}
 #endif
 			}
-	}
+		}
 	}
 #endif
 
@@ -2872,7 +2891,7 @@ private:
 	void doResetAll()
 	{
 		tGateDur = 1000;
-		plotScale = 0.5;
+		plotScale = 0.f;
 		threshold = 1;
 
 		doResetVuSmooth();
