@@ -16,11 +16,16 @@ Currently Input devices only.
 
 ## SCREENSHOTS
 
+### 1-example_Basic
 ![](/1-example_Basic/Capture.PNG)  
+
+### 4-example_Player
 ![](/4-example_Player/Capture.PNG)  
+
+### 5-example_ExtrasDetector
 ![](/5-example_ExtrasDetector/Capture.PNG)  
 
-IG VIDEO: https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_link  
+[IG VIDEO](https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_link)  
 
 ## FEATURES
 - Device selector: 
