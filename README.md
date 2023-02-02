@@ -42,12 +42,12 @@ For similar basic purposes (maybe for devices selector only) you can use [ofxSou
 	- Input and Output (WIP) **audio devices**.
 	- All (MS Windows yet) sound APIs: **DS/ASIO/WASAPI**. 
 - **ImGui** based **GUI**.
-- WIP Smoother module.
+- Smoother module.
 - Intuitive VU / RMS.
 - Bangs detector using a threshold.
 - Gate with release timer.
 - New audio widgets.
-- Custom auto pilot **AWENGINE**.
+- Custom auto pilot **AWENGINE**: Auto callibrate threshold to last peaks history.
 - Testing scene.
 
 <details>
@@ -81,7 +81,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
 * [ofxSurfingHelpers](https://github.com/moebiussurfing/ofxSurfingHelpers)
 * [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
-* [ofxSurfingAudioPlots](https://github.com/moebiussurfing/ofxSurfingAudioPlots/) / Optional for example 2
+* [ofxSurfingWaveplots](https://github.com/moebiussurfing/ofxSurfingWaveplots) / Optional for the example 2
 * ofxGui (oF core) / Optional
 
 ### TESTED SYSTEMS
