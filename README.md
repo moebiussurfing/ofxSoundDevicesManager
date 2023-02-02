@@ -83,8 +83,13 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
 * [ofxSurfingHelpers](https://github.com/moebiussurfing/ofxSurfingHelpers)
 * [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
+ 
+<details>
+<summary>NOTE</summary>
+
 * [ofxSurfingWaveplots](https://github.com/moebiussurfing/ofxSurfingWaveplots) / Optional for the example 2
 * ofxGui (oF core) / Optional
+</details>
 
 ### TESTED SYSTEMS
 - **Windows 10** / **VS 2022** / **oF 0.11+**
