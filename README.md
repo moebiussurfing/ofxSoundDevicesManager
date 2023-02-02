@@ -39,39 +39,44 @@ For similar basic purposes (maybe for devices selector only) you can use [ofxSou
 </details>
 
 ## FEATURES
-- Provides audio basics to any ofApp.
+- Provides **audio basics** to any ofApp.
 - Device selector: 
 	- Input and Output (WIP) **audio devices**.
 	- All (MS Windows yet) sound APIs: **DS/ASIO/WASAPI**. 
 - **ImGui** based **GUI**.
-- Smoother module.
-- Intuitive VU / RMS.
-- Bangs detector using a threshold.
-- Gate with release timer.
-- New audio widgets.
-- Custom auto pilot **AWENGINE**: Auto callibrate threshold to last peaks history.
-- Testing scene.
+- **Intuitive VU / RMS**.
+	- Custom Smoother module.
+- **Bangs detector** using a threshold.
+	- Gate with release timer. Bypasses upcomming bangs.
+- Custom auto pilot **AWENGINE**: 
+	- Auto timed callibrates threshold to last peak from history.
+	- Testing scene to set detector.
+- New **ImGui** audio widgets:
+	- Waveform plot with threshold line.
+	- Big sertical slider for the threshold.
+	- FFT.
+- **Sound file player**.
+- Compatible with styled **waveform plot** module.
 
 <details>
 <summary>USAGE</summary>
  
-### ofApp.h
+#### ofApp.h
 ```.cpp
 #include "ofxSoundDevicesManager.h"
 
 ofxSoundDevicesManager audioDevices;
 ```
 
-### ofApp.cpp
+#### ofApp.cpp
 ```.cpp
 void ofApp::setup(){
-	audioDevices.setup(44100, 512); // Set samplerate and buffer size
+	// Set samplerate and buffer size
+	audioDevices.setup(44100, 512);
 }
-
 void ofApp::draw(){
 	audioDevices.drawGui();
 }
-
 void ofApp::audioIn(ofSoundBuffer& input) {
 	audioDevices.audioIn(input);
 }
@@ -82,17 +87,16 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
 * [ofxSurfingHelpers](https://github.com/moebiussurfing/ofxSurfingHelpers)
-* [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
- 
+* [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox) 
 <details>
 <summary>Optional</summary>
 	
-* [ofxSurfingWaveplots](https://github.com/moebiussurfing/ofxSurfingWaveplots) / Optional for the example 2
-* ofxGui (oF core) / Optional
+* [ofxSurfingWaveplots](https://github.com/moebiussurfing/ofxSurfingWaveplots) / for the example 2
+* ofxGui (oF core)
 </details>
 
 <details>
-<summary>TESTED SYSTEMS</summary>
+<summary>CURRENT SYSTEMS</summary>
  
 - **Windows 10** / **VS 2022** / **oF 0.11+**
 </details>
