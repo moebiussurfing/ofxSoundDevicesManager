@@ -6,6 +6,7 @@ Currently Input devices only.
  
 <details>
 <summary>WIP</summary>
+
 - ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
 - USING MS DIRECTSHOW. ASIO OR WASAPI HAS NOT BEEN TESTED BUT SHOULD WORK.
 - CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED ON AN AUDIO ANALYZER.
@@ -71,6 +72,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 
 <details>
 <summary>TODO</summary>
+
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible. (?)
 * Merge some stuff from https://github.com/roymacdonald/ofxSoundDeviceManager. (?)
 * Test and make it macOS-compatible.
@@ -79,6 +81,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 
 <details>
 <summary>NOTES</summary>
+
 * Would crash when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app or by hardcoding devices. 
 </details>
 
