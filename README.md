@@ -92,7 +92,8 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 </details>
 
 <details>
-### TESTED SYSTEMS
+<summary>TESTED SYSTEMS</summary>
+ 
 - **Windows 10** / **VS 2022** / **oF 0.11+**
 </details>
 
