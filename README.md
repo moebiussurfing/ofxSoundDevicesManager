@@ -90,10 +90,10 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 <details>
 <summary>TODO</summary>
 
-* Make it [ofxSoundObjects](https://github.com/roymacdonald/ofxSoundObjects) compatible. (?)
-* Merge some stuff from [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald**. (?)
-* Test and make it macOS-compatible.
 * Improve settings using Port names instead of Port Numbers.
+* Test and make it macOS-compatible.
+* Merge some stuff from [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald**. (?)
+* Make it [ofxSoundObjects](https://github.com/roymacdonald/ofxSoundObjects) compatible. (?)
 </details>
 
 <details>
