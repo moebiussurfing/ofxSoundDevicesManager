@@ -1,17 +1,17 @@
 # ofxSoundDevicesManager
 
 # OVERVIEW
-**openFrameworks** add-on to provide audio basics to any ofApp.  
-Easily handles selected system sound devices.  
-Currently Windows only and Input devices only.  
+**openFrameworks** add-on to provide audio basics to any ofApp. Easily handles selected system sound devices.  
+Currently Windows only and Input devices only. Note that can´t be used without ofxSurfingImGui, or using ofxGui instead!
  
 <details>
 <summary>WIP</summary>
 
-- ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
-- USING MS DIRECTSHOW. ASIO OR WASAPI HAS NOT BEEN TESTED BUT SHOULD WORK.
-- CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED ON AN AUDIO ANALYZER.
+- ONLY MS WINDOWS YET. SHOULD ADD macOS / (MAYBE) Linux APIs ENGINES.
+- NOW I'AM USING THE MS DIRECTSHOW API. ASIO OR WASAPI HAS NOT BEEN TESTED BUT SHOULD WORK.
+- CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED MAINLY ON AN AUDIO ANALYZER.
 - DEVICES OUTPUT SELECTOR SEEMS NOT WORKING YET. USES THE DEFAULT DEVICE.
+- SOUND FILE PLAYER GOES THROUGH THE DEFAULT OUTPUT. BUT IT´S FEEDING THE DETECTOR ENGINE FINE.
 - COMPATIBLE WITH ofxSurfingAudioPlots FOR STYLED WAVEFORM PLOT.
 </details>
 
@@ -41,7 +41,8 @@ Currently Windows only and Input devices only.
 - New audio widgets.
 - Testing scene.
 
-## USAGE
+<details>
+<summary>USAGE</summary>
  
 ### ofApp.h
 ```.cpp
@@ -64,6 +65,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 	audioDevices.audioIn(input);
 }
 ```
+</details>
 
 ### DEPENDENCIES
 * [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
@@ -74,7 +76,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * [ofxSurfingAudioPlots](https://github.com/moebiussurfing/ofxSurfingAudioPlots/) / Optional for example 2
 
 ### TESTED SYSTEMS
-- **Windows 10** / **VS 2022** / **OF 0.11+**
+- **Windows 10** / **VS 2022** / **oF 0.11+**
 
 <details>
 <summary>TODO</summary>
@@ -93,7 +95,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 
 ## AUTHOR
 An add-on by **@moebiusSurfing**  
-*(ManuMolina). 2020-2022.*
+*(ManuMolina). 2020-2023.*
 
 ## LICENSE
 *MIT License*
