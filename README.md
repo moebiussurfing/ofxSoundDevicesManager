@@ -3,15 +3,17 @@
 # OVERVIEW
 **openFrameworks** add-on to easily handle selected system sound devices.  
 Currently Input devices only.  
-
-**WIP**
+ 
+<details>
+<summary>WIP</summary>
 - ONLY MS WINDOWS YET. SHOULD ADD macOS / Linux APIs ENGINES.
 - USING MS DIRECTSHOW. ASIO OR WASAPI HAS NOT BEEN TESTED BUT SHOULD WORK.
 - CURRENTLY USING ONLY INPUT YET. INTENDED TO BE USED ON AN AUDIO ANALYZER.
 - DEVICES OUTPUT SELECTOR SEEMS NOT WORKING YET. USES THE DEFAULT DEVICE.
 - COMPATIBLE WITH ofxSurfingAudioPlots FOR STYLED WAVEFORM PLOT.
+</details>
 
-## Screenshots
+## SCREENSHOTS
 
 ![](/1-example_Basic/Capture.PNG)  
 ![](/4-example_Player/Capture.PNG)  
@@ -19,7 +21,7 @@ Currently Input devices only.
 
 IG VIDEO: https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_link  
 
-## Features
+## FEATURES
 - Device selector: 
 	- Input and Output (WIP) **devices**.
 	- All (Windows yet) sound APIs: **DS/ASIO/WASAPI**. 
@@ -32,7 +34,7 @@ IG VIDEO: https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_lin
 - New audio widgets.
 - Testing scene.
 
-## Usage
+## USAGE
  
 ### ofApp.h
 ```.cpp
@@ -56,7 +58,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 }
 ```
 
-### Dependencies
+### DEPENDENCIES
 * [ofxSurfingHelpers](https://github.com/moebiussurfing/ofxSurfingHelpers)
 * [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
 * [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
@@ -64,17 +66,21 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 * ofxGui / Optional
 * [ofxSurfingAudioPlots](https://github.com/moebiussurfing/ofxSurfingAudioPlots/) / Optional for example 2
 
-### Tested Systems
+### TESTED SYSTEMS
 - **Windows 10** / **VS 2022** / **OF 0.11+**
 
-### TODO / IDEAS
+<details>
+<summary>TODO</summary>
 * Make it https://github.com/roymacdonald/ofxSoundObjects compatible. (?)
 * Merge some stuff from https://github.com/roymacdonald/ofxSoundDeviceManager. (?)
 * Test and make it macOS-compatible.
 * Improve settings using Port names instead of Port Numbers.
+</details>
 
-### NOTES
+<details>
+<summary>NOTES</summary>
 * Would crash when hot-changing the sound API **DS/ASIO/WASAPI**, but should wake up and reload fine the settings after restarting the app or by hardcoding devices. 
+</details>
 
 ## AUTHOR
 An add-on by **@moebiusSurfing**  
