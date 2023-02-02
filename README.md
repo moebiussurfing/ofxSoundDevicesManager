@@ -3,7 +3,8 @@
 # OVERVIEW
 An **openFrameworks** add-on to provide audio basics to any ofApp. Easily handles and selects system sound devices.  
 Currently working on Windows only, and for Input devices only.  
-Note that will not work without [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui), or using **ofxGui** instead! For similar basic purpose you can use [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald** instead of this add-on.
+
+Note that it will not work without [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui), or using **ofxGui** instead! For similar basic purpose you can use [ofxSoundDeviceManager](https://github.com/roymacdonald/ofxSoundDeviceManager) from **@roymacdonald** instead of this add-on.
  
 <details>
 <summary>WIP</summary>
