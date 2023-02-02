@@ -1,8 +1,9 @@
 # ofxSoundDevicesManager
 
 # OVERVIEW
-**openFrameworks** add-on to easily handle selected system sound devices.  
-Currently Input devices only.  
+**openFrameworks** add-on to provide audio basics to any ofApp.  
+Easily handles selected system sound devices.  
+Currently Windows only and Input devices only.  
  
 <details>
 <summary>WIP</summary>
@@ -65,11 +66,11 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 ```
 
 ### DEPENDENCIES
-* [ofxSurfingHelpers](https://github.com/moebiussurfing/ofxSurfingHelpers)
-* [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
 * [ofxSurfingImGui](https://github.com/moebiussurfing/ofxSurfingImGui)
 * [ofxImGui](https://github.com/Daandelange/ofxImGui/) / Fork
-* ofxGui / Optional
+* [ofxSurfingHelpers](https://github.com/moebiussurfing/ofxSurfingHelpers)
+* [ofxSurfingBox](https://github.com/moebiussurfing/ofxSurfingBox)
+* ofxGui (oF core) / Optional
 * [ofxSurfingAudioPlots](https://github.com/moebiussurfing/ofxSurfingAudioPlots/) / Optional for example 2
 
 ### TESTED SYSTEMS
