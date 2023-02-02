@@ -1600,7 +1600,8 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
 
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.AddSpacing();
 					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 					if (waveformPlot.bGui) {
 						ui.Indent();
@@ -1671,7 +1672,8 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
 
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.AddSpacing();
 					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
 					if (waveformPlot.bGui) {
 						ui.Indent();
@@ -1686,8 +1688,12 @@ private:
 					// Center a single widget
 					float w = ui.getWidgetsWidth(2) / 2;
 					// Pass the expected widget width divided by two
+
+					SurfingGuiFlags flags = SurfingGuiFlags_NoInput;
+					flags += SurfingGuiFlags_TooltipValue;
+					
 					AddSpacingPad(w);
-					ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
+					ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
 
 					ui.Unindent();
 #endif
