@@ -22,9 +22,9 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key)
 {
-	if (key == 'g') audioDevices.setVisibleToggle();
+	audioDevices.keyPressed(key);
 
-	if (key == ' ')
+	if (key == OF_KEY_F1)
 	{
 		static bool bTheme = false;
 		bTheme = !bTheme;

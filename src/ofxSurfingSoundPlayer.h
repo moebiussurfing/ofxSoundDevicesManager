@@ -553,10 +553,10 @@ public:
 			ofLogNotice("ofxSurfingSoundPlayer") << "Name: " << name_Audio;
 			ofLogNotice("ofxSurfingSoundPlayer") << "Path: " << path;
 
-			load(path);
-
+			bool b = load(path);
 			//workflow
-			playerState = PlayerState_PLAY_IN;
+			if(b) playerState = PlayerState_PLAY_IN;
+			else playerState = PlayerState_STOPPED;
 		}
 		else
 		{
@@ -575,6 +575,7 @@ public:
 	bool load(std::string _path) {
 		bool b = playerAudio.load(_path);
 		bLoaded = b;
+		if (!b) return false;
 
 		if (path.get() != _path) path.setWithoutEventNotifications(_path);
 

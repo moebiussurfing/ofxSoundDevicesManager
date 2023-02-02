@@ -41,21 +41,25 @@
 
 #include "ofMain.h"
 
+
 //-----------------------
 
 // OPTIONAL
 
-//#define USE_WAVEFORM_PLOTS 
-//TODO: Must be duplicated to WaveformPlot.h
-// Must edit on both places!
-//TODO: split
-
+// 1.
 //#define USE_DEVICE_OUTPUT
 //TODO: WIP: not working yet... Do not take effect the device selector..
 //TODO: should add directive to exclude input..
 // Disables all Output management.
 // Input is always included!
 
+// 2.
+#define USE_WAVEFORM_PLOTS 
+//TODO: Must be duplicated to WaveformPlot.h
+// Must edit on both places!
+//TODO: split
+
+// 3.
 #define USE_SOUND_FILE_PLAYER
 // Includes sound player class 
 // allows load and playing sound files.
@@ -70,6 +74,7 @@
 
 //#define USE_OFXGUI_INTERNAL // ofxGui internal debug or split from ImGui..
 
+//TODO:
 //#define DETECTOR_INTERNAL
 
 //-----------------------
@@ -1595,9 +1600,14 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
 
-					//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-					ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+					if (waveformPlot.bGui) {
+						ui.Indent();
+						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_SMALL);
+						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED_SMALL);
+						ui.Unindent();
+					}
 
 					//ui.Indent();
 					//ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
@@ -1615,7 +1625,7 @@ private:
 
 					//ui.Unindent();
 #endif
-					}
+				}
 				else // maximized
 				{
 					ui.AddLabelBig("API");
@@ -1661,11 +1671,14 @@ private:
 #ifdef USE_WAVEFORM_PLOTS
 					ui.AddSpacingSeparated();
 
-					//ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-					ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-					ui.Indent();
-					ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
+					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+					if (waveformPlot.bGui) {
+						ui.Indent();
+						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_SMALL);
+						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED_SMALL);
+						ui.Unindent();
+					}
 
 					//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
 					//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
@@ -1703,8 +1716,8 @@ private:
 
 				ui.EndWindowSpecial();
 				}
-				}
 			}
+		}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1923,9 +1936,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-		}
-#endif
 	}
+#endif
+}
 
 public:
 
@@ -1969,7 +1982,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-		}
+	}
 
 private:
 
@@ -2419,7 +2432,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 				//--
 
@@ -2465,7 +2478,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-	}
+			}
 
 			//--
 
@@ -2554,7 +2567,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-}
+		}
 
 		//----
 
@@ -2574,7 +2587,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 			}
 		}
@@ -2618,7 +2631,7 @@ public:
 				}
 #endif
 			}
-		}
+	}
 	}
 #endif
 

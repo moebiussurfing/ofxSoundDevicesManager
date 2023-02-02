@@ -2,6 +2,13 @@
 
 #include "ofMain.h"
 
+/*
+
+	Requires to un comment the line:
+	#define USE_WAVEFORM_PLOTS
+
+*/
+
 //--
 
 #include "ofxSoundDevicesManager.h"
