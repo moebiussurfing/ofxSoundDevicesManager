@@ -2,8 +2,8 @@ ofxBloom
 ofxGui
 ofxImGui
 ofxSoundDevicesManager
+ofxSurfingAudioPlots
 ofxSurfingBox
 ofxSurfingHelpers
 ofxSurfingImGui
 ofxWindowApp
-ofxSurfingAudioPlots

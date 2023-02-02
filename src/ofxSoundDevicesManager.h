@@ -1249,7 +1249,8 @@ private:
 		ui.Begin();
 		{
 			// Game Mode
-			if (!ui.bGui_GameMode) ui.bGui_GameMode = true;
+			//if (!ui.bGui_GameMode) ui.bGui_GameMode = true;
+
 			drawImGuiGameMode();
 
 			// Big Floating Slider
@@ -1356,9 +1357,11 @@ private:
 		if (ui.BeginWindow(ui.bGui_GameMode))
 		{
 			bool bMax = ui.isMaximized();
-
 			string s;
+
 			ui.AddMinimizerXsToggle(ui.bMinimize);
+			ui.AddTooltip(ui.bMinimize ? "Maximize" : "Minimize");
+
 			ui.AddSpacing();
 
 			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
@@ -1612,7 +1615,7 @@ private:
 
 					//ui.Unindent();
 #endif
-				}
+					}
 				else // maximized
 				{
 					ui.AddLabelBig("API");
@@ -1685,7 +1688,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1693,12 +1696,15 @@ private:
 				ui.AddSpacingSeparated();
 				ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 #endif
+				ui.AddSpacingSeparated();
+				ui.Add(ui.bGui_GameMode, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+
 				//--
 
 				ui.EndWindowSpecial();
+				}
+				}
 			}
-		}
-	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1963,7 +1969,7 @@ public:
 		// Plot
 		waveformPlot.drawPlots();
 #endif
-	}
+		}
 
 private:
 
@@ -2199,6 +2205,7 @@ private:
 
 		// Game Mode
 		ui.bGui_GameMode.setName("AWENGINE");
+		ui.bGui_GameMode = true;
 
 		ui.setName(nameLabel);
 		ui.setWindowsMode(IM_GUI_MODE_WINDOWS_SPECIAL_ORGANIZER);
@@ -2412,7 +2419,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 				//--
 
@@ -2458,7 +2465,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+	}
 
 			//--
 
@@ -2547,7 +2554,7 @@ public:
 			//--
 
 			//DebugCoutParam(deviceIn_vuValue);
-		}
+}
 
 		//----
 
@@ -2567,7 +2574,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 			}
 		}

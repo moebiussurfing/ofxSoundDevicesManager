@@ -24,5 +24,11 @@ void ofApp::keyPressed(int key)
 {
 	if (key == 'g') audioDevices.setVisibleToggle();
 
-	if (key == ' ') ofxImGuiSurfing::ImGui_ThemeImStyle();
+	if (key == ' ')
+	{
+		static bool bTheme = false;
+		bTheme = !bTheme;
+		if (bTheme) ofxImGuiSurfing::ImGui_ThemeImStyle();
+		else ofxImGuiSurfing::ImGui_ThemeMoebiusSurfingV2();
+	}
 }
