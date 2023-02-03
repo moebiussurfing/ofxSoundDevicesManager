@@ -2869,6 +2869,10 @@ private:
 		//if (deviceIn_VuMax < thresholdLastBang) gapUpper = 1.1f;
 		//if (deviceIn_VuMax < thresholdLastBang) gapUpper = 1.07f;
 
+		//// make lower to make easy that trigs bang
+		//float gap1 = 0.025f;
+		//gapUpper = gapUpper - gap1;
+
 		//TODO:
 		// waiting time could be synced with BPM tempo!
 		// this will improve sync..

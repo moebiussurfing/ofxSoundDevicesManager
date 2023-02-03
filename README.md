@@ -29,6 +29,9 @@ For similar basic purposes (maybe for devices selector only) you can use [ofxSou
 ### 1-example_Basic
 ![](/1-example_Basic/Capture.PNG)  
 
+### 2-example_ofxSurfingAudioPlots
+![](/2-example_ofxSurfingAudioPlots/Capture.PNG)  
+
 ### 4-example_Player
 ![](/4-example_Player/Capture.PNG)  
 
