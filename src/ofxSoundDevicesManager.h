@@ -2408,11 +2408,10 @@ public:
 
 				//--
 
+				///*
 				{
-					///*
-
-					// Smooth
 					//TODO: 
+					// Smooth
 					// Could be better inside the plot class..
 
 					float tempInput = input[i * nChannels];
@@ -2449,12 +2448,12 @@ public:
 					{
 						waveformPlot.plotIn[indexIn] = tempInput;
 					}
-
-					//*/
 				}
+				//*/
 
 				//--
 
+				// increase offset
 				if (indexIn < (SIZE_BUFFER - 1))
 				{
 					++indexIn;
@@ -2549,7 +2548,8 @@ public:
 			//--
 
 			//TODO:
-			if (deviceIn_bEnable_SmoothAvg) {
+			if (deviceIn_bEnable_SmoothAvg)
+			{
 				updateSmoothAvg();
 				addValueSmoothAvg(_vu);
 				_vu = getValueSmoothAvg();
@@ -2585,12 +2585,13 @@ public:
 
 			//--
 
-			// Plot
+			// History VU Plot
 
 			historyVU.push_back(deviceIn_vuValue.get());
 
 			// refresh
-			if (historyVU.size() >= MAX_HISTORY_VU) {
+			if (historyVU.size() >= MAX_HISTORY_VU)
+			{
 				historyVU.erase(historyVU.begin(), historyVU.begin() + 1);
 			}
 
