@@ -14,19 +14,29 @@ void ofApp::setup()
 void ofApp::draw()
 {
 	// scene
-	scene.c1 = ofColor::yellow;
-	scene.c2 = 24;
 	scene.speed = 1;
 	scene.amount = 50;
 
-	//if (audioDevices.getIsBangDelta())
-	//{
-	//	ofLogNotice() << "BANG";
-	//}
+	// On bang change the color
+	if (audioDevices.getIsBangDelta())
+	{
+		ofLogNotice() << "BANG";
+		ic++;
+		ic = ic % colors.size();
+		scene.c1 = ofColor(colors[ic], 200);
+	}
 
 	ofColor c = scene.c1;
 	ofClear(c);
+
 	bool b = audioDevices.getIsBangState();
+
+	scene.c2 = ofColor(24, b ? 200 : 16);//dark
+
+#ifdef USE_WAVEFORM_PLOTS
+	audioDevices.waveformPlot.bGui_Plots = !b;
+#endif
+
 	// A
 	if (bMode) {
 		scene.bUpdateable = true;

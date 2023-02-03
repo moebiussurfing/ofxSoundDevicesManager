@@ -608,10 +608,10 @@ public:
 	bool getIsBangDelta()
 	{
 		static bool bBangPRE = !bBang.get();
-		if (bBang =! bBangPRE) // changed
+		if (bBang.get() != bBangPRE) // changed
 		{
-			bBangPRE = bBang;
-			if (bBang) {
+			bBangPRE = bBang.get();
+			if (bBang.get()) {
 				return true;
 			}
 		}

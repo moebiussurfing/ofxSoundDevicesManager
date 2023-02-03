@@ -17,21 +17,24 @@
 
 class ofApp : public ofBaseApp
 {
-	public:
+public:
 
-		void setup();
-		void draw();
-		void keyPressed(int key);
-		
-		ofxSoundDevicesManager audioDevices;
-		void audioIn(ofSoundBuffer& input) override;
-		int sampleRate;
-		int bufferSize;
-		int numBuffers;
-		
-		surfingSceneTesters scene;
+	void setup();
+	void draw();
+	void keyPressed(int key);
 
-		float bMode = false;
+	ofxSoundDevicesManager audioDevices;
+	void audioIn(ofSoundBuffer& input) override;
+	int sampleRate;
+	int bufferSize;
+	int numBuffers;
 
-		ofxWindowApp w;
+	surfingSceneTesters scene;
+
+	float bMode = false;
+
+	ofxWindowApp w;
+
+	vector<ofColor> colors{ ofColor::yellow, ofColor::orange, ofColor::fuchsia, ofColor::cyan };
+	int ic = 0;
 };
