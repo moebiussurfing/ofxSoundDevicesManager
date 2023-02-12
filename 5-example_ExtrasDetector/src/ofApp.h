@@ -1,5 +1,16 @@
 #pragma once
 
+
+/*
+
+	NOTE: 
+	To be used out-of-the-box,
+	You should comment in ofxSoundDevicesManager.h
+	//#define USE_WAVEFORM_PLOTS
+
+*/
+
+
 #include "ofMain.h"
 
 #include "ofxSoundDevicesManager.h"

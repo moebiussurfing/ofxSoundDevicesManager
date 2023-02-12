@@ -27,6 +27,7 @@
 
 #include "ofxSoundDevicesManager.h"
 #include "surfingNotify.h"
+#include "ofxSurfingBoxInteractive.h"
 
 class SurfingDetector
 {
@@ -35,6 +36,7 @@ public:
 
 	SurfingDetector::SurfingDetector() {
 	};
+
 	SurfingDetector::~SurfingDetector() {
 		exit();
 	};
@@ -55,6 +57,8 @@ private:
 
 	string path = "";
 
+	ofxSurfingBoxInteractive box;
+
 public:
 
 	void setAudioDevicesPtr(ofxSoundDevicesManager* audioDevices_)
@@ -62,6 +66,15 @@ public:
 		audioDevices = audioDevices_;
 
 		path = audioDevices->getPathGlobal() + "/SurfingDetector.json";
+
+		//box.setUseBorder(true);
+		box.setLockAspectRatio();
+		//box.setLockW();
+		box.setTransparent(true);
+		box.setPath(audioDevices->getPathGlobal());
+		box.setName("SurfingDetectorBox");
+		box.setMode(ofxSurfingBoxInteractive::BOX_LAYOUT::CENTER_CENTER);
+		box.setup();
 
 		setup();
 	};
@@ -79,13 +92,16 @@ private:
 		audioDevices->getUiPtr()->ClearLogDefaultTags();
 		audioDevices->getUiPtr()->AddLogTag("BANG", ofColor::white);
 
-		// Notifier
-		string path = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
+		// Size
+		// font size that scale the boxes
 		float sz = 34;
+
+		// Notifier
+		string pathFont = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
 		float round = 15;
 		//float round = 40;
 
-		notifier.setup(path, sz, round);
+		notifier.setup(pathFont, sz, round);
 		//notifier.setMessagesLifeTime(4000);
 
 		// Align
@@ -99,10 +115,12 @@ private:
 
 public:
 
+	// Draws scene testing
 	void draw()
 	{
 		if (audioDevices == nullptr) {
 			ofLogError("ofxSoundDevicesManager") << "audioDevices == nullptr";
+			ofLogError("ofxSoundDevicesManager") << "On ofApp::setup(), you need to call something like surfingDetector.setAudioDevicesPtr(&audioDevices);";
 			return;
 		}
 
@@ -111,6 +129,8 @@ public:
 		if (!bScene) ofClear(64);
 		else
 		{
+			ofRectangle rBox = box.getRectangle();
+
 			static int ic = 0;
 			static ofColor cNew = colors[ic];
 			static ofColor cPre;
@@ -143,36 +163,67 @@ public:
 			//cout << bIsShapeChanging << ":" << diff << endl;
 			t = t + diff * 0.05;
 
-			float x = ofGetWidth() / 2;
-			float y = ofGetHeight() / 2;
+			//--
+
+			// 1. Signal / VU rectangle 
 
 			// Shape
 			ofPushStyle();
 			ofSetCircleResolution(400);
 
-			ofRectangle r = ofGetCurrentViewport();
-			float h = ofGetHeight() * v;
-			r.setHeight(h);
-			r.setPosition(0, y - h / 2);
+			ofRectangle r = rBox;
+			float h = r.getHeight() * v;
 
-			ofRectangle rThreshold = ofGetCurrentViewport();
-			float ht = ofGetHeight() * t;
+			//r.translateY(rBox.getHeight() / 2.f - h / 2.f);//box
+			//r.translateY(- h / 2.f);//box
+
+			// Forced center mode
+			//float x = ofGetWidth() / 2;
+			//float y = ofGetHeight() / 2;
+			//ofRectangle r = ofGetCurrentViewport();
+			//float h = ofGetHeight() * v;
+			//r.setPosition(0, y - h / 2);
+
+			r.setHeight(h);
+
+			//--
+
+			// 2. Threshold rectangle 
+
+			ofRectangle rThreshold = rBox;
+
+			//ofRectangle rThreshold = ofGetCurrentViewport();
+			//float ht = ofGetHeight() * t;
+			float ht = rThreshold.getHeight() * t;
+
+			rThreshold.translateY(rBox.getHeight() / 2.f - ht / 2.f);//box
+
 			rThreshold.setHeight(ht);
-			rThreshold.setPosition(0, y - ht / 2);
+			//rThreshold.setPosition(0, y - ht / 2);
 
 			// B&W
 			if (bFlipScene) ofSetColor(c1);
 			else ofSetColor(c2);
 			ofSetColor(cPre);
 
-			// circle
 			float radius = r.getHeight() / 2;
-			if (bShape) {
+
+			// A. Circle
+			if (bShape)
+			{
+				//r.translateY(rBox.getHeight() / 2.f);
+				//r.translateY(rBox.getHeight() / 2.f - ht / 2.f);
+				//r.translateY(rBox.getHeight() / 2.f - radius / 2.f);
+
 				ofFill();
-				ofDrawCircle(r.getCenter(), radius);
+				ofDrawCircle(rBox.getCenter(), radius);
+				//ofDrawCircle(r.getCenter(), radius);
 			}
-			// rectangle
-			else {
+			// B. Rectangle
+			else
+			{
+				r.translateY(rBox.getHeight() / 2.f - h / 2.f);
+
 				ofFill();
 				ofDrawRectangle(r);
 			}
@@ -198,7 +249,7 @@ public:
 					if (ic == colors.size()) ic = 0;
 					cNew = colors[ic];
 
-					// Log
+					// Log ui
 					string s;
 					s += "#" + ofToString(count);
 					audioDevices->getUiPtr()->AddToLog(s, "BANG");
@@ -214,16 +265,23 @@ public:
 				//--
 
 				// Fill flash!
+				// full screen / viewport rectangle
+
 				float a = (audioDevices->getGateProgress());
 				// log
 				a = ofxSurfingHelpers::reversedExponentialFunction(a * 10.f);//slower
 				//a = ofxSurfingHelpers::squaredFunction(a);//faster
 				ofSetColor(cPre, 255 * a);
 				ofFill();
+
 				ofRectangle rBg = ofGetCurrentViewport();
+				//ofRectangle rBg = rBox;
+
 				ofDrawRectangle(rBg);
 			}
 			else bDo = false;
+
+			//--
 
 			// make slider grab blink
 			if (audioDevices->getIsAwengineEnabled()) {
@@ -236,7 +294,7 @@ public:
 			//--
 
 			// AWENGINE 
-			// Get notified when Awengine done!
+			// Get notified when AWENGINE done!
 			if (audioDevices->isDoneAwengine())
 			{
 				// Apply engine
@@ -300,6 +358,10 @@ public:
 				}
 			}
 
+			//--
+
+			box.draw();
+
 			ofPopStyle();
 
 			//--
@@ -317,7 +379,7 @@ public:
 		// when typing into any ui widget.
 		if (audioDevices->getUiPtr()->isOverInputText()) return;
 
-		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << " "<<char(key);
+		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << " " << char(key);
 
 
 		if (key == 'g') {
@@ -371,7 +433,7 @@ public:
 
 private:
 
-	void exit() 
+	void exit()
 	{
 		ofxSurfingHelpers::saveGroup(g, path);
 	};

@@ -3,6 +3,8 @@
 //--------------------------------------------------------------
 void ofApp::setup()
 {
+	//w.doReset();
+
 	sampleRate = 48000;
 	bufferSize = 512;
 	numBuffers = 4;

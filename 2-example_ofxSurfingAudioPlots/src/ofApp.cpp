@@ -34,7 +34,8 @@ void ofApp::draw()
 	scene.c2 = ofColor(24, b ? 200 : 16);//dark
 
 #ifdef USE_WAVEFORM_PLOTS
-	audioDevices.waveformPlot.bGui_Plots = !b;
+	if (audioDevices.waveformPlot.bGui_Plots == b)
+		audioDevices.waveformPlot.bGui_Plots = !b;
 #endif
 
 	// A

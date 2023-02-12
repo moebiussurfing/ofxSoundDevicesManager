@@ -54,7 +54,7 @@
 // Input is always included!
 
 // 2.
-#define USE_WAVEFORM_PLOTS 
+//#define USE_WAVEFORM_PLOTS 
 //TODO: Must be duplicated to WaveformPlot.h
 // Must edit on both places!
 //TODO: split
@@ -1387,6 +1387,7 @@ private:
 
 			ui.AddSpacing();
 
+			// Big toggle
 			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
 			ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
 			ui.PopFont();
@@ -1395,9 +1396,43 @@ private:
 			ui.AddTooltip(s, bMax);
 
 			ui.AddSpacing();
-			ui.AddSpacing();
 
 			// Patience
+			if (deviceIn_vuAwengine)
+			{
+				ui.AddSpacing();
+				bool b = ui.isMaximized();
+				ui.Add(deviceIn_timeAwePatience, b ? OFX_IM_HSLIDER_MINI_NO_NUMBER : OFX_IM_HSLIDER_MINI_NO_LABELS);
+				if (bMax) {
+					s = "Lower patience will control \nthe threshold faster.\n";
+					s += "Slower patience will wait \nmore time before update \nagain the threshold.";
+					ui.AddTooltip(s);
+				}
+				else {
+					s = "Patience time";
+					ui.AddTooltip(s);
+				}
+
+				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine,
+					0, deviceIn_timeAwengine * 1000, 0, 1, true);
+				ofxImGuiSurfing::PushMinimalHeights();
+				ofxImGuiSurfing::AddProgressBar(v);
+				ofxImGuiSurfing::PopMinimalHeights();
+				ui.AddSpacing();
+				if (ui.isMaximized()) {
+					ui.Add(bDebug_Awengine, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
+					s = "Enables more internal debug: \nnotifies when threshold switches \nby the engine,\n";
+					s += "show average plot, ...";
+					ui.AddTooltip(s, bMax);
+				}
+			}
+
+			ui.AddSpacingSeparated();
+
+			ui.AddSpacing();
+			ui.AddSpacing();
+
+			// Gain and smooth
 			{
 				SurfingGuiFlags flags = SurfingGuiFlags_None;
 				flags += SurfingGuiFlags_NoInput;
@@ -1513,38 +1548,6 @@ private:
 
 			ui.AddSpacingSeparated();
 
-			// Patience
-			if (deviceIn_vuAwengine)
-			{
-				ui.AddSpacing();
-				bool b = ui.isMaximized();
-				ui.Add(deviceIn_timeAwePatience, b ? OFX_IM_HSLIDER_MINI_NO_NUMBER : OFX_IM_HSLIDER_MINI_NO_LABELS);
-				if (bMax) {
-					s = "Lower patience will control \nthe threshold faster.\n";
-					s += "Slower patience will wait \nmore time before update \nagain the threshold.";
-					ui.AddTooltip(s);
-				}
-				else {
-					s = "Patience time";
-					ui.AddTooltip(s);
-				}
-
-				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine,
-					0, deviceIn_timeAwengine * 1000, 0, 1, true);
-				ofxImGuiSurfing::PushMinimalHeights();
-				ofxImGuiSurfing::AddProgressBar(v);
-				ofxImGuiSurfing::PopMinimalHeights();
-				ui.AddSpacing();
-				if (ui.isMaximized()) {
-					ui.Add(bDebug_Awengine, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
-					s = "Enables more internal debug: \nnotifies when threshold switches \nby the engine,\n";
-					s += "show average plot, ...";
-					ui.AddTooltip(s, bMax);
-				}
-
-				ui.AddSpacingSeparated();
-			}
-
 			{
 				//const float amt = 2;
 				//float wk = ui.getWidgetsWidth(amt) / amt;
@@ -1647,9 +1650,9 @@ private:
 							ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
 						}
 						//ui.Unindent();
-					}
-#endif
 				}
+#endif
+			}
 				else // maximized
 				{
 					ui.AddLabelBig("API");
@@ -1719,7 +1722,7 @@ private:
 						AddSpacingPad(w);
 						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
 						//ui.Unindent();
-					}
+				}
 #endif
 					ui.AddSpacingSeparated();
 					ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED_SMALL);
@@ -1731,7 +1734,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1745,9 +1748,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-			}
 		}
 	}
+}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -2461,7 +2464,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 				//--
 
@@ -2507,7 +2510,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-			}
+	}
 
 			//--
 
@@ -2618,7 +2621,7 @@ public:
 				else
 				{
 					indexIn = 0;
-				}
+		}
 #endif
 			}
 		}
