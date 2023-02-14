@@ -54,7 +54,7 @@
 // Input is always included!
 
 // 2.
-//#define USE_WAVEFORM_PLOTS 
+#define USE_WAVEFORM_PLOTS 
 //TODO: Must be duplicated to WaveformPlot.h
 // Must edit on both places!
 //TODO: split
@@ -1301,14 +1301,14 @@ private:
 				else m2.color = ofColor(ofColor::yellow, 200);
 				marks.push_back(m2);
 
+				// windowed
 				ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, colorGrab, &marks);
-
 				//ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, nullptr, &marks);
-
-				//TODO: do not works. maybe bc windowed?
-				//ofxImGuiSurfing::AddMouseWheel(p);
-				ofxImGuiSurfing::AddMouseWheel(threshold, false);
-				ofxImGuiSurfing::AddMouseClickRightReset(threshold);
+								
+				////TODO: do not works. maybe bc windowed?
+				////ofxImGuiSurfing::AddMouseWheel(p);
+				//ofxImGuiSurfing::AddMouseWheel(threshold, false);
+				//ofxImGuiSurfing::AddMouseClickRightReset(threshold);
 			}
 
 			//--
@@ -1336,15 +1336,16 @@ private:
 
 				// Extras
 				drawImGuiExtras();
-			}
 
-			//--
+				//--
 
-			// Wave plot
+				// Wave plot
 
 #ifdef USE_WAVEFORM_PLOTS
-			waveformPlot.drawImGui(false);
+				waveformPlot.drawImGui(false);
 #endif
+			}
+
 			//--
 
 			//TODO:
@@ -1473,7 +1474,7 @@ private:
 				m1.pad = -1;
 				m1.thick = 2;
 				//m1.color = ofColor(ofColor::yellow, 96);
-				if (colorGrab != nullptr && deviceIn_vuAwengine) m1.color = ofColor(*colorGrab);
+				if (colorGrab != nullptr /*&& deviceIn_vuAwengine*/) m1.color = ofColor(*colorGrab);
 				else m1.color = ImGui::GetStyleColorVec4(ImGuiCol_SliderGrabActive);
 				marks.push_back(m1);
 
@@ -1493,7 +1494,9 @@ private:
 			//ofxImGuiSurfing::AddSpacingPad(wk);
 			//ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME, 2); 
 
-			if (ui.isMaximized()) ui.AddLabelBig(threshold.getName(), true);
+			// threshold label
+			//if (ui.isMaximized()) ui.AddLabelBig(threshold.getName(), true);
+			ui.AddLabelBig(threshold.getName(), true);
 
 			// change grab slider
 			if (colorGrab != nullptr && deviceIn_vuAwengine) {
@@ -1650,9 +1653,9 @@ private:
 							ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
 						}
 						//ui.Unindent();
-				}
+					}
 #endif
-			}
+				}
 				else // maximized
 				{
 					ui.AddLabelBig("API");
@@ -1722,7 +1725,7 @@ private:
 						AddSpacingPad(w);
 						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
 						//ui.Unindent();
-				}
+					}
 #endif
 					ui.AddSpacingSeparated();
 					ui.Add(boxHelpInfo.bGui, OFX_IM_TOGGLE_ROUNDED_SMALL);
@@ -1734,7 +1737,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1748,9 +1751,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
+			}
 		}
 	}
-}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1930,7 +1933,10 @@ private:
 	{
 		//if (ui.isMaximized()) 
 		{
-			if (bGui_Vu) ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
+			if (bGui_Vu)
+			{
+				ofxImGuiSurfing::AddVU(bGui_Vu.getName(), deviceIn_vuValue, bHorizontal, true, ImVec2(-1, -1), false, VUPadding, VUDivisions);
+			}
 
 			if (bGui_VuPlot)
 			{
@@ -1946,14 +1952,17 @@ private:
 				ofxImGuiSurfing::AddWaveform(bGui_VuPlot.getName(), &historyVU[0], MAX_HISTORY_VU, true, ImVec2(-1, -1), false, &marks);
 			}
 
-			//TODO: FFT bands
-			bool bWindowed = true;
-			ImVec2 sz = ImVec2(-1, -1);
-			bool bNoHeader = false;
-			float start = fftStart;
-			float end = fftEnd;
+			if (bGui_FFT)
+			{
+				//TODO: FFT bands
+				bool bWindowed = true;
+				ImVec2 sz = ImVec2(-1, -1);
+				bool bNoHeader = false;
+				float start = fftStart;
+				float end = fftEnd;
 
-			if (bGui_FFT) ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f, bWindowed, ImVec2(-1, -1), bNoHeader, start, end);
+				ofxImGuiSurfing::AddFFT(bGui_FFT.getName(), &data, 1.f, bWindowed, ImVec2(-1, -1), bNoHeader, start, end);
+			}
 		}
 	}
 
@@ -2262,13 +2271,14 @@ private:
 #ifdef USE_DEVICE_OUTPUT
 		ui.addWindowSpecial(bGui_Out);
 #endif
-#ifdef USE_WAVEFORM_PLOTS
-		ui.addWindowSpecial(waveformPlot.bGui_Main);
-		ui.addWindowSpecial(waveformPlot.bGui_Edit);
-#endif
-#ifdef USE_WAVEFORM_3D_OBJECT
-		ui.addWindowSpecial(waveformPlot.o.bGui);
-#endif
+
+		//#ifdef USE_WAVEFORM_PLOTS
+		//		ui.addWindowSpecial(waveformPlot.bGui_Main);
+		//		ui.addWindowSpecial(waveformPlot.bGui_Edit);
+		//#ifdef USE_WAVEFORM_3D_OBJECT
+		//		ui.addWindowSpecial(waveformPlot.o.bGui);
+		//#endif
+		//#endif
 
 #ifdef USE_SOUND_FILE_PLAYER
 		player.setUiPtr(&ui);
@@ -2464,7 +2474,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 				//--
 
@@ -2510,7 +2520,7 @@ public:
 				// count added samples
 				_count += 2; // 2 channels. stereo
 				//_count += 1; // 1 channel. mono
-	}
+			}
 
 			//--
 
@@ -2621,7 +2631,7 @@ public:
 				else
 				{
 					indexIn = 0;
-		}
+				}
 #endif
 			}
 		}

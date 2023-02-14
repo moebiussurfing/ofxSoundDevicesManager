@@ -45,8 +45,8 @@ private:
 
 	ofParameter<bool> bScene{ "Scene", true };
 	ofParameter<bool> bFlipScene{ "Flip", true };
-	ofParameter<bool> bShape{ "Shape", true };
-	ofParameterGroup g{ "ParamsSurfingDetector", bFlipScene, bShape, bScene };
+	ofParameter<bool> bShapeType{ "ShapeType", true };
+	ofParameterGroup g{ "ParamsSurfingDetector", bFlipScene, bShapeType, bScene };
 
 	vector<ofColor> colors{ ofColor::red, ofColor::green, ofColor::blue, ofColor::yellow, ofColor::orange, ofColor::violet, ofColor::turquoise, ofColor::chocolate, ofColor::aquamarine };
 
@@ -142,9 +142,11 @@ public:
 			//if (bFlipScene) ofClear(v * 255);
 			//else ofClear((1 - v) * 255);
 
-			float gap = 32;
-			ofColor c1 = 255 - gap;//white
-			ofColor c2 = 0 + gap + 48;//black
+			float cgap = 32;
+			char cmin = 0;
+			char cmax = 225;
+			ofColor c1 = cmax - cgap;//white
+			ofColor c2 = cmin + cgap + 48;//black
 			if (!bFlipScene) ofClear(c1);
 			else ofClear(c2);
 
@@ -209,7 +211,7 @@ public:
 			float radius = r.getHeight() / 2;
 
 			// A. Circle
-			if (bShape)
+			if (bShapeType)
 			{
 				//r.translateY(rBox.getHeight() / 2.f);
 				//r.translateY(rBox.getHeight() / 2.f - ht / 2.f);
@@ -336,7 +338,7 @@ public:
 
 			//if(radiusTh == 0) radiusTh= ofxSurfingHelpers::getFadeBlink(0, 3);//mark if 0
 
-			if (bShape) {
+			if (bShapeType) {
 				ofDrawCircle(rThreshold.getCenter(), radiusTh);
 
 				if (bExtra) {
@@ -368,7 +370,6 @@ public:
 
 			notifier.draw();
 		}
-
 	};
 
 	void keyPressed(int key)
@@ -406,16 +407,16 @@ public:
 		}
 
 		if (key == OF_KEY_RETURN) {
-			bShape = !bShape;
+			bShapeType = !bShapeType;
 
 			// Notify
-			string s = "SCENE " + ofToString(bShape ? "CIRCLE" : "RECTANGLE");
+			string s = "SCENE " + ofToString(bShapeType ? "CIRCLE" : "RECTANGLE");
 			notifier.addNotification(s);
 		}
 
 		if (key == OF_KEY_DOWN) {
 			audioDevices->threshold -= 0.007;
-			ofClamp(audioDevices->threshold, 0, 1);
+			ofClamp(audioDevices->threshold.get(), 0, 1);
 
 			// Notify
 			string s = "THRS " + ofToString(audioDevices->threshold.get(), 2);
@@ -423,7 +424,7 @@ public:
 		}
 		if (key == OF_KEY_UP) {
 			audioDevices->threshold += 0.007;
-			ofClamp(audioDevices->threshold, 0, 1);
+			ofClamp(audioDevices->threshold.get(), 0, 1);
 
 			// Notify
 			string s = "THRS " + ofToString(audioDevices->threshold.get(), 2);

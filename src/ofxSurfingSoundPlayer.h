@@ -607,8 +607,11 @@ public:
 	{
 		bool bNotLoadedAudio = !isLoadedAudio();
 
-		ui->Add(ui->bMinimize, OFX_IM_TOGGLE_ROUNDED_SMALL);
-		ui->AddSpacingSeparated();
+		ui->AddMinimizerXsToggle();
+
+		//ui->Add(ui->bMinimize, OFX_IM_TOGGLE_ROUNDED_SMALL);
+		//ui->AddSpacingSeparated();
+
 		if (!ui->bMinimize)
 		{
 			SurfingGuiTypes st = OFX_IM_BUTTON_SMALL;
@@ -632,6 +635,11 @@ public:
 
 		if (!bNotLoadedAudio)
 		{
+			if (ui->isMinimized()) {
+				ui->AddLabelBig(name_Audio);
+				ui->AddSpacing();
+			}
+
 			// Time label
 
 			// blink
@@ -644,11 +652,13 @@ public:
 			ui->BeginBlinkText(b1);
 			{
 				float t = getPositionAudioMS() / 1000.f;//seconds
+				
 				//min::sec
 				string s = ofxSurfingHelpers::calculateTime(t);
 				ui->AddLabelHugeXXL(s);
+
 				//ms
-				if (!ui->bMinimize)
+				//if (!ui->bMinimize)
 				{
 					int tms = getPositionAudioMS() % 1000;
 					s = ofToString(tms);
@@ -697,7 +707,11 @@ public:
 					float w = ui->getWidgetsWidth(2) / 2;
 					// Pass the expected widget width divided by two
 					AddSpacingPad(w);
-					ui->Add(volume, OFX_IM_KNOB_DOTKNOB, 2);
+
+					SurfingGuiFlags fg = SurfingGuiFlags_None;
+					fg += SurfingGuiFlags_NoInput;
+					fg += SurfingGuiFlags_TooltipValue;
+					ui->Add(volume, OFX_IM_KNOB_DOTKNOB, 2, fg);
 				}
 			}
 
