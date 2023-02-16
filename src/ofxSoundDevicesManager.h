@@ -4,6 +4,12 @@
 
 	TODO:
 
+	+	add vertical progress bar (VU) to pair next to threshold vertical slider.
+	+	dual layout
+	+	re arrange widgets to be more intuitive..
+	+	gradual to threshold mode / instant
+	+	fix color
+
 	+	WIP: Enable toggles not working
 
 	+	WIP: INPUT ONLY.
@@ -21,8 +27,6 @@
 	+	fix API selector. add switch API/device. without exceptions/crashes.
 		add disconnect to allow use only input or output. now, enablers are only like mutes.
 
-	+	draggable rectangle to draw the waveforms
-
 	+	store devices by names? just editing xml file bc sorting can change on the system?
 
 	+	integrate / move to with ofSoundObjects ?
@@ -33,8 +37,11 @@
 			Restart must be required maybe
 			https://github.com/roymacdonald/ofxSoundDeviceManager
 
-	Sound Utils
+	Sound Utils: low pass filter
 	https://github.com/perevalovds/ofxSoundUtils/blob/master/src/ofxSoundUtils.h
+
+	Filter and VU helpers and performant waveform plotters using ofVboMesh
+	https://github.com/roymacdonald/ofxSoundObjects/tree/master/src/SoundObjects
 
 */
 
@@ -132,7 +139,8 @@ private:
 private:
 
 	// OneSmooth
-	// Interpolator Engine
+	// Interpolate Engine
+	// One control is curve / mapped to previously select values.
 	//const size_t sz = 4;
 #define szi 3
 	//idea: from less to more smoothed
@@ -145,6 +153,8 @@ private:
 	double lerp(double a, double b, double t) {
 		return (1 - t) * a + t * b;
 	}
+
+	//--
 
 private:
 	// FFT
@@ -507,6 +517,10 @@ private:
 		params_In.add(deviceIn_bEnable_SmoothAvg);
 		params_In.add(deviceIn_vuAwengine);
 		params_In.add(deviceIn_timeAwePatience);
+		
+		params_In.add(bGradual);
+		params_In.add(gapDiffStep);
+
 		//params_In.add(deviceIn_timeAwengine);
 		params_In.add(bDebug_Awengine);
 
@@ -720,9 +734,16 @@ private:
 
 	ofParameter<bool> deviceIn_vuAwengine{ "AWENGINE", false };
 	ofParameter<bool> bDebug_Awengine{ "Debug", false };
-	ofParameter<float> deviceIn_timeAwePatience{ "PATIENCE", 0, 0, 1 };
+	ofParameter<float> deviceIn_timeAwePatience{ "PATIENCE", 0.5, 0, 1 };
 	int deviceIn_timeAwengine;
 	//ofParameter<int> deviceIn_timeAwengine{ "PATIENCE", 4, 1, 10 };
+
+	ofParameter<bool> bGradual{ "Gradual", false };
+	ofParameter<float> diffLast{ "Diff", 0, 0, 1 };
+	ofParameter<float> gapDiffStep{ "Step", 0.025f, 0, 1 };
+	//float gapDiffStep;
+	float thresholdTarget;
+	float gapDiff;
 
 	float deviceIn_VuMax = 0;
 	uint32_t timeLastAwengine = 0;
@@ -922,6 +943,7 @@ private:
 		//--
 
 		// Bang
+
 		uint64_t tElapsed = 0;
 		if (!bGateClosed)//if gate open
 		{
@@ -963,7 +985,9 @@ private:
 
 		if (deviceIn_vuValue > deviceIn_VuMax) deviceIn_VuMax = deviceIn_vuValue;
 
+		//int tf = MAX(1, int(deviceIn_timeAwengine * 20));
 		int tf = MAX(1, int(deviceIn_timeAwengine * 60));
+
 		if (ofGetFrameNum() % tf == 0)
 		{
 			// AWENGINE!
@@ -1304,7 +1328,7 @@ private:
 				// windowed
 				ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, colorGrab, &marks);
 				//ofxImGuiSurfing::AddSliderBigVerticalFloating(threshold, ImVec2(-1, -1), true, nullptr, &marks);
-								
+
 				////TODO: do not works. maybe bc windowed?
 				////ofxImGuiSurfing::AddMouseWheel(p);
 				//ofxImGuiSurfing::AddMouseWheel(threshold, false);
@@ -1342,7 +1366,7 @@ private:
 				// Wave plot
 
 #ifdef USE_WAVEFORM_PLOTS
-				waveformPlot.drawImGui(false);
+				waveformPlot.drawImGui(true);
 #endif
 			}
 
@@ -1362,7 +1386,10 @@ private:
 			//--
 
 #ifdef USE_SOUND_FILE_PLAYER
-			player.drawImGui();
+			//if (!ui.bSolo_GameMode)
+			{
+				player.drawImGui();
+			}
 #endif
 			//--
 		}
@@ -1380,8 +1407,10 @@ private:
 	{
 		if (ui.BeginWindow(ui.bGui_GameMode))
 		{
-			bool bMax = ui.isMaximized();
-			string s;
+			bool bEnableToolTip = true;
+			//bool bEnableToolTip = ui.isMaximized();
+
+			string s = "";
 
 			ui.AddMinimizerXsToggle(ui.bMinimize);
 			//ui.AddTooltip(ui.bMinimize ? "Maximize" : "Minimize");
@@ -1389,22 +1418,99 @@ private:
 			ui.AddSpacing();
 
 			// Big toggle
+
 			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
 			ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
 			ui.PopFont();
+
 			if (deviceIn_vuAwengine) s = "Threshold is locked, \nand controlled by the Engine.";
 			else s = "Threshold is manual, un-locked \nand controlled by the user.";
-			ui.AddTooltip(s, bMax);
+			ui.AddTooltip(s, bEnableToolTip);
 
 			ui.AddSpacing();
 
+			//TODO:
+			// Columns
+			float _h = ofxImGuiSurfing::getWidgetsHeightUnit();
+			float h = VERTICAL_AMOUNT_UNITS * _h;
+
+			float spcx = ImGui::GetStyle().ItemSpacing.x;
+			float w = ImGui::GetContentRegionAvail().x;
+			float w1 = 0.2f;
+			float w2 = 0.7f;
+
+			//ImVec2 sz{ w1 * w - spcx, h };
+			//ofxImGuiSurfing::AddProgressBarVertical(deviceIn_vuValue, sz);
+			//ImGui::SameLine();
+			//ui.Add(threshold, OFX_IM_VSLIDER_NO_LABELS, 1, w2);
+
+			if (1)
+			{
+				ui.BeginColumns(2, "##COLS1");
+
+				//ImGui::SetCursorPosX(w * 0.3f);
+				float w1c = w1 * w + spcx / 2;
+				ImGui::SetColumnWidth(0, w1c);
+				ImGui::SetColumnWidth(1, w - w1c);
+
+				//--
+
+				// VU
+
+				ImVec2 sz{ w1 * w - spcx, h };
+				ofxImGuiSurfing::AddProgressBarVertical(deviceIn_vuValue, sz);
+				//ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+				s = "Main smoothed signal. \nWill push the threshold.";
+				s += "\n" + ofToString(deviceIn_vuValue.get(), 2);
+				ui.AddTooltip(s, bEnableToolTip);
+
+				ui.NextColumn();
+
+				//--
+
+				// Threshold
+
+				// change grab slider
+				if (colorGrab != nullptr /*&& deviceIn_vuAwengine*/)
+				{
+					ImVec4 cg = ImVec4(*colorGrab);
+					auto c1 = ImGui::GetColorU32(cg);
+					auto c2 = ImGui::GetColorU32(ImVec4(cg.x, cg.y, cg.z, 0.5f * cg.w));
+					ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, c1);
+					ImGui::PushStyleColor(ImGuiCol_SliderGrab, c2);
+				}
+
+				bool bSameLine = false;
+				SurfingGuiFlags flags = SurfingGuiFlags_None;
+				ui.Add(threshold, OFX_IM_VSLIDER_NO_LABELS, 1, w2, bSameLine, flags);
+
+				// change grab slider
+				if (colorGrab != nullptr /*&& deviceIn_vuAwengine*/)
+				{
+					ImGui::PopStyleColor(2);
+				}
+
+				s = threshold.getName();
+				s += "\n" + ofToString(threshold.get(), 2);
+				s += "\n\n";
+				s += "When VU signal passes above, \na Bang will be trigged.";
+				ui.AddTooltip(s, bEnableToolTip);
+
+				ui.EndColumns();
+
+				ui.AddSpacing();
+			}
+
+			//--
+
 			// Patience
+
 			if (deviceIn_vuAwengine)
 			{
 				ui.AddSpacing();
 				bool b = ui.isMaximized();
 				ui.Add(deviceIn_timeAwePatience, b ? OFX_IM_HSLIDER_MINI_NO_NUMBER : OFX_IM_HSLIDER_MINI_NO_LABELS);
-				if (bMax) {
+				if (b) {
 					s = "Lower patience will control \nthe threshold faster.\n";
 					s += "Slower patience will wait \nmore time before update \nagain the threshold.";
 					ui.AddTooltip(s);
@@ -1414,17 +1520,54 @@ private:
 					ui.AddTooltip(s);
 				}
 
-				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine,
-					0, deviceIn_timeAwengine * 1000, 0, 1, true);
+				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine, 
+					0, deviceIn_timeAwengine * 1000, 
+					0, 1, true);
+
 				ofxImGuiSurfing::PushMinimalHeights();
 				ofxImGuiSurfing::AddProgressBar(v);
 				ofxImGuiSurfing::PopMinimalHeights();
+
 				ui.AddSpacing();
-				if (ui.isMaximized()) {
+				if (ui.isMaximized())
+				{
+					ui.AddSpacingSeparated();
 					ui.Add(bDebug_Awengine, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
 					s = "Enables more internal debug: \nnotifies when threshold switches \nby the engine,\n";
 					s += "show average plot, ...";
-					ui.AddTooltip(s, bMax);
+					ui.AddTooltip(s, bEnableToolTip);
+
+					if (bDebug_Awengine)
+					{
+						ui.AddSpacing();
+						ui.Indent();
+
+						//ui.Add(scale);
+
+						s = "THRS Target: \n";
+						s += ofToString(thresholdTarget, 2);
+						ui.AddLabel(s);
+
+						s = "Last Diff: \n";
+						s += ofToString(diffLast.get(), 2);
+						ui.AddLabel(s);
+
+						s = "Gap Diff: \n";
+						s += ofToString(gapDiff, 2);
+						ui.AddLabel(s);
+
+						ui.Add(bGradual);
+
+						if (bGradual) {
+							s = "Diff Step: \n";
+							//s += ofToString(gapDiffStep.get(), 2);
+							ui.AddLabel(s);
+							ui.Add(gapDiffStep, OFX_IM_STEPPER_NO_LABEL);
+						}
+
+						ui.Unindent();
+					}
+
 				}
 			}
 
@@ -1451,18 +1594,18 @@ private:
 
 			ui.AddSpacingSeparated();
 
-			if (ui.isMaximized()) ui.AddLabelBig("VU");
-			else ui.AddSpacing();
-			ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
-			s = "Main smoothed signal. \nWill push the threshold.";
-			ui.AddTooltip(s, bMax);
+			//if (ui.isMaximized()) ui.AddLabelBig("VU");
+			//else ui.AddSpacing();
+			//ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
+			//s = "Main smoothed signal. \nWill push the threshold.";
+			//ui.AddTooltip(s, bEnableToolTip);
 
 			if (ui.isMaximized())
 			{
 				ui.AddSpacing();
 				ui.Add(plotScale, OFX_IM_HSLIDER_MINI_NO_NUMBER);
 				s = "Re scale Plot.";
-				ui.AddTooltip(s, bMax);
+				ui.AddTooltip(s, bEnableToolTip);
 			}
 
 			// Plot
@@ -1484,41 +1627,45 @@ private:
 
 			ui.AddSpacingSeparated();
 
-			// Threshold
+			//--
 
-			//// make slider half size and center it
-			//ui.AddLabelBig(threshold.getName(), true, true);
-			//const float amt = 2;
-			//float wk = ui.getWidgetsWidth(amt) / amt;
-			////wk += 20;//a bit bigger
-			//ofxImGuiSurfing::AddSpacingPad(wk);
-			//ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME, 2); 
+			////// Threshold
 
-			// threshold label
-			//if (ui.isMaximized()) ui.AddLabelBig(threshold.getName(), true);
-			ui.AddLabelBig(threshold.getName(), true);
+			//////// make slider half size and center it
+			//////ui.AddLabelBig(threshold.getName(), true, true);
+			//////const float amt = 2;
+			//////float wk = ui.getWidgetsWidth(amt) / amt;
+			////////wk += 20;//a bit bigger
+			//////ofxImGuiSurfing::AddSpacingPad(wk);
+			//////ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME, 2); 
 
-			// change grab slider
-			if (colorGrab != nullptr && deviceIn_vuAwengine) {
-				ImVec4 cg = ImVec4(*colorGrab);
-				auto c1 = ImGui::GetColorU32(cg);
-				auto c2 = ImGui::GetColorU32(ImVec4(cg.x, cg.y, cg.z, 0.5f * cg.w));
-				ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, c1);
-				ImGui::PushStyleColor(ImGuiCol_SliderGrab, c2);
-			}
+			////// threshold label
+			//////if (ui.isMaximized()) ui.AddLabelBig(threshold.getName(), true);
+			////ui.AddLabelBig(threshold.getName(), true);
 
-			ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME);
+			////// change grab slider
+			////if (colorGrab != nullptr && deviceIn_vuAwengine) {
+			////	ImVec4 cg = ImVec4(*colorGrab);
+			////	auto c1 = ImGui::GetColorU32(cg);
+			////	auto c2 = ImGui::GetColorU32(ImVec4(cg.x, cg.y, cg.z, 0.5f * cg.w));
+			////	ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, c1);
+			////	ImGui::PushStyleColor(ImGuiCol_SliderGrab, c2);
+			////}
 
-			// change grab slider
-			if (colorGrab != nullptr && deviceIn_vuAwengine)
-			{
-				ImGui::PopStyleColor(2);
-			}
+			////ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME);
 
-			s = "When VU signal passes above, \na Bang will be trigged.";
-			ui.AddTooltip(s, bMax);
+			////// change grab slider
+			////if (colorGrab != nullptr && deviceIn_vuAwengine)
+			////{
+			////	ImGui::PopStyleColor(2);
+			////}
 
-			ui.AddSpacingSeparated();
+			////s = "When VU signal passes above, \na Bang will be trigged.";
+			////ui.AddTooltip(s, bEnableToolTip);
+
+			////ui.AddSpacingSeparated();
+
+			//--
 
 			// Gate
 			{
@@ -1526,14 +1673,14 @@ private:
 				ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
 				ui.PopFont();
 				s = "Bang deltas will be used \nexternally to trig events.";
-				ui.AddTooltip(s, bMax);
+				ui.AddTooltip(s, bEnableToolTip);
 
 				bool b = ui.isMaximized();
 				//if (b)
 				{
 					ui.AddSpacing();
 					ui.Add(tGateDur, b ? OFX_IM_HSLIDER_MINI : OFX_IM_HSLIDER_MINI_NO_LABELS);
-					if (bMax) {
+					if (b) {
 						s = "After a Bang. \nGate will be closed \nfor some time, \n";
 						s += "ignoring incoming Bangs \nuntil the Gate is released.";
 						ui.AddTooltip(s);
@@ -1550,6 +1697,8 @@ private:
 			}
 
 			ui.AddSpacingSeparated();
+
+			//--
 
 			{
 				//const float amt = 2;
@@ -1570,17 +1719,28 @@ private:
 			if (ui.isMaximized()) {
 
 				ui.AddSpacingSeparated();
-
-#ifdef USE_SOUND_FILE_PLAYER
-				ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED);
-				ui.AddSpacingSeparated();
-#endif
+				ui.AddSpacing();
 
 				ui.Add(bGui_BigVSlider, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
 				s = "Big and floating widget \nfor the Threshold.";
 				ui.AddTooltip(s);
 
 				ui.Add(ui.bSolo_GameMode, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+				if (!ui.bSolo_GameMode)
+				{
+					ui.Indent();
+					ui.Add(bGui_Main, OFX_IM_TOGGLE_ROUNDED);
+
+#ifdef USE_WAVEFORM_PLOTS
+					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED);
+#endif
+					ui.Unindent();
+				}
+
+#ifdef USE_SOUND_FILE_PLAYER
+				//ui.AddSpacingSeparated();
+				ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED);
+#endif
 			}
 
 			//--
@@ -1598,7 +1758,9 @@ private:
 
 			if (ui.BeginWindowSpecial(bGui_Main))
 			{
-				ui.AddMinimizeToggle();
+				ui.AddMinimizerXsToggle();
+				//ui.AddMinimizeToggle();
+
 				if (ui.isMaximized()) {
 					ui.AddKeysToggle();
 					ui.AddLogToggle();
@@ -1628,15 +1790,15 @@ private:
 					ui.AddSpacingSeparated();
 
 					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-					if (waveformPlot.bGui) {
-						ui.Indent();
-						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_SMALL);
-						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED_SMALL);
-						ui.Unindent();
-					}
+					//if (waveformPlot.bGui) {
+					//	ui.Indent();
+					//	ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_SMALL);
+					//	ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED_SMALL);
+					//	ui.Unindent();
+					//}
 
 					ui.AddSpacing();
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
 					if (waveformPlot.bGui_Plots) {
 
 						//ui.Indent();
@@ -1647,10 +1809,11 @@ private:
 
 						// Center a single widget
 						{
-							float w = ui.getWidgetsWidth(2) / 2;
+							const int amnt = 2;
+							float w = ui.getWidgetsWidth(amnt) / amnt;
 							// Pass the expected widget width divided by two
 							AddSpacingPad(w);
-							ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, 2);
+							ui.Add(waveformPlot.gain, OFX_IM_KNOB_TICKKNOB, amnt);
 						}
 						//ui.Unindent();
 					}
@@ -1702,28 +1865,28 @@ private:
 					ui.AddSpacingSeparated();
 
 					ui.Add(waveformPlot.bGui, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
-					if (waveformPlot.bGui) {
-						ui.Indent();
-						ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_SMALL);
-						ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED_SMALL);
-						ui.Unindent();
-					}
+					//if (waveformPlot.bGui) {
+					//	ui.Indent();
+					//	ui.Add(waveformPlot.bGui_Main, OFX_IM_TOGGLE_ROUNDED_SMALL);
+					//	ui.Add(waveformPlot.bGui_Edit, OFX_IM_TOGGLE_ROUNDED_SMALL);
+					//	ui.Unindent();
+					//}
 
 					ui.AddSpacing();
-					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED_MEDIUM);
+					ui.Add(waveformPlot.bGui_Plots, OFX_IM_TOGGLE_ROUNDED);
 					if (waveformPlot.bGui_Plots) {
 						//ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2);
 						//ui.Add(waveformPlot.gain, OFX_IM_HSLIDER_MINI);
 
-						// Center a single widget
-						float w = ui.getWidgetsWidth(2) / 2;
-						// Pass the expected widget width divided by two
+						const int amnt = 2;
+						float w = ui.getWidgetsWidth(amnt) / amnt;
+						// Pass the expected widget width divided by amnt
 
 						SurfingGuiFlags flags = SurfingGuiFlags_NoInput;
 						flags += SurfingGuiFlags_TooltipValue;
 
 						AddSpacingPad(w);
-						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, 2, flags);
+						ui.Add(waveformPlot.gain, OFX_IM_KNOB_DOTKNOB, amnt, flags);
 						//ui.Unindent();
 					}
 #endif
@@ -1737,7 +1900,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-				}
+					}
 
 				//--
 
@@ -1751,9 +1914,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
+				}
 			}
 		}
-	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -1978,9 +2141,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-		}
-#endif
 	}
+#endif
+}
 
 public:
 
@@ -2891,14 +3054,39 @@ private:
 		// waiting time could be synced with BPM tempo!
 		// this will improve sync..
 
-		float thresholdTarget = deviceIn_VuMax * gapUpper;
+		thresholdTarget = deviceIn_VuMax * gapUpper;
 
+		//TODO: should use percent instead of absolute values!
+		
 		// avoid switch if diff is small
-		float gapDiff = 0.025f;
+		gapDiff = 0.025f;
+
 		float diff = abs(thresholdTarget - threshold);
+		diffLast = diff;
+
+		//gapDiffStep = 0.025f;
+
 		if (diff > gapDiff)
 		{
-			threshold = thresholdTarget;
+			bool bTooBig = (diff > 0.5f);//if too big make a fast jump!
+			if (bGradual && !bTooBig)
+			{
+				if (threshold > thresholdTarget)
+				{
+					threshold -= gapDiffStep;
+					if (threshold < thresholdTarget) threshold = thresholdTarget;
+				}
+				else
+				{
+					threshold += gapDiffStep;
+					if (threshold > thresholdTarget) threshold = thresholdTarget;
+				}
+			}
+			else
+			{
+				threshold = thresholdTarget;
+			}
+
 			bFlagDoneAwengine = true;
 		}
 		else
@@ -2908,6 +3096,10 @@ private:
 		}
 
 		timeLastAwengine = ofGetElapsedTimeMillis();
+
+		//--
+
+
 	}
 
 	//--------------------------------------------------------------
@@ -3011,7 +3203,7 @@ private:
 	}
 	*/
 
-};
+		};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78

@@ -637,7 +637,7 @@ public:
 		{
 			if (ui->isMinimized()) {
 				ui->AddLabelBig(name_Audio);
-				ui->AddSpacing();
+				//ui->AddSpacing();
 			}
 
 			// Time label

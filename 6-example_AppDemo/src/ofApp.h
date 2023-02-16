@@ -33,6 +33,7 @@ public:
 	int numBuffers;
 
 	SurfingDetector surfingDetector;
+	//ofParameter<float> scale{ "Scale", 0.5, 0, 1 };
 
 	ofxWindowApp w;
 };

@@ -12,6 +12,7 @@ void ofApp::setup()
 	audioDevices.setup(sampleRate, bufferSize, numBuffers);
 
 	surfingDetector.setAudioDevicesPtr(&audioDevices);
+	//surfingDetector.scale.makeReferenceTo(scale);
 }
 
 //--------------------------------------------------------------

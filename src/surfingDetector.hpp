@@ -41,12 +41,14 @@ public:
 		exit();
 	};
 
+	ofParameter<float> scale{ "Scale", 0.5, 0, 1 };
+
 private:
 
 	ofParameter<bool> bScene{ "Scene", true };
 	ofParameter<bool> bFlipScene{ "Flip", true };
 	ofParameter<bool> bShapeType{ "ShapeType", true };
-	ofParameterGroup g{ "ParamsSurfingDetector", bFlipScene, bShapeType, bScene };
+	ofParameterGroup g{ "ParamsSurfingDetector", bFlipScene, bShapeType, bScene, scale };
 
 	vector<ofColor> colors{ ofColor::red, ofColor::green, ofColor::blue, ofColor::yellow, ofColor::orange, ofColor::violet, ofColor::turquoise, ofColor::chocolate, ofColor::aquamarine };
 
@@ -118,6 +120,19 @@ public:
 	// Draws scene testing
 	void draw()
 	{
+		//TODO: scale
+		//const float MAX_SCALE = 5.f;
+		//float _scale = 1;
+		//if (scale.get() == 0.5) _scale = 1;
+		//else if (scale.get() > 0.5) _scale = ofMap(scale.get(), 0.5, 1, 1, MAX_SCALE, true);
+		//else if (scale.get() < 0.5) _scale = ofMap(scale.get(), 0, 0.5, 1, 1.f / MAX_SCALE, true);
+
+		//ofPushMatrix();
+		////ofTranslate();
+		//ofScale(scale);
+
+		//--
+
 		if (audioDevices == nullptr) {
 			ofLogError("ofxSoundDevicesManager") << "audioDevices == nullptr";
 			ofLogError("ofxSoundDevicesManager") << "On ofApp::setup(), you need to call something like surfingDetector.setAudioDevicesPtr(&audioDevices);";
@@ -370,6 +385,8 @@ public:
 
 			notifier.draw();
 		}
+		
+		//ofPopMatrix();
 	};
 
 	void keyPressed(int key)
