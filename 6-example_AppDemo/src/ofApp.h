@@ -4,7 +4,8 @@
 /*
 
 	NOTE: 
-	To be used out-of-the-box,
+	To be used out-of-the-box, 
+	due to the addons.make list,
 	You should un comment in ofxSoundDevicesManager.h
 	#define USE_WAVEFORM_PLOTS
 
@@ -33,7 +34,6 @@ public:
 	int numBuffers;
 
 	SurfingDetector surfingDetector;
-	//ofParameter<float> scale{ "Scale", 0.5, 0, 1 };
 
 	ofxWindowApp w;
 };

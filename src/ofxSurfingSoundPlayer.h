@@ -331,7 +331,7 @@ private:
 
 		ofxSurfingHelpers::CheckFolder(path_GLOBAL);
 		ofxSurfingHelpers::saveGroup(params, path_GLOBAL + "/" + path_AppSettings);
-};
+	};
 
 	//--
 
@@ -555,7 +555,7 @@ public:
 
 			bool b = load(path);
 			//workflow
-			if(b) playerState = PlayerState_PLAY_IN;
+			if (b) playerState = PlayerState_PLAY_IN;
 			else playerState = PlayerState_STOPPED;
 		}
 		else
@@ -638,6 +638,7 @@ public:
 			if (ui->isMinimized()) {
 				ui->AddLabelBig(name_Audio);
 				//ui->AddSpacing();
+				ofxImGuiSurfing::AddSpacingOffset(ImVec2{ 0,-8 });
 			}
 
 			// Time label
@@ -652,7 +653,7 @@ public:
 			ui->BeginBlinkText(b1);
 			{
 				float t = getPositionAudioMS() / 1000.f;//seconds
-				
+
 				//min::sec
 				string s = ofxSurfingHelpers::calculateTime(t);
 				ui->AddLabelHugeXXL(s);
@@ -747,9 +748,9 @@ public:
 				//}
 
 				ui->Unindent();
-		}
+			}
 #endif
-	}
+		}
 	};
 
 	void drawImGui()

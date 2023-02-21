@@ -3,8 +3,6 @@
 //--------------------------------------------------------------
 void ofApp::setup()
 {
-	//w.doReset();
-
 	sampleRate = 48000;
 	bufferSize = 512;
 	numBuffers = 4;
@@ -12,7 +10,6 @@ void ofApp::setup()
 	audioDevices.setup(sampleRate, bufferSize, numBuffers);
 
 	surfingDetector.setAudioDevicesPtr(&audioDevices);
-	//surfingDetector.scale.makeReferenceTo(scale);
 }
 
 //--------------------------------------------------------------

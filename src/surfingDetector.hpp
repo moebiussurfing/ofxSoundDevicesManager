@@ -330,7 +330,7 @@ public:
 				}
 
 				// notify
-				if (audioDevices->isDebugAwengine()) notifier.addNotification(s, 255, ofColor(0));
+				if (audioDevices->isDebug()) notifier.addNotification(s, 255, ofColor(0));
 			}
 
 			//--

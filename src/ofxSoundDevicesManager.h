@@ -84,6 +84,10 @@
 //TODO:
 //#define DETECTOR_INTERNAL
 
+//ms
+#define PATIENCE_MIN 200
+#define PATIENCE_MAX 3000
+
 //-----------------------
 
 
@@ -515,14 +519,17 @@ private:
 		params_In.add(deviceIn_vuGainBoost);
 		params_In.add(deviceIn_PowerSmoothAvg);
 		params_In.add(deviceIn_bEnable_SmoothAvg);
-		params_In.add(deviceIn_vuAwengine);
-		params_In.add(deviceIn_timeAwePatience);
-		
-		params_In.add(bGradual);
-		params_In.add(gapDiffStep);
 
-		//params_In.add(deviceIn_timeAwengine);
-		params_In.add(bDebug_Awengine);
+		params_Awengine.setName("AWENGINE");
+		params_Awengine.add(bAwengine);
+		params_Awengine.add(awenginePatience);
+		params_Awengine.add(awengineGapDiff);
+		params_Awengine.add(bAwengineGradual);
+		params_Awengine.add(bAwengineAccel);
+		params_Awengine.add(awengineAccelForce);
+		params_Awengine.add(awengineDiffStep);
+		params_Awengine.add(bAwengineAdvanced);
+		params_In.add(params_Awengine);
 
 		params_In.add(deviceIn_OneSmooth);
 		params_In.add(plotScale);
@@ -610,7 +617,7 @@ public:
 		return bBang.get();
 	}
 	bool getIsAwengineEnabled() const {
-		return deviceIn_vuAwengine.get();
+		return bAwengine.get();
 	}
 	float getGateProgress() const {
 		return remainGatePrc;
@@ -732,21 +739,25 @@ private:
 	ofParameter<float> deviceIn_vuValue{ "RMS", 0, 0, 1 }; // to use into the vu
 	ofParameter<float> plotScale{ "Scale", 0.5, 0, 1 };
 
-	ofParameter<bool> deviceIn_vuAwengine{ "AWENGINE", false };
-	ofParameter<bool> bDebug_Awengine{ "Debug", false };
-	ofParameter<float> deviceIn_timeAwePatience{ "PATIENCE", 0.5, 0, 1 };
-	int deviceIn_timeAwengine;
-	//ofParameter<int> deviceIn_timeAwengine{ "PATIENCE", 4, 1, 10 };
+	//--
 
-	ofParameter<bool> bGradual{ "Gradual", false };
-	ofParameter<float> diffLast{ "Diff", 0, 0, 1 };
-	ofParameter<float> gapDiffStep{ "Step", 0.025f, 0, 1 };
-	//float gapDiffStep;
-	float thresholdTarget;
-	float gapDiff;
+	ofParameterGroup params_Awengine;
+	ofParameter<bool> bAwengine{ "AWENGINE", false };
+	ofParameter<float> awenginePatience{ "PATIENCE", 0.5, 0, 1 };
+	ofParameter<bool> bAwengineAdvanced{ "Advanced", false };
+	ofParameter<bool> bAwengineGradual{ "Gradual", true };
+	ofParameter<bool> bAwengineAccel{ "Accel", true };
+	float awengineDiffLast = 0;
+	//ofParameter<float> awengineDiffLast{ "Diff", 0, 0, 1 };
+	ofParameter<float> awengineDiffStep{ "Step", 0.025f, 0, 1 };
+	ofParameter<float> awengineGapDiff{ "Gap Diff", 0.025f, 0, 1 };
+	ofParameter<float> awengineAccelForce{ "Force", 0.3f, 0, 1 };
+	
+	float awengineThresholdTarget;
+	uint16_t awengineTimeDuration;
+	uint32_t awengineTimeLast = 0;
 
 	float deviceIn_VuMax = 0;
-	uint32_t timeLastAwengine = 0;
 
 	float deviceIn_GainLog;//TODO: maybe useful to be public to apply gain on the parent class.
 
@@ -757,6 +768,8 @@ private:
 	ofParameter<int> tGateDur{ "GATE", 1000, 250, 1750 };
 	bool bGateClosed = false;
 	float remainGatePrc = 0;
+
+	//--
 
 public:
 
@@ -783,6 +796,7 @@ private:
 	ofParameter<bool> bGui_BigVSlider{ "BIG THRESHOLD", false };
 
 	ofColor* colorGrab = nullptr;
+
 public:
 
 	void setColorSliderGrab(ofColor* color) {
@@ -979,16 +993,14 @@ private:
 		//--
 
 		// Peak memo
-		// refresh max every deviceIn_timeAwengine seconds
+		// refresh max every awengineTimeDuration seconds
 		//TODO: could improve by using timeLastBang somehow
 		// bc threshold switch could force that a new bang happens!
 
 		if (deviceIn_vuValue > deviceIn_VuMax) deviceIn_VuMax = deviceIn_vuValue;
 
-		//int tf = MAX(1, int(deviceIn_timeAwengine * 20));
-		int tf = MAX(1, int(deviceIn_timeAwengine * 60));
-
-		if (ofGetFrameNum() % tf == 0)
+		auto t = ofGetElapsedTimeMillis() - awengineTimeLast;
+		if (t >= awengineTimeDuration)
 		{
 			// AWENGINE!
 
@@ -998,7 +1010,7 @@ private:
 			//timeLastBang
 			//thresholdLastBang
 
-			if (deviceIn_vuAwengine)
+			if (bAwengine)
 			{
 				doRunAwengine();
 			}
@@ -1420,10 +1432,10 @@ private:
 			// Big toggle
 
 			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
-			ui.Add(deviceIn_vuAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
+			ui.Add(bAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
 			ui.PopFont();
 
-			if (deviceIn_vuAwengine) s = "Threshold is locked, \nand controlled by the Engine.";
+			if (bAwengine) s = "Threshold is locked, \nand controlled by the Engine.";
 			else s = "Threshold is manual, un-locked \nand controlled by the user.";
 			ui.AddTooltip(s, bEnableToolTip);
 
@@ -1435,9 +1447,13 @@ private:
 			float h = VERTICAL_AMOUNT_UNITS * _h;
 
 			float spcx = ImGui::GetStyle().ItemSpacing.x;
-			float w = ImGui::GetContentRegionAvail().x;
-			float w1 = 0.2f;
-			float w2 = 0.7f;
+			float w = ImGui::GetContentRegionAvail().x - spcx;
+			//float w = ImGui::GetContentRegionAvail().x;
+			
+			// Layout sizes
+			float w1 = 0.24f;
+			float w2 = 0.6f;
+			//float w2 = 0.73f;
 
 			//ImVec2 sz{ w1 * w - spcx, h };
 			//ofxImGuiSurfing::AddProgressBarVertical(deviceIn_vuValue, sz);
@@ -1448,30 +1464,37 @@ private:
 			{
 				ui.BeginColumns(2, "##COLS1");
 
-				//ImGui::SetCursorPosX(w * 0.3f);
-				float w1c = w1 * w + spcx / 2;
+				////ImGui::SetCursorPosX(w * 0.3f);
+				//float w1c = w1 * w + spcx / 2;
+				//ImGui::SetColumnWidth(0, w1c);
+				//ImGui::SetColumnWidth(1, w - w1c);
+
+				float w1c = w1 * w + 20;
+				//float w1c = w1 * w + spcx + 2;
 				ImGui::SetColumnWidth(0, w1c);
-				ImGui::SetColumnWidth(1, w - w1c);
 
 				//--
 
-				// VU
+				// A. VU
 
-				ImVec2 sz{ w1 * w - spcx, h };
+				ImVec2 sz{ w1 * w, h };
+				//ImVec2 sz{ w1 * w - spcx, h };
+
 				ofxImGuiSurfing::AddProgressBarVertical(deviceIn_vuValue, sz);
 				//ui.Add(deviceIn_vuValue, OFX_IM_PROGRESS_BAR_NO_TEXT);
-				s = "Main smoothed signal. \nWill push the threshold.";
-				s += "\n" + ofToString(deviceIn_vuValue.get(), 2);
+				s = "VU \n" + ofToString(deviceIn_vuValue.get(), 2) + "\n\n";
+				s += "Main smoothed signal. \nWill push the threshold,\n";
+				s += "and it will produce BANG's.\n";
 				ui.AddTooltip(s, bEnableToolTip);
 
 				ui.NextColumn();
 
 				//--
 
-				// Threshold
+				// B. Threshold
 
 				// change grab slider
-				if (colorGrab != nullptr /*&& deviceIn_vuAwengine*/)
+				if (colorGrab != nullptr /*&& bAwengine*/)
 				{
 					ImVec4 cg = ImVec4(*colorGrab);
 					auto c1 = ImGui::GetColorU32(cg);
@@ -1485,12 +1508,12 @@ private:
 				ui.Add(threshold, OFX_IM_VSLIDER_NO_LABELS, 1, w2, bSameLine, flags);
 
 				// change grab slider
-				if (colorGrab != nullptr /*&& deviceIn_vuAwengine*/)
+				if (colorGrab != nullptr /*&& bAwengine*/)
 				{
 					ImGui::PopStyleColor(2);
 				}
 
-				s = threshold.getName();
+				s = ofToUpper(threshold.getName());
 				s += "\n" + ofToString(threshold.get(), 2);
 				s += "\n\n";
 				s += "When VU signal passes above, \na Bang will be trigged.";
@@ -1505,24 +1528,25 @@ private:
 
 			// Patience
 
-			if (deviceIn_vuAwengine)
+			if (bAwengine)
 			{
 				ui.AddSpacing();
 				bool b = ui.isMaximized();
-				ui.Add(deviceIn_timeAwePatience, b ? OFX_IM_HSLIDER_MINI_NO_NUMBER : OFX_IM_HSLIDER_MINI_NO_LABELS);
+				ui.Add(awenginePatience, b ? OFX_IM_HSLIDER_MINI_NO_NUMBER : OFX_IM_HSLIDER_MINI_NO_LABELS);
 				if (b) {
-					s = "Lower patience will control \nthe threshold faster.\n";
+					s = ofToString(awengineTimeDuration, 2) + " ms \n\n";
+					s += "Lower patience will control \nthe threshold faster.\n";
 					s += "Slower patience will wait \nmore time before update \nagain the threshold.";
 					ui.AddTooltip(s);
 				}
 				else {
-					s = "Patience time";
+					s = "Patience time \n";
+					s += ofToString(awengineTimeDuration, 2) + " ms";
 					ui.AddTooltip(s);
 				}
 
-				float v = ofMap(ofGetElapsedTimeMillis() - timeLastAwengine, 
-					0, deviceIn_timeAwengine * 1000, 
-					0, 1, true);
+				auto t = ofGetElapsedTimeMillis() - awengineTimeLast;
+				float v = ofMap(t, 0, awengineTimeDuration, 0, 1, true);
 
 				ofxImGuiSurfing::PushMinimalHeights();
 				ofxImGuiSurfing::AddProgressBar(v);
@@ -1532,38 +1556,71 @@ private:
 				if (ui.isMaximized())
 				{
 					ui.AddSpacingSeparated();
-					ui.Add(bDebug_Awengine, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
-					s = "Enables more internal debug: \nnotifies when threshold switches \nby the engine,\n";
-					s += "show average plot, ...";
-					ui.AddTooltip(s, bEnableToolTip);
+					ui.Add(bAwengineAdvanced, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
+					//s = "Enables more internal debug: \nnotifies when threshold switches \nby the engine,\n";
+					//s += "show average plot, ...";
+					//ui.AddTooltip(s, bEnableToolTip);
 
-					if (bDebug_Awengine)
+					if (bAwengineAdvanced)
 					{
+						ui.AddSpacing();
 						ui.AddSpacing();
 						ui.Indent();
 
 						//ui.Add(scale);
-
-						s = "THRS Target: \n";
-						s += ofToString(thresholdTarget, 2);
+						s = "Gap Diff:";
 						ui.AddLabel(s);
+						ui.Add(awengineGapDiff, OFX_IM_STEPPER_NO_LABEL);
+						s = "Minim Diff resolution gap";
+						ui.AddTooltip(s, bEnableToolTip);
 
-						s = "Last Diff: \n";
-						s += ofToString(diffLast.get(), 2);
-						ui.AddLabel(s);
+						ui.Add(bAwengineGradual);
+						if (bAwengineAccel.get()) s = "Each iteration approximates \na percent of the Diff.";
+						else s = "Each iteration approximates one Step.";
+						ui.AddTooltip(s, bEnableToolTip);
 
-						s = "Gap Diff: \n";
-						s += ofToString(gapDiff, 2);
-						ui.AddLabel(s);
-
-						ui.Add(bGradual);
-
-						if (bGradual) {
-							s = "Diff Step: \n";
-							//s += ofToString(gapDiffStep.get(), 2);
-							ui.AddLabel(s);
-							ui.Add(gapDiffStep, OFX_IM_STEPPER_NO_LABEL);
+						ui.Indent();
+						if (bAwengineGradual) {
+							ui.Add(bAwengineAccel);
+							s = "Each iteration approximates faster, \nhalf the Diff when Force = 0.5";
+							ui.AddTooltip(s, bEnableToolTip);
+							if (bAwengineAccel) {
+								//s = "Force:";
+								//ui.AddLabel(s);
+								//ui.Add(awengineAccelForce, OFX_IM_STEPPER_NO_LABEL);
+								ui.Add(awengineAccelForce, OFX_IM_HSLIDER_MINI);
+								s = "How much percent of the total diff \nwill approximate by the step \non each iteration.";
+								ui.AddTooltip(s, bEnableToolTip);
+							}
+							if (!bAwengineAccel) {
+								s = "Diff Step:";
+								ui.AddLabel(s);
+								ui.Add(awengineDiffStep, OFX_IM_STEPPER_NO_LABEL);
+								s = "Step amount to approximate \non each iteration.";
+								ui.AddTooltip(s, bEnableToolTip);
+							}
 						}
+						if (ui.bDebug) {
+						ui.AddSpacing();
+						ui.AddSpacingSeparated();
+
+							s = "THRS Target: \n";
+							s += ofToString(awengineThresholdTarget, 2);
+							ui.AddLabel(s);
+							ui.AddSpacing();
+
+							s = "Last Diff: \n";
+							s += ofToString(awengineDiffLast, 3);
+							ui.AddLabel(s);
+							ui.AddSpacing();
+
+							s = "Gap Diff: \n";
+							s += ofToString(awengineGapDiff, 3);
+							ui.AddLabel(s);
+							//ui.AddSpacing();
+						}
+
+						ui.Unindent();
 
 						ui.Unindent();
 					}
@@ -1617,11 +1674,11 @@ private:
 				m1.pad = -1;
 				m1.thick = 2;
 				//m1.color = ofColor(ofColor::yellow, 96);
-				if (colorGrab != nullptr /*&& deviceIn_vuAwengine*/) m1.color = ofColor(*colorGrab);
+				if (colorGrab != nullptr /*&& bAwengine*/) m1.color = ofColor(*colorGrab);
 				else m1.color = ImGui::GetStyleColorVec4(ImGuiCol_SliderGrabActive);
 				marks.push_back(m1);
 
-				ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true, plotScale.get(), bDebug_Awengine.get());
+				ofxImGuiSurfing::AddPlot(deviceIn_vuValue, &marks, true, plotScale.get(), ui.bDebug.get());
 				//ImGui::Spacing();
 			}
 
@@ -1644,7 +1701,7 @@ private:
 			////ui.AddLabelBig(threshold.getName(), true);
 
 			////// change grab slider
-			////if (colorGrab != nullptr && deviceIn_vuAwengine) {
+			////if (colorGrab != nullptr && bAwengine) {
 			////	ImVec4 cg = ImVec4(*colorGrab);
 			////	auto c1 = ImGui::GetColorU32(cg);
 			////	auto c2 = ImGui::GetColorU32(ImVec4(cg.x, cg.y, cg.z, 0.5f * cg.w));
@@ -1655,7 +1712,7 @@ private:
 			////ui.Add(threshold, OFX_IM_VSLIDER_NO_NAME);
 
 			////// change grab slider
-			////if (colorGrab != nullptr && deviceIn_vuAwengine)
+			////if (colorGrab != nullptr && bAwengine)
 			////{
 			////	ImGui::PopStyleColor(2);
 			////}
@@ -1681,12 +1738,13 @@ private:
 					ui.AddSpacing();
 					ui.Add(tGateDur, b ? OFX_IM_HSLIDER_MINI : OFX_IM_HSLIDER_MINI_NO_LABELS);
 					if (b) {
-						s = "After a Bang. \nGate will be closed \nfor some time, \n";
-						s += "ignoring incoming Bangs \nuntil the Gate is released.";
+						s = "Duration \n" + ofToString(tGateDur.get(), 2) + " ms\n\n";
+						s += "After a produced BANG, \ngate will be closed \nfor some time, \n";
+						s += "ignoring incoming BANG's \nuntil the Gate is released.";
 						ui.AddTooltip(s);
 					}
 					else {
-						s = "Gate time";
+						s += "Gate Duration \n" + ofToString(tGateDur.get(), 2) + " ms";
 						ui.AddTooltip(s);
 					}
 				}
@@ -1709,6 +1767,8 @@ private:
 				//{
 				//	doResetAll();
 				//}
+
+				ui.AddSpacing();
 
 				if (ui.AddButton("RESET ALL"))
 				{
@@ -1741,6 +1801,11 @@ private:
 				//ui.AddSpacingSeparated();
 				ui.Add(player.bGui, OFX_IM_TOGGLE_ROUNDED);
 #endif
+
+				ui.Add(ui.bDebug, OFX_IM_TOGGLE_BUTTON_ROUNDED_MINI);
+				s = "Enables more internal debug: \nnotifies when threshold switches \nby the engine,\n";
+				s += "shows average plot, AWENGINE details...";
+				ui.AddTooltip(s, bEnableToolTip);
 			}
 
 			//--
@@ -1900,7 +1965,7 @@ private:
 #ifdef USE_OFXGUI_INTERNAL 
 					ui.Add(bGui_Internal, OFX_IM_TOGGLE_ROUNDED_MINI);
 #endif
-					}
+				}
 
 				//--
 
@@ -1914,9 +1979,9 @@ private:
 				//--
 
 				ui.EndWindowSpecial();
-				}
 			}
 		}
+	}
 
 	//--------------------------------------------------------------
 	void drawImGuiIn()
@@ -2141,9 +2206,9 @@ private:
 			ui.AddCombo(deviceOut_Port, outDevicesNames);
 
 			ui.EndWindowSpecial();
-	}
+		}
 #endif
-}
+	}
 
 public:
 
@@ -2399,6 +2464,9 @@ private:
 		ui.bKeys = false;
 		ui.bHelpInternal = false;
 
+		// Refresh
+		awenginePatience = awenginePatience;
+
 		// Load Settings
 		ofxSurfingHelpers::loadGroup(params_Settings, pathGlobal + "/" + pathSettings);
 
@@ -2587,8 +2655,9 @@ public:
 				///*
 				{
 					//TODO: 
-					// Smooth
+					// Smooth:
 					// Could be better inside the plot class..
+					// will require to pass a pointer with the array data!
 
 					float tempInput = input[i * nChannels];
 					float tempOutput = waveformPlot.plotIn[indexIn];
@@ -2657,7 +2726,7 @@ public:
 
 				//--
 
-				// Calculate rms
+				// Calculate RMS
 
 				//--
 
@@ -2687,7 +2756,7 @@ public:
 
 			//--
 
-			// Final rms
+			// Final RMS
 			_rms = _rms / (float)_count;
 			_rms = sqrt(_rms);
 
@@ -2922,7 +2991,7 @@ private:
 
 	//--
 
-	//--------------------------------------------------------------
+//--------------------------------------------------------------
 	void Changed_params_In(ofAbstractParameter& e)
 	{
 		if (bDISABLE_CALBACKS) return;
@@ -2932,9 +3001,9 @@ private:
 
 		if (0) {}
 
-		else if (name == deviceIn_timeAwePatience.getName())
+		else if (name == awenginePatience.getName())
 		{
-			deviceIn_timeAwengine = ofMap(deviceIn_timeAwePatience.get(), 0, 1, 1, 10, true);
+			awengineTimeDuration = ofMap(awenginePatience.get(), 0, 1, PATIENCE_MIN, PATIENCE_MAX, true);
 		}
 
 		//TODO:
@@ -3019,8 +3088,12 @@ public:
 		else return false;
 	}
 	//--------------------------------------------------------------
-	const bool isDebugAwengine() {
-		return bDebug_Awengine.get();
+	const bool isDebugAdvancedAwengine() {
+		return bAwengineAdvanced.get();
+	}
+	//--------------------------------------------------------------
+	const bool isDebug() {
+		return ui.bDebug.get();
 	}
 
 private:
@@ -3054,37 +3127,51 @@ private:
 		// waiting time could be synced with BPM tempo!
 		// this will improve sync..
 
-		thresholdTarget = deviceIn_VuMax * gapUpper;
+		awengineThresholdTarget = deviceIn_VuMax * gapUpper;
 
 		//TODO: should use percent instead of absolute values!
-		
+
+		// Diff resolution / minimum perception
 		// avoid switch if diff is small
-		gapDiff = 0.025f;
+		//awengineGapDiff = 0.025f;
 
-		float diff = abs(thresholdTarget - threshold);
-		diffLast = diff;
+		float diff = abs(awengineThresholdTarget - threshold);
+		awengineDiffLast = diff;
 
-		//gapDiffStep = 0.025f;
-
-		if (diff > gapDiff)
+		if (diff > awengineGapDiff)
 		{
-			bool bTooBig = (diff > 0.5f);//if too big make a fast jump!
-			if (bGradual && !bTooBig)
+			bool bTooBig = (diff > 0.5f);//if too big make a faster jump!
+
+			if (bAwengineGradual)
 			{
-				if (threshold > thresholdTarget)
+				if (threshold > awengineThresholdTarget)
 				{
-					threshold -= gapDiffStep;
-					if (threshold < thresholdTarget) threshold = thresholdTarget;
+					if (bAwengineAccel || bTooBig) {
+						threshold -= diff * awengineAccelForce.get();
+					}
+					else {
+						threshold -= awengineDiffStep;
+					}
+
+					//clamp
+					if (threshold < awengineThresholdTarget) threshold = awengineThresholdTarget;
 				}
 				else
 				{
-					threshold += gapDiffStep;
-					if (threshold > thresholdTarget) threshold = thresholdTarget;
+					if (bAwengineAccel || bTooBig) {
+						threshold += diff * awengineAccelForce.get();
+					}
+					else {
+						threshold += awengineDiffStep;
+					}
+
+					//clamp
+					if (threshold > awengineThresholdTarget) threshold = awengineThresholdTarget;
 				}
 			}
-			else
+			else//go direct
 			{
-				threshold = thresholdTarget;
+				threshold = awengineThresholdTarget;
 			}
 
 			bFlagDoneAwengine = true;
@@ -3095,11 +3182,9 @@ private:
 			ofLogVerbose("ofxSoundDevicesManager:doRunAwengine") << "Ignored diff: " << diff;
 		}
 
-		timeLastAwengine = ofGetElapsedTimeMillis();
+		awengineTimeLast = ofGetElapsedTimeMillis();
 
 		//--
-
-
 	}
 
 	//--------------------------------------------------------------
@@ -3110,13 +3195,24 @@ private:
 		threshold = 1;
 
 		doResetVuSmooth();
+		doResetAwengine();
+	}
+	//--------------------------------------------------------------
+	void doResetAwengine()
+	{
+		//bAwengineAdvanced = false;
+		bAwengineGradual = true;
+		awengineDiffStep = 0.025f;
+		awengineGapDiff = 0.025f;
+		bAwengineAccel = true;
+		awengineAccelForce = 0.33f;
 	}
 
 	//--------------------------------------------------------------
 	void doResetVuSmooth()
 	{
 		deviceIn_OneSmooth = 0.5;
-		deviceIn_timeAwePatience = 0.5;
+		awenginePatience = 0.5;
 		//deviceIn_Gain = .84;
 		//deviceIn_vuSmooth1 = .84;
 		//deviceIn_vuGainBoost = 3;
@@ -3203,7 +3299,7 @@ private:
 	}
 	*/
 
-		};
+};
 
 // NOTES
 //https://github.com/firmread/ofxFftExamples/blob/master/example-eq/src/ofApp.cpp#L78
