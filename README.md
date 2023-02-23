@@ -38,7 +38,7 @@ For similar basic purposes (maybe for devices selector only) you can use [ofxSou
 ### 5-example_ExtrasDetector
 ![](/5-example_ExtrasDetector/Capture.PNG)  
 
-[IG VIDEO](https://www.instagram.com/reel/Cn22iKeDfV-/?utm_source=ig_web_copy_link)  
+[Instagram VIDEO](https://www.instagram.com/p/CooVhhrjW2g/)  
 </details>
 
 ## FEATURES
