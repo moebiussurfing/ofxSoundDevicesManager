@@ -672,7 +672,7 @@ public:
 
 					// align right. 
 					// push left from right border
-					AddSpacingRightAlign(40);//ms
+					AddSpacingToRightAlign(40);//ms
 					//AddSpacingRightAlign(21);
 					ui->AddLabel(s);
 				}
@@ -682,11 +682,11 @@ public:
 
 			ui->AddSpacing();
 
-			ui->PushFont(OFX_IM_FONT_BIG);
+			ui->PushFontStyle(OFX_IM_FONT_BIG);
 			ui->Add(bPlay, OFX_IM_TOGGLE_BIG_BORDER_BLINK, 2, 0.5f);
 			ui->SameLine();
 			ui->Add(bStop, OFX_IM_BUTTON_BIG, 2, 0.5f);
-			ui->PopFont();
+			ui->PopFontStyle();
 
 			ui->AddSpacing();
 

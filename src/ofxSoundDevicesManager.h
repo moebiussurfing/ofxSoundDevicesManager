@@ -1431,9 +1431,9 @@ private:
 
 			// Big toggle
 
-			ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
+			ui.PushFontStyle(SurfingFontTypes::OFX_IM_FONT_BIG);
 			ui.Add(bAwengine, OFX_IM_TOGGLE_BIG_XXL_BORDER_BLINK);
-			ui.PopFont();
+			ui.PopFontStyle();
 
 			if (bAwengine) s = "Threshold is locked, \nand controlled by the Engine.";
 			else s = "Threshold is manual, un-locked \nand controlled by the user.";
@@ -1726,9 +1726,9 @@ private:
 
 			// Gate
 			{
-				ui.PushFont(SurfingFontTypes::OFX_IM_FONT_BIG);
+				ui.PushFontStyle(SurfingFontTypes::OFX_IM_FONT_BIG);
 				ui.Add(bBang, OFX_IM_TOGGLE_BIG_BORDER);
-				ui.PopFont();
+				ui.PopFontStyle();
 				s = "Bang deltas will be used \nexternally to trig events.";
 				ui.AddTooltip(s, bEnableToolTip);
 

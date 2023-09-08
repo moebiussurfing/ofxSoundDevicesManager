@@ -1,8 +1,8 @@
 ofxGui
 ofxImGui
 ofxSoundDevicesManager
-ofxSurfingAudioPlots
 ofxSurfingBox
 ofxSurfingHelpers
 ofxSurfingImGui
+ofxSurfingWaveplots
 ofxWindowApp

@@ -75,7 +75,7 @@ public:
 		box.setTransparent(true);
 		box.setPath(audioDevices->getPathGlobal());
 		box.setName("SurfingDetectorBox");
-		box.setMode(ofxSurfingBoxInteractive::BOX_LAYOUT::CENTER_CENTER);
+		box.setModeLayout(ofxSurfingBox::BOX_LAYOUT::CENTER_CENTER);
 		box.setup();
 
 		setup();
@@ -99,7 +99,7 @@ private:
 		float sz = 34;
 
 		// Notifier
-		string pathFont = "assets/fonts/" + ofToString(FONT_DEFAULT_FILE);
+		string pathFont = "assets/fonts/" + ofToString(OFX_IM_FONT_DEFAULT_FILE);
 		float round = 15;
 		//float round = 40;
 
@@ -395,7 +395,7 @@ public:
 
 		// Disable keyboard 
 		// when typing into any ui widget.
-		if (audioDevices->getUiPtr()->isOverInputText()) return;
+		if (audioDevices->getUiPtr()->isMouseOverInputText()) return;
 
 		ofLogNotice("ofxSoundDevicesManager") << (__FUNCTION__) << " " << char(key);
 

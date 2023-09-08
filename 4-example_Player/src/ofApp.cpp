@@ -24,7 +24,7 @@ void ofApp::audioIn(ofSoundBuffer& input) {
 void ofApp::keyPressed(int key)
 {
 	// disable keyboard when typing 
-	if (audioDevices.getUiPtr()->isOverInputText()) return;
+	if (audioDevices.getUiPtr()->isMouseOverInputText()) return;
 
 	if (key == 'g') audioDevices.setVisibleToggle();
 	

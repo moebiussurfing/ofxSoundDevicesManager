@@ -4,4 +4,5 @@ ofxSoundDevicesManager
 ofxSurfingBox
 ofxSurfingHelpers
 ofxSurfingImGui
+ofxSurfingWaveplots
 ofxWindowApp
